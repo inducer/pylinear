@@ -120,27 +120,20 @@ def _getMatrixType(data):
 def array(data, typecode = None):
   # slow, but that doesn't matter so much
   def getRank(data):
-    assert type(data) is types.ListType
-
-    if data and type(data[0]) is types.ListType:
+    try:
       return 1+getRank(data[0])
-    else:
-      return 1
+    except:
+      return 0
 
   def getBiggestType(data, prev_biggest_type = Float64):
-    assert type(data) is types.ListType
-
-    if len(data) == 0:
-      return biggest_type
-
-    if type(data[0]) is types.ListType:
-      for i in data:
+    try:
+      for i in data[0]:
         prev_biggest_type = getBiggestType(i, prev_biggest_type)
       return prev_biggest_type
-    else:
+    except:
       for i in data:
         if type(i) is types.ComplexType:
-          prev_biggest_type = Complex64
+          prev_biggest_type = Complex
       return prev_biggest_type
 
   rank = getRank(data)
