@@ -3,8 +3,8 @@ import pylinear.matrices as num
 import pylinear.algorithms as algo
 import pylinear.matrix_tools as mtools
 import pylinear.linear_algebra as la
-import unittest
 from test_tools import *
+import unittest
 
 
 
@@ -308,11 +308,48 @@ class tTestMatrices(unittest.TestCase):
         mm = num.matrixmultiply
         herm = num.hermite
 
-        self.assertSmall(mm(herm(q), mm(a, q)) - aprime)
+        for i in range(size):
+            evec = q[:,i]
+            evalue = aprime[i,i]
+            self.assert_(mtools.norm2(mm(a, evec) - evalue * evec) / mtools.norm2(evec) < 1e-8)
+
+        self.assertSmall(mm(q, mm(aprime, herm(q))) - a)
         self.assert_(after / before <= 1e-10)
+
 
     def testJacobi(self):
         self.forAllTypecodes(self.doTestJacobi)
+
+    def doTestCodiagonalization(self, typecode):
+        size = 10
+        
+        def off_diag_norm_squared(a):
+            result = 0
+            for i,j in a.indices():
+                if i != j:
+                    result += abs(a[i,j])**2
+            return result
+
+        a = mtools.makeRandomSPDMatrix(size, typecode)
+        before = math.sqrt(off_diag_norm_squared(a))
+        q, mats_post, achieved = mtools.codiagonalize([a], 1e-10)
+        aprime = mats_post[0]
+        after = math.sqrt(off_diag_norm_squared(aprime))
+
+        mm = num.matrixmultiply
+        herm = num.hermite
+
+        for i in range(size):
+            evec = q[:,i]
+            evalue = aprime[i,i]
+            self.assert_(mtools.norm2(mm(a, evec) - evalue * evec) / mtools.norm2(evec) < 1e-8)
+
+        self.assertSmall(mm(q, mm(aprime, herm(q))) - a)
+        self.assert_(after / before <= 1e-10)
+
+
+    def testCodiagonalization(self):
+        self.forAllTypecodes(self.doTestCodiagonalization)
 
 
 

@@ -17,9 +17,8 @@ def off_diag_norms_squared(matrices):
 size = 20
 tc = num.Float
 
-matrices = [mtools.makeRandomSPDMatrix(size, tc) for i in range(1)]
+matrices = [mtools.makeFullRandomMatrix(size, tc) for i in range(2)]
 
 print off_diag_norms_squared(matrices)
-q, mats = mtools.codiagonalize(matrices)
+q, mats, achieved = mtools.codiagonalize(matrices)
 print off_diag_norms_squared(mats)
-print matrices

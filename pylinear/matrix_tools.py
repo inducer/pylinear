@@ -81,6 +81,23 @@ def _conjugate(value):
 
   
 
+def _realPart(value):
+    try:
+        return value.real
+    except AttributeError:
+        return value
+
+
+
+def _imaginaryPart(value):
+    try:
+        return value.imag
+    except AttributeError:
+        return 0.
+
+
+  
+
 class tRotationShapeMatrix:
     def __init__(self, i, j, ii, ij, ji, jj):
         self.I = i
@@ -135,7 +152,16 @@ def printComplexMatrixInGrid(a):
 def _sign(x):
     return x / abs(x)
 
-def diagonalize(matrix, tolerance = 1e-10, max_iterations = None):
+def diagonalize(matrix, tolerance = 1e-10, max_iterations = None, compute_vectors = True):
+    """This executes a simple sequence of Jacobi transform on the 
+    given symmetric positive definite matrix. It returns a tuple 
+    of matrices Q, D. Q is a unitary matrix that contains the
+    eigenvectors of the given matrix in its columns.
+
+    The following invariant holds:
+    matrix = Q * D * Q^H.
+    """
+
     # Simple Jacobi
 
     rows, columns = matrix.shape
@@ -148,7 +174,10 @@ def diagonalize(matrix, tolerance = 1e-10, max_iterations = None):
                 result += abs(a[i,j])**2
         return result
 
-    q = num.identity(rows, tc)
+    if compute_vectors:
+        q = num.identity(rows, tc)
+    else:
+        q = None
     norm_before = off_diag_norm_squared(matrix)
     mymatrix = matrix.copy()
     iterations = 0
@@ -166,9 +195,11 @@ def diagonalize(matrix, tolerance = 1e-10, max_iterations = None):
                 other_sin = t * other_cos
 
                 rot = makeJacobiRotation(i, j, other_cos, other_sin)
-                rot.applyFromRight(q)
                 rot.hermite().applyFromLeft(mymatrix)
                 rot.applyFromRight(mymatrix)
+
+                if compute_vectors:
+                    rot.applyFromRight(q)
 
         iterations += 1
         if max_iterations and (iterations >= max_iterations):
@@ -179,19 +210,43 @@ def diagonalize(matrix, tolerance = 1e-10, max_iterations = None):
 
 
 def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
-    # From A. Bunse-Gerstner, R. Byers, V. Mehrmann:
-    # Numerical methods for simultaneous diagonalization
-    # SIAM J. of Matrix Analysis and Applications, Vol. 14, No. 4, 927-949
-    # (1993)
+    """This executes the generalized Jacobi process from the research
+    papers quoted below It returns a tuple Q, diagonal_matrices, 
+    achieved_tolerance.
 
-    # For the determination of the Jacobi angles, see 
-    # J.-F. Cardoso, A. Souloumiac, Jacobi Angles for Simultaneous
-    # Diagonalization, also published by SIAM.
+    Q is a unitary matrix that contains the eigenvectors of the given 
+    matrices in its columns, provided that complete diagonalization 
+    could be achieved. diagonal_matrices contains the elements of
+    `matrices', diagonalized as far as possible. achieved_tolerance,
+    lastly, represents the amount of progress made. If this value is
+    less than the `tolerance' parameter, convergence was achieved.
+    Otherwise, it was decided that progress was no longer being made
+    and the iteration was aborted or the max_iterations number was hit.
+
+    The following invariant holds for each element `matrix' in matrices
+    and `D' in diagonal_matrices.
+    and : matrix = Q * D * Q^H.
+
+    For one matrix, this reduces to the diagonalize() function in this
+    module, but is currently considerably slower. This speed difference
+    could be minimized by using a faster diagonalization process for
+    the 3x3 helper matrix used within.
+
+    Algorithm from:
+
+    A. Bunse-Gerstner, R. Byers, V. Mehrmann:
+    Numerical methods for simultaneous diagonalization
+    SIAM J. of Matrix Analysis and Applications, Vol. 14, No. 4, 927-949
+    (1993)
+
+    J.-F. Cardoso, A. Souloumiac, Jacobi Angles for Simultaneous
+    Diagonalization, also published by SIAM.
+    """
 
     rows, columns = matrices[0].shape
     tc = matrices[0].typecode()
     for mat in matrices[1:]:
-        assert mat.shape == (height, width)
+        assert mat.shape == (rows, columns)
         assert mat.typecode() == tc
 
     def off_diag_norm_squared(a):
@@ -201,82 +256,76 @@ def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
                 result += abs(a[i,j])**2
         return result
 
-    q = num.identity(rows, num.Complex)
-    frobsum = sum([frobeniusNormSquared(mat) for mat in matrices])
-    mymats = [num.asarray(mat, num.Float).copy() for mat in matrices]
+    q = num.identity(rows, tc)
+    norm_before = sum([off_diag_norm_squared(mat) for mat in matrices])
+    mymats = [mat.copy() for mat in matrices]
+    residual = sum([off_diag_norm_squared(mat) for mat in mymats])
+    biggest_progress = 1.
     iterations = 0
 
     print_all = False
 
-    while sum([off_diag_norm_squared(mat) for mat in mymats]) \
-          >= tolerance * frobsum:
-        print "HA!", sum([off_diag_norm_squared(mat) for mat in mymats]) \
-
+    while residual >= tolerance**2 * norm_before:
         for i in range(rows):
             for j in range(0,min(columns,i)):
                 if True:
-                    g = num.zeros((3,3), num.Complex)
+                    g = num.zeros((3,3), num.Float)
                     for a in mymats:
-                        h = num.array([a[i,i] - a[j,j],
-                                       a[i,j] + a[j,i],
-                                       1j * (a[j,i] - a[i,j])])
-                        g += num.outerproduct(num.conjugate(h), h)
-                    g = g.real
-                    u, diag_mat = diagonalize(g)
+                        h = num.array([_realPart(a[i,i] - a[j,j]),
+                                       _realPart(a[i,j] + a[j,i]),
+                                       -_imaginaryPart(a[j,i] - a[i,j])])
+                        g += num.outerproduct(h, h)
+
+                    try:
+                        u, diag_mat = diagonalize(g, 1e-10, 100)
+                    except RuntimeError:
+                        # convergence failed, oh well. next one.
+                        continue
 
                     max_index = None
                     for index in range(3):
-                        if (not max_index or abs(diag_mat[index,index]) > current_max) \
-                             and u[0,index] >= 0:
+                        curval = abs(diag_mat[index, index])
+                        if max_index is None or curval > current_max:
                             max_index = index
-                            current_max = abs(diag_mat[index,index])
+                            current_max = curval
 
                     if max_index is None:
                         continue
                 
                     # eigenvector belonging to largest eigenvalue
                     bev = u[:,max_index]
+
                     r = norm2(bev)
                     if (bev[0] + r)/r < 1e-7:
                         continue
 
                     cos = math.sqrt((bev[0]+r)/(2*r))
-                    sin = (bev[1] - 1j*bev[2])/ math.sqrt(2*r*(bev[0]+r))
+                    sin = bev[1] 
+                    if tc is not num.Float:
+                        sin -= 1j*bev[2]
+                    sin /= math.sqrt(2*r*(bev[0]+r))
 
-                a = mymats[0]
-                theta = (a[j,j] - a[i,i])/a[i,j]
-                t = _sign(theta)/(abs(theta)+math.sqrt(theta**2+1))
-
-                other_cos = 1 / math.sqrt(t*t + 1)
-                other_sin = t * other_cos
-
-                print cos, "vs.", other_cos
-                print sin, "vs.", other_sin
-
-                rot = makeJacobiRotation(i, j, other_cos, other_sin)
-                rot.applyFromRight(q)
+                rot = makeJacobiRotation(i, j, cos, sin)
+                rot_h = rot.hermite()
                 for mat in mymats:
-                    rot.hermite().applyFromLeft(mat)
-                    rot.applyFromRight(mat)
+                    rot.applyFromLeft(mat)
+                    rot.hermite().applyFromRight(mat)
 
-                if print_all:
-                    print i,j
-                    for mat in mymats:
-                        printComplexMatrixInGrid(mat)
-                    raw_input()
+                rot_h.applyFromRight(q)
 
-        sel = raw_input()
-        print_all = False
-        if sel == "p":
-            for mat in mymats:
-                printComplexMatrixInGrid(mat)
-        if sel == "a":
-            print_all = True
+        last_residual = residual
+        residual = sum([off_diag_norm_squared(mat) for mat in mymats])
+        progress = max(1, last_residual / residual)
+        biggest_progress = max(progress, biggest_progress)
+        if (progress - 1)/(biggest_progress-1) < 1e-5:
+            # Progress has stopped, quit.
+            return q, mymats, math.sqrt(residual/norm_before)
 
         iterations += 1
         if max_iterations and (iterations >= max_iterations):
-            raise RuntimeError, "Codiagonalization failed to converge"
-    return q, mymats
+            break
+
+    return q, mymats, math.sqrt(residual/norm_before)
 
 
 
