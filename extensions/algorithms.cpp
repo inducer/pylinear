@@ -1,5 +1,6 @@
 #include <boost/python.hpp>
 #include <cg.hpp>
+#include <bicgstab.hpp>
 #include <lu.hpp>
 #include <cholesky.hpp>
 #include <umfpack.hpp>
@@ -541,13 +542,13 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
   {
     typedef bicgstab::bicgstab_matrix_operator<ValueType> wrapped_type;
     python::class_<wrapped_type, 
-    python::bases<iterative_solver_matrix_operator<ValueType> > >
+      python::bases<iterative_solver_matrix_operator<ValueType> > >
       (("BiCGSTABMatrixOperator"+python_eltname).c_str(), 
        python::init<
-         const matrix_operator<ValueType> &, 
-         const matrix_operator<ValueType>&, 
-         unsigned, double>()
-         [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
+       const matrix_operator<ValueType> &, 
+       const matrix_operator<ValueType>&, 
+       unsigned, double>()
+       [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
   }
 
   { 
@@ -618,6 +619,21 @@ BOOST_PYTHON_MODULE(_algorithms)
 {
   exposeMatrixOperators("Float64", double());
   exposeMatrixOperators("Complex64", std::complex<double>());
+
+  // expose bicgstab only for real-valued matrices
+  
+  // expose complex adaptor only for real-valued matrices
+  {
+    typedef double ValueType;
+    typedef complex_matrix_operator_adaptor<ValueType> wrapped_type;
+    python::class_<wrapped_type, 
+      python::bases<matrix_operator<std::complex<ValueType> > > >
+      ("ComplexMatrixOperatorAdaptorFloat64", 
+       python::init<
+       const matrix_operator<ValueType> &, 
+       const matrix_operator<ValueType> &>()
+       [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
+  }
 
   exposeForAllMatrices(ublas_matrix_operator_exposer());
 

@@ -405,6 +405,47 @@ class tTestMatrices(unittest.TestCase):
     def testEigenvectors(self):
         self.forAllTypecodes(self.doTestEigenvectors)
 
+    def doTestBiCGSTAB(self, typecode):
+        # real case fails sometimes
+        size = 30
 
+        A = makeFullRandomMatrix(size, typecode)
+        b = makeRandomVector(size, typecode)
+
+        A_op = algo.makeMatrixOperator(A)
+        bicgstab_op = algo.makeBiCGSTABMatrixOperator(A_op, 40000, 1e-10)
+        #bicgstab_op.debug_level = 1
+        x = num.zeros((size,), typecode)
+
+        initial_resid = norm2(b - num.matrixmultiply(A, x))
+        bicgstab_op.apply(b, x)
+        end_resid = norm2(b - num.matrixmultiply(A, x))
+        #print typecode, end_resid/initial_resid 
+        self.assert_(end_resid/initial_resid < 1e-10)
+
+    def testBiCGSTAB(self):
+        #self.doTestBiCGSTAB(num.Complex)
+        self.forAllTypecodes(self.doTestBiCGSTAB)
+
+    def testComplexAdaptor(self):
+        size = 40
+
+        a = makeFullRandomMatrix(size, num.Complex)
+        a_op = algo.makeMatrixOperator(a)
+        a2_op = algo.adaptRealToComplexOperator(
+            algo.makeMatrixOperator(a.real), 
+            algo.makeMatrixOperator(a.imaginary))
+
+        for i in range(20):
+            b = makeRandomVector(size, num.Complex)
+            result1 = num.zeros((size,), num.Complex)
+            result2 = num.zeros((size,), num.Complex)
+            a_op.apply(b, result1)
+            a2_op.apply(b, result2)
+            self.assert_(mtools.norm2(result1 - result2) < 1e-11)
+
+
+
+            
 if __name__ == '__main__':
     unittest.main()

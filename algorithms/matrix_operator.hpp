@@ -278,6 +278,68 @@ class sum_of_matrix_operators : public matrix_operator<ValueType>
 
 
 template <typename ValueType>
+class complex_matrix_operator_adaptor : public matrix_operator<std::complex<ValueType> >
+{
+    typedef
+      matrix_operator<std::complex<ValueType> >
+      super;
+    typedef
+      matrix_operator<ValueType>
+      real_op;
+    typedef 
+      typename real_op::vector_type 
+      real_vector_type;
+
+    const real_op       &m_real, &m_imaginary;
+
+  public:
+    typedef 
+      typename super::vector_type
+      vector_type;
+    
+    complex_matrix_operator_adaptor(const real_op &real_part, const real_op &imaginary_part)
+    : m_real(real_part), m_imaginary(imaginary_part)
+    { 
+      if (m_real.size1() != m_imaginary.size1())
+        throw std::runtime_error("complex_matrix_operator_adaptor: sizes do not match");
+      if (m_real.size2() != m_imaginary.size2())
+        throw std::runtime_error("complex_matrix_operator_adaptor: sizes do not match");
+    }
+
+    unsigned size1() const
+    {
+      return m_real.size1();
+    }
+
+    unsigned size2() const
+    {
+      return m_real.size2();
+    }
+
+    void apply(const vector_type &before, vector_type &after) const
+    {
+      super::apply(before, after);
+
+      real_vector_type before_real(real(before)), before_imag(imag(before));
+      real_vector_type after_real(real(after)), after_imag(imag(after));
+      real_vector_type after_real_2(real(after)), after_imag_2(imag(after));
+
+      m_real.apply(before_real, after_real);
+      m_imaginary.apply(before_imag, after_real_2);
+      after_real_2 *= -1;
+
+      m_imaginary.apply(before_real, after_imag);
+      m_real.apply(before_imag, after_imag_2);
+
+      after = after_real + after_real_2 + 
+	std::complex<ValueType>(0,1) * (after_imag + after_imag_2);
+    }
+};
+
+
+
+
+template <typename ValueType>
 class scalar_multiplication_matrix_operator : public matrix_operator<ValueType>
 {
     typedef
