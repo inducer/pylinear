@@ -1,0 +1,76 @@
+% Complete documentation on the extended LaTeX markup used for Python
+% documentation is available in ``Documenting Python'', which is part
+% of the standard documentation for Python.  It may be found online
+% at:
+%
+%     http://www.python.org/doc/current/doc/doc.html
+
+\documentclass[hyperref]{manual}
+
+% latex2html doesn't know [T1]{fontenc}, so we cannot use that:(
+
+\usepackage{amsmath}
+\usepackage[latin1]{inputenc}
+\usepackage{textcomp}
+
+% provide a cross-linking command for the index
+%begin{latexonly}
+\newcommand*\see[2]{\protect\seename #1}
+\newcommand*{\seename}{$\to$}
+%end{latexonly}
+
+
+% mark internal comments
+% for any published version switch to the second (empty) definition of the macro!
+% \newcommand{\remark}[1]{(\textbf{Note to authors: #1})}
+\newcommand{\remark}[1]{}
+
+
+\title{PyLinear\\An Open Source project}
+
+\author{Andreas Kl\"ockner}
+
+\authoraddress{Institut f\"ur Angewandte Mathematik II, Englerstra\ss e 2\\
+   76xxx Karlsruhe}
+
+% I use date to indicate the manual-updates,
+% release below gives the matching software version.
+\date{March 10, 2004}
+\release{0.1}                 % (software) release version;
+\setshortversion{0.1}         % this is used to define the \version macro
+
+\makeindex                      % tell \index to actually write the .idx file
+
+
+
+\begin{document}
+
+\maketitle
+
+% This makes the contents more accessible from the front page of the HTML.
+\ifhtml
+\part*{General}
+\chapter*{Front Matter}
+\label{front}
+\fi
+
+
+\tableofcontents
+
+
+\chapter{Hey du!}
+and the functions that operate upon them.
+
+\label{part:numerical-python}
+
+\declaremodule{extension}{numarray}
+\moduleauthor{The numarray team}{numpy@lists.sourceforge.net}
+\modulesynopsis{Numerics}
+
+\appendix
+%begin{latexonly}
+%end{latexonly}
+
+%\input{pylinear.ind}
+
+\end{document}

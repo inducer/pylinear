@@ -92,7 +92,7 @@ namespace arpack
             throw std::runtime_error("arpack: complex pair split up");
 
           results->m_ritz_values.push_back(d[i]);
-          results->m_ritz_values.push_back(conj(d[i]));
+          results->m_ritz_values.push_back(d[i+1]);
 
           ublas::vector<std::complex<BaseType> > ritz_vector(n);
           for (unsigned j = 0; j < n; j++)
@@ -305,9 +305,24 @@ namespace arpack
       char howmny = 'A';
       int select[number_of_arnoldi_vectors]; // no-op
       complex_type d[number_of_eigenvalues+1];
-      ValueType z[number_of_eigenvalues*n];
+
+      unsigned z_size;
+      unsigned workev_size;
+      if (helpers::isComplex(ValueType()))
+      {
+        z_size = number_of_eigenvalues;
+        workev_size = 2*number_of_arnoldi_vectors;
+      }
+      else
+      {
+        z_size = number_of_eigenvalues+1;
+        workev_size = 3*number_of_arnoldi_vectors;
+      }
+
+      ValueType z[z_size*n];
       int ldz = n;
-      ValueType workev[2*number_of_arnoldi_vectors];
+
+      ValueType workev[workev_size];
 
       neupd(
           &rvec, &howmny, select, d, z, &ldz, &spectral_shift, workev,

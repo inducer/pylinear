@@ -100,12 +100,19 @@ namespace cg
       vector_type;
 
     cg_matrix_operator(const mop_type &mat, const mop_type &precon, unsigned maxit, double tol)
-      : super(maxit, tol), m_matrix(mat), m_preconditioner(precon)
-      { }
+    : super(maxit, tol), m_matrix(mat), m_preconditioner(precon)
+    { 
+      if (mat.size1() != mat.size2())
+        throw std::runtime_error("cg: matrix has to be quadratic (and sym. pos. def.) to work with cg");
+    }
 
-    unsigned size() const
+    unsigned size1() const
     {
-      return m_matrix.size();
+      return m_matrix.size2();
+    }
+    unsigned size2() const
+    {
+      return m_matrix.size1();
     }
 
     void apply(const vector_type &before, vector_type &after) const

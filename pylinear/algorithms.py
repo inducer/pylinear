@@ -35,3 +35,12 @@ def makeCGMatrixOperator(matrix_op, max_it, tol = 1e-12, precon_op = None):
 def makeUMFPACKMatrixOperator(matrix):
   my_class = _lookupClass("UMFPACKMatrixOperator", matrix.typecode())
   return my_class(matrix)
+
+def composeMatrixOperators(outer, inner):
+  if outer.typecode() != inner.typecode():
+    raise TypeError, "outer and inner have to have identical typecode"
+  my_class = _lookupClass("CompositeMatrixOperator", inner.typecode())
+  return my_class(outer, inner)
+
+
+

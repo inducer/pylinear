@@ -1,10 +1,6 @@
 TODO:
 --------------------------------------------------------------------------
-symmetric, hermitean types
-
-Optional stuff:
---------------------------------------------------------------------------
-product
+product (?)
 take, put
 concatenate?
 more ufuncs
@@ -13,6 +9,11 @@ more ufuncs
   - comparison ufuncs (convert to what if not bool?)
 explicit type coercion
 from/to numeric conversion
+
+cholesky
+save time in arpack:
+  avoid copies for multiplication
+  make it possible to take advantage of difference IDO=+/- 1
 
 QUESTIONS:
 BPL: why can't you specify call policies for attributes in Boost.Python?

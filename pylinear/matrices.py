@@ -13,42 +13,83 @@ Complex = Complex64
 
 
 # matrix types ----------------------------------------------------------------
-class DenseMatrix:
-  def name(): return "DenseMatrix"
+_TYPECODES = [
+  Float64,
+  Complex64
+  ]
+
+
+
+
+def _getTypeCodeName(typecode):
+  if typecode == matrices_internal.Float64:
+    return "Float64"
+  elif typecode == matrices_internal.Complex64:
+    return "Complex64"
+  else:
+    raise RuntimeError, "Invalid typecode specified"
+  
+
+
+class MatrixType:
+  def isA(cls, object):
+    for tc in _TYPECODES:
+      try:
+        t = eval(cls.name()+_getTypeCodeName(tc))
+        if type(object) is t:
+          return True
+      except:
+        pass
+    return False
+  isA = classmethod(isA)
+      
+class Vector(MatrixType):
+  def name(): return "Vector"
   name = staticmethod(name)
-class SparseBuildMatrix:
+class DenseMatrix(MatrixType):
+  def name(): return "Matrix"
+  name = staticmethod(name)
+class SparseBuildMatrix(MatrixType):
   def name(): return "SparseBuildMatrix"
   name = staticmethod(name)
-class SparseExecuteMatrix:
+class SparseExecuteMatrix(MatrixType):
   def name(): return "SparseExecuteMatrix"
   name = staticmethod(name)
-class SparseSymmetricExecuteMatrix:
+class SparseSymmetricExecuteMatrix(MatrixType):
   def name(): return "SparseSymmetricExecuteMatrix"
   name = staticmethod(name)
-class SparseHermitianExecuteMatrix:
+class SparseHermitianExecuteMatrix(MatrixType):
   def name(): return "SparseHermitianExecuteMatrix"
   name = staticmethod(name)
-class SparseSymmetricBuildMatrix:
+class SparseSymmetricBuildMatrix(MatrixType):
   def name(): return "SparseSymmetricBuildMatrix"
   name = staticmethod(name)
-class SparseHermitianBuildMatrix:
+class SparseHermitianBuildMatrix(MatrixType):
   def name(): return "SparseHermitianBuildMatrix"
   name = staticmethod(name)
 
 
 
 
+_TYPES = [
+  Vector,
+  DenseMatrix,
+  SparseBuildMatrix,
+  SparseExecuteMatrix,
+  SparseSymmetricExecuteMatrix,
+  SparseHermitianExecuteMatrix,
+  SparseSymmetricBuildMatrix,
+  SparseHermitianBuildMatrix 
+  ]
+
+
+
+
+
+
 # class getter ----------------------------------------------------------------
 def makeRightType(module, name_trunk, typecode):
-  name = name_trunk
-  if typecode == matrices_internal.Float64:
-    name += "Float64"
-  elif typecode == matrices_internal.Complex64:
-    name += "Complex64"
-  else:
-    raise RuntimeError, "Invalid element type requested"
-
-  return module.__dict__[name]
+  return module.__dict__[name_trunk + _getTypeCodeName(typecode)]
 
 
 
@@ -58,17 +99,19 @@ def _getMatrixClass(rank, typecode, matrix_type):
     typename = "Vector"
   else:
     if rank != 2:
-      print rank
       raise RuntimeError, "rank must be one or two"
 
     typename = matrix_type.name()
-    if matrix_type is DenseMatrix:
-      typename = "Matrix"
-    elif matrix_type is SparseBuildMatrix:
-      typename = "Matrix"
-    else:
-      raise RuntimeError, "an invalid matrix_type was specified"
   return makeRightType(matrices_internal, typename, typecode)
+
+
+
+
+def _getMatrixType(data):
+  for t in _TYPES:
+    if t.isA(data):
+      return t
+  raise RuntimeError, "Apparently not a matrix type"
 
 
 
@@ -122,6 +165,15 @@ def array(data, typecode = None):
 
 
 
+def asarray(data, typecode):
+  if data.typecode() == typecode:
+    return data
+  mat_class = _getMatrixClass(len(data.shape), typecode, _getMatrixType(data))
+  return mat_class(data)
+  
+
+
+
 def _getFilledMatrix(shape, typecode, matrix_type, fill_value):
   matrix_class = _getMatrixClass(len(shape), typecode, matrix_type)
   if len(shape) == 1:
@@ -144,5 +196,29 @@ def identity(n, typecode, matrix_type = DenseMatrix):
   return matrix_class.getIdentityMatrix(n)
 
 
+
+
+# other functions -------------------------------------------------------------
+class DenseMatrix:
+  def name(): return "DenseMatrix"
+  name = staticmethod(name)
+class SparseBuildMatrix:
+  def name(): return "SparseBuildMatrix"
+  name = staticmethod(name)
+class SparseExecuteMatrix:
+  def name(): return "SparseExecuteMatrix"
+  name = staticmethod(name)
+class SparseSymmetricExecuteMatrix:
+  def name(): return "SparseSymmetricExecuteMatrix"
+  name = staticmethod(name)
+class SparseHermitianExecuteMatrix:
+  def name(): return "SparseHermitianExecuteMatrix"
+  name = staticmethod(name)
+class SparseSymmetricBuildMatrix:
+  def name(): return "SparseSymmetricBuildMatrix"
+  name = staticmethod(name)
+class SparseHermitianBuildMatrix:
+  def name(): return "SparseHermitianBuildMatrix"
+  name = staticmethod(name)
 
 

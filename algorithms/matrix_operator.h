@@ -13,20 +13,20 @@ template <typename ValueType>
 class matrix_operator
 {
   public:
+    // types 
     typedef unsigned size_type;
     typedef ValueType value_type;
-
     typedef boost::numeric::ublas::vector<ValueType> vector_type;
 
+    // interface
     virtual ~matrix_operator() { }
 
-    virtual unsigned size() const = 0;
-
-    unsigned size1() const { return size(); }
-    unsigned size2() const { return size(); }
+    virtual unsigned size1() const = 0;
+    virtual unsigned size2() const = 0;
 
     virtual void apply(const vector_type &before, vector_type &after) const = 0;
 
+    // matrix_expression compatibility
     const matrix_operator &operator()() const
     {
       return *this;
@@ -115,13 +115,16 @@ class ublas_matrix_operator : public matrix_operator<typename MatrixType::value_
     ublas_matrix_operator(const MatrixType &m)
     : m_matrix(m)
     { 
-      if (m.size1() != m.size2())
-        throw std::runtime_error("ublas_matrix_operator: matrix must be quadratic");
     }
     
-    unsigned size() const
+    unsigned size1() const
     {
       return m_matrix.size1();
+    }
+
+    unsigned size2() const
+    {
+      return m_matrix.size2();
     }
 
     void apply(const vector_type &before, vector_type &after) const
@@ -151,7 +154,11 @@ class identity_matrix_operator : public matrix_operator<ValueType>
       : m_size(size)
       { }
 
-    unsigned size() const
+    unsigned size2() const
+    {
+      return m_size;
+    }
+    unsigned size1() const
     {
       return m_size;
     }
@@ -165,6 +172,49 @@ class identity_matrix_operator : public matrix_operator<ValueType>
 
 
 
+template <typename ValueType>
+class composite_matrix_operator : public matrix_operator<ValueType>
+{
+    typedef
+      matrix_operator<ValueType>
+      super;
+
+    const super       &m_outer, &m_inner;
+
+  public:
+    typedef 
+      typename super::vector_type
+      vector_type;
+    
+    composite_matrix_operator(const super &outer, const super &inner)
+    : m_outer(outer), m_inner(inner)
+    { 
+      if (m_inner.size1() != m_outer.size2())
+        throw std::runtime_error("composite_matrix_operator: sizes do not match");
+    }
+
+    unsigned size1() const
+    {
+      return m_outer.size1();
+    }
+
+    unsigned size2() const
+    {
+      return m_inner.size1();
+    }
+
+    void apply(const vector_type &before, vector_type &after) const
+    {
+      vector_type temp(m_inner.size1());
+      m_inner.apply(before, temp);
+      m_outer.apply(temp, after);
+    }
+};
+
+
+
+
+// generic prod() interface ---------------------------------------------------
 template <typename ValueType>
 boost::numeric::ublas::vector<ValueType> prod(
     const matrix_operator<ValueType> &mo,

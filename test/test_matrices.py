@@ -40,7 +40,7 @@ def cg():
   print norm2(b - num.matrixmultiply(A, x))
 
 def umfpack():
-  size = 1000
+  size = 100
   job = stopwatch.tJob("make matrix")
   A = makeRandomMatrix(size, num.Complex)
   job.done()
@@ -57,22 +57,104 @@ def umfpack():
 
   print norm2(b - num.matrixmultiply(A, x))
 
-def arpack():
-  size = 20
-  A = makeRandomMatrix(size, num.Float64)
+class tMyMatrixOperator(algo.MatrixOperatorFloat64):
+  def __init__(self, mat):
+    self.Matrix = mat
+
+  def typecode(self):
+    return num.Float64
+
+  def size(self):
+    w,h = self.Matrix.shape
+    return w
+
+  def apply(self, before, after):
+    after[:] = num.matrximultiply(self.Matrix, after)
+
+def matrixoperator():
+  size = 100
+
+  job = stopwatch.tJob( "make spd" )
+  A = makeRandomSPDMatrix(size, num.Float64)
+  Aop = tMyMatrixOperator(A)
+  b = makeRandomVector(size, num.Float64)
+  cg_op = algo.makeCGMatrixOperator(Aop, 1000)
+  x = num.zeros((size,), num.Float64)
+  job.done()
+
+  job = stopwatch.tJob( "cg" )
+  cg_op.apply(b, x)
+  job.done()
+
+  print norm2(b - num.matrixmultiply(A, x))
+
+  
+def arpack_generalized(typecode):
+  size = 200
+  A = makeRandomMatrix(size, typecode)
   Aop = algo.makeMatrixOperator(A)
-  Iop = algo.makeIdentityMatrixOperator(size, num.Float64)
-  #M = makeRandomSPDMatrix(size, num.Complex64)
-  #Mop = algo.makeMatrixOperator(M)
+  #Iop = algo.makeIdentityMatrixOperator(size, typecode)
 
-  results = algo.runArpack(Aop, Iop, algo.REGULAR_NON_GENERALIZED,
-    0, 2, 10, algo.LARGEST_MAGNITUDE, 1e-8, True, 1000)
+  job = stopwatch.tJob("make spd")
+  M = makeRandomSPDMatrix(size, typecode)
+  job.done()
 
-  Acomplex = num.MatrixComplex64(A)
+  Mop = algo.makeMatrixOperator(M)
+
+  job = stopwatch.tJob( "umfpack factor")
+  Minvop = algo.makeUMFPACKMatrixOperator(M)
+  job.done()
+
+  OP = algo.composeMatrixOperators(Minvop, Aop)
+
+  job = stopwatch.tJob("arpack rci")
+  results = algo.runArpack(OP, Mop, algo.REGULAR_GENERALIZED,
+    0, 5, 10, algo.LARGEST_MAGNITUDE, 1e-12, False, 0)
+  job.done()
+
+  Acomplex = num.asarray(A, num.Complex)
+  Mcomplex = num.asarray(M, num.Complex)
   for value,vector in zip(results.RitzValues, results.RitzVectors):
     print "eigenvalue:", value
-    print "eigenvector:", vector
-    print "residual:", norm2(num.matrixmultiply(Acomplex,vector) - value * vector)
+    #print "eigenvector:", vector
+    print "residual:", norm2(num.matrixmultiply(Acomplex,vector) - value * 
+      num.matrixmultiply(Mcomplex, vector))
+    print
+
+def arpack_shift_invert(typecode):
+  size = 200
+  sigma = 1
+
+  A = makeRandomMatrix(size, typecode)
+
+  job = stopwatch.tJob("make spd")
+  M = makeRandomSPDMatrix(size, typecode)
+  job.done()
+
+  Mop = algo.makeMatrixOperator(M)
+
+  job = stopwatch.tJob( "shifted matrix")
+  shifted_mat = A - sigma * M
+  job.done()
+
+  job = stopwatch.tJob( "umfpack factor")
+  shifted_mat_invop = algo.makeUMFPACKMatrixOperator(shifted_mat)
+  job.done()
+
+  OP = algo.composeMatrixOperators(shifted_mat_invop, Mop)
+
+  job = stopwatch.tJob("arpack rci")
+  results = algo.runArpack(OP, Mop, algo.SHIFT_AND_INVERT_GENERALIZED,
+    sigma, 5, 10, algo.LARGEST_MAGNITUDE, 1e-12, False, 0)
+  job.done()
+
+  Acomplex = num.asarray(A, num.Complex)
+  Mcomplex = num.asarray(M, num.Complex)
+  for value,vector in zip(results.RitzValues, results.RitzVectors):
+    print "eigenvalue:", value
+    #print "eigenvector:", vector
+    print "residual:", norm2(num.matrixmultiply(Acomplex,vector) - value * 
+      num.matrixmultiply(Mcomplex, vector))
     print
 
 
@@ -80,10 +162,19 @@ def arpack():
 
   
 
-#elementary()
-#cg()
-#umfpack()
-arpack()
+print "-------------------------------------"
+elementary()
+print "-------------------------------------"
+cg()
+print "-------------------------------------"
+umfpack()
+print "-------------------------------------"
+# pending fix from BPL gurus.
+#matrixoperator()
+print "-------------------------------------"
+arpack_generalized(num.Complex)
+print "-------------------------------------"
+arpack_shift_invert(num.Float)
   
 
 

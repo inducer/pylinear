@@ -6,9 +6,9 @@
 
 
 
-// shape accessor -------------------------------------------------------------
+// shape accessors ------------------------------------------------------------
 template <typename MatrixType>
-static python::object getShape(const MatrixType &m)
+inline python::object getShape(const MatrixType &m)
 { 
   return python::make_tuple(m.size1(), m.size2());
 }
@@ -32,9 +32,13 @@ class matrix_operator_wrapper : public matrix_operator<ValueType>
     { 
     }
 
-    unsigned size() const
+    unsigned size1() const
     {
-      return python::call_method<unsigned>(m_self, "size");
+      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[0]);
+    }
+    unsigned size2() const
+    {
+      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[1]);
     }
     void apply(const vector_type &before, vector_type &after) const
     {
@@ -60,9 +64,13 @@ class algorithm_matrix_operator_wrapper : public algorithm_matrix_operator<Value
     { 
     }
 
-    unsigned size() const
+    unsigned size1() const
     {
-      return python::call_method<unsigned>(m_self, "size");
+      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[0]);
+    }
+    unsigned size2() const
+    {
+      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[1]);
     }
     void apply(const vector_type &before, vector_type &after) const
     {
@@ -88,9 +96,13 @@ class iterative_solver_matrix_operator_wrapper : public iterative_solver_matrix_
     { 
     }
 
-    unsigned size() const
+    unsigned size1() const
     {
-      return python::call_method<unsigned>(m_self, "size");
+      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[0]);
+    }
+    unsigned size2() const
+    {
+      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[1]);
     }
     void apply(const vector_type &before, vector_type &after) const
     {
@@ -217,7 +229,7 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
 {
   {
     typedef matrix_operator<ValueType> wrapped_type;
-    python::class_<wrapped_type, matrix_operator_wrapper<ValueType> >
+    python::class_<wrapped_type, matrix_operator_wrapper<ValueType>, noncopyable >
       (("MatrixOperator"+python_eltname).c_str(), python::no_init)
       .add_property("shape", &getShape<wrapped_type>)
       .def("typecode", &typecode<wrapped_type>)
@@ -229,7 +241,7 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
     typedef algorithm_matrix_operator<ValueType> wrapped_type;
     python::class_<wrapped_type, 
     python::bases<matrix_operator<ValueType> >,
-    algorithm_matrix_operator_wrapper<ValueType> >
+    algorithm_matrix_operator_wrapper<ValueType>, noncopyable >
       (("AlgorithmMatrixOperator"+python_eltname).c_str(), python::no_init)
       .add_property("debug_level", &wrapped_type::getDebugLevel, &wrapped_type::setDebugLevel)
       .add_property("last_iteration_count", &wrapped_type::getLastIterationCount)
@@ -240,7 +252,7 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
     typedef iterative_solver_matrix_operator<ValueType> wrapped_type;
     python::class_<wrapped_type, 
     python::bases<algorithm_matrix_operator<ValueType> >,
-    iterative_solver_matrix_operator_wrapper<ValueType> >
+    iterative_solver_matrix_operator_wrapper<ValueType>, noncopyable >
       (("IterativeSolverMatrixOperator"+python_eltname).c_str(), python::no_init)
       .add_property("max_iterations", &wrapped_type::getMaxIterations, &wrapped_type::setMaxIterations)
       .add_property("tolerance", &wrapped_type::getTolerance, &wrapped_type::setTolerance)
@@ -256,6 +268,17 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
   }
 
   {
+    typedef composite_matrix_operator<ValueType> wrapped_type;
+    python::class_<wrapped_type, 
+    python::bases<matrix_operator<ValueType> > >
+      (("CompositeMatrixOperator"+python_eltname).c_str(), 
+       python::init<
+         const matrix_operator<ValueType> &, 
+         const matrix_operator<ValueType> &>()
+         [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
+  }
+
+  {
     typedef cg::cg_matrix_operator<ValueType> wrapped_type;
     python::class_<wrapped_type, 
     python::bases<iterative_solver_matrix_operator<ValueType> > >
@@ -267,8 +290,7 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
          [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
   }
 
-  {
-    typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
+  { typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
     typedef 
       python::class_<wrapped_type, 
       python::bases<algorithm_matrix_operator<ValueType> >, boost::noncopyable>    
