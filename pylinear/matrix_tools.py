@@ -12,9 +12,9 @@ def vandermonde(vector, degree = None):
   if degree is None:
     degree = size
 
-  mat = num.zeros((size, degree), vector.typecode())
+  mat = num.zeros((size, degree+1), vector.typecode())
   for i,v in zip(range(size), vector):
-    for power in range(degree):
+    for power in range(degree+1):
       mat[i,power] = v**power
   return mat
 
