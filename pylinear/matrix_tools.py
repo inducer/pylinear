@@ -1,4 +1,4 @@
-import math, random, types
+import math, cmath, random, types
 import pylinear.matrices as num
 import pylinear.linear_algebra as la
 
@@ -374,6 +374,20 @@ def matrixExp(a, eps = 1e-15):
         
     
 
+def matrixExpByDiagonalization(a, eps = 1e-15):
+    # a has to be symmetric
+    h,w = a.shape
+    assert h == w
+
+    q, d = diagonalize(a)
+    for i in range(h):
+        d[i,i] = cmath.exp(d[i,i])
+    mm = num.matrixmultiply
+    return mm(q, mm(d, hermite(q)))
+    
+        
+    
+
 def delta(x,y):
     if x == y:
         return 1
@@ -384,7 +398,7 @@ def delta(x,y):
 
 
 def sp(x,y):
-    return num.innerproduct(y,num.conjugate(x))
+    return num.innerproduct(x, num.conjugate(y))
 
 
 

@@ -211,18 +211,34 @@ def identity(n, typecode, matrix_type = DenseMatrix):
 # other functions -------------------------------------------------------------
 def diagonal(mat, offset = 0):
     h,w = mat.shape
-    if offset >= min(h,w):
-        raise ValueError, "diagonal: invalid offset"
-    if h>w:
-        diag_length = 0
-        pass
+
+    result = []
+    if offset >= 0:
+        # upwards offset, i.e. to the right
+        post_end_row = min(offset+h, w)
+        length = post_end_row - offset
+        result = zeros((length,),  mat.typecode())
+        if length < 0:
+            raise ValueError, "diagonal: invalid offset"
+        
+        for i in range(length):
+            result[i] = mat[i, i+offset]
+        return result
     else:
-        pass
-
-    raise RuntimeError, "diagonal: not yet implemented"
-
+        # downwards offset
+        offset = - offset
+        post_end_col = min(offset+w, h)
+        length = post_end_col - offset
+        result = zeros((length,),  mat.typecode())
+        if length < 0:
+            raise ValueError, "diagonal: invalid offset"
+        
+        for i in range(length):
+            result[i] = mat[i+offset, i]
+        return result
 
  
+
 
 def take(mat, indices, axis = 0):
     return array([mat[i] for i in indices], mat.typecode())
