@@ -65,7 +65,7 @@ def determinant(mat):
   if h == 2:
     return mat[0,0]*mat[1,1] - mat[1,0]*mat[0,1]
   else:
-    try
+    try:
       l,u, permut, sign = algo.lu(mat)
 
       product = 1
