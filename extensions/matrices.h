@@ -21,32 +21,8 @@ using boost::python::def;
 
 
 
-// typecode support -----------------------------------------------------------
-enum SupportedElementTypes {
-  Float64,
-  Complex64,
-};
-
-
-
-
-inline SupportedElementTypes getTypeCode(double) { return Float64; }
-inline SupportedElementTypes getTypeCode(std::complex<double>) { return Complex64; }
-
-
-
-
 namespace {
 // universal functions --------------------------------------------------------
-template <typename MatrixType>
-inline SupportedElementTypes typecode(const MatrixType &)
-{ 
-  return getTypeCode(typename MatrixType::value_type());
-}
-
-
-
-
 template <typename MatrixType>
 inline MatrixType *copyNew(const MatrixType &m)
 {

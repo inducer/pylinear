@@ -8,6 +8,7 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include "helpers.h"
+#include "matrix_operator.h"
 
 
 
@@ -19,11 +20,14 @@ namespace cg
 
 
 
-  template <typename MatrixExpression, typename VectorTypeX, typename VectorExpressionB>
-  static void cg(
+  template <typename MatrixExpression, typename PreconditionerExpression,
+  typename VectorTypeX, typename VectorExpressionB>
+  void solveCG(
       const MatrixExpression &A, 
+      const PreconditionerExpression &preconditioner, 
       VectorTypeX &x,
-      const VectorExpressionB &b, double tol, unsigned max_iterations)
+      const VectorExpressionB &b, double tol, unsigned max_iterations, 
+      unsigned *iteration_count = NULL, unsigned debug_level = 0)
   {
     typedef 
       typename MatrixExpression::value_type
@@ -31,8 +35,6 @@ namespace cg
 
     if (A().size1() != A().size2())
       throw std::runtime_error("cg: A is not quadratic");
-
-    identity_matrix<v_t> preconditioner(A.size1(),A.size2());
 
     // typed up from J.R. Shewchuck, 
     // An Introduction to the Conjugate Gradient Method
@@ -65,12 +67,57 @@ namespace cg
       v_t beta = delta_new / delta_old;
       d = s + beta * d;
 
+      if (debug_level && iterations % 20 == 0)
+        std::cout << delta_new << std::endl;
+
       iterations++;
     }
 
     if ( iterations == max_iterations)
       throw std::runtime_error("cg failed to converge");
+
+    if (iteration_count)
+      *iteration_count = iterations;
   }
+
+
+
+
+  template <typename ValueType>
+  class cg_matrix_operator : public iterative_solver_matrix_operator<ValueType>
+  {
+    typedef matrix_operator<ValueType> mop_type;
+    const mop_type &m_matrix;
+    const mop_type &m_preconditioner;
+
+    typedef
+      iterative_solver_matrix_operator<ValueType>
+      super;
+
+  public:
+    typedef 
+      typename super::vector_type
+      vector_type;
+
+    cg_matrix_operator(const mop_type &mat, const mop_type &precon, unsigned maxit, double tol)
+      : super(maxit, tol), m_matrix(mat), m_preconditioner(precon)
+      { }
+
+    unsigned size1() const
+    {
+      return m_matrix.size1();
+    }
+    unsigned size2() const
+    {
+      return m_matrix.size2();
+    }
+
+    void apply(const vector_type &before, vector_type &after) const
+    {
+      cg::solveCG(m_matrix, m_preconditioner, after, before, m_tolerance,
+          m_maxIterations, const_cast<unsigned *>(&m_lastIterationCount), m_debugLevel);
+    }
+  };
 }
 
 

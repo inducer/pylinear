@@ -37,7 +37,7 @@ setup(name="PyLinear",
           extra_compile_args = extra_compile_args,
           ),
         Extension(
-          "algorithms", 
+          "algorithms_internal", 
           [
             "extensions/algorithms.cpp", 
           ],

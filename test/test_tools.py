@@ -87,23 +87,17 @@ def makeRandomONB(size, typecode):
 
 
 def makeRandomOrthogonalMatrix(size, typecode):
-  job = stopwatch.tJob( "random vec" )
   vectors = []
   for i in range(size):
     v = num.zeros((size,), typecode)
     writeRandomVector(v)
     vectors.append(v)
-  job.done()
 
-  job = stopwatch.tJob( "ortho" )
   orth_vectors = orthogonalize(vectors)
-  job.done()
 
-  job = stopwatch.tJob( "reinsert" )
   mat = num.zeros((size,size), typecode)
   for i in range(size):
     mat[:,i] = orth_vectors[i]
-  job.done()
 
   return mat
 
@@ -142,9 +136,10 @@ def makeRandomMatrix(size, typecode):
 
   
 def _test():
-  size = 100
+  size = 10
   job = stopwatch.tJob( "make spd" )
-  A = makeRandomSPDMatrix(size, num.Complex64)
+  for i in range(100):
+    A = makeRandomSPDMatrix(size, num.Complex64)
   job.done()
   #print A
 

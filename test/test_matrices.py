@@ -23,16 +23,18 @@ def elementary():
   print num.matrixmultiply(mat, mat)
 
 def solvers():
-  size = 100
+  size = 1000
 
   job = stopwatch.tJob( "make spd" )
   A = makeRandomSPDMatrix(size, num.Complex64)
+  Aop = algo.makeMatrixOperator(A)
   b = makeRandomVector(size, num.Complex64)
+  cg_op = algo.makeCGMatrixOperator(Aop, 1000)
   x = num.zeros((size,), num.Complex64)
   job.done()
 
   job = stopwatch.tJob( "cg" )
-  algo.cg(A, x, b, 1e-12, 1000)
+  cg_op.apply(b, x)
   job.done()
 
   print norm2(b - num.matrixmultiply(A, x))
