@@ -1414,7 +1414,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
     // stringification
-    .def("__str__", &stringify<WrappedClass>)
+    .def("__repr__", &stringify<WrappedClass>) // FIXME: doesn't quite conform to requirements
 
     // unary negation
     .def("__neg__", negateOp<WrappedClass>)
