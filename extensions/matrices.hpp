@@ -529,7 +529,7 @@ struct sparse_pickle_suite : python::pickle_suite
     while (first != last)
     {
       result.append(python::make_tuple(getPythonIndexTuple(first.index()),
-				       *first));
+				       typename MatrixType::value_type(*first)));
 	first++;
     }
 
@@ -808,9 +808,9 @@ struct realWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static result_type *apply(const MatrixType &m)
+  inline static python::object apply(const MatrixType &m)
   {
-    return new result_type(real(m));
+    return python::object(new result_type(real(m)));
   }
 };
 
@@ -825,9 +825,9 @@ struct imagWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static result_type *apply(const MatrixType &m)
+  inline static python::object apply(const MatrixType &m)
   {
-    return new result_type(imag(m));
+    return python::object(new result_type(imag(m)));
   }
 };
 
@@ -1336,15 +1336,14 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
     typename WrappedClass::value_type
     value_type;
 
-  def("conjugate", conjugateWrapper<WrappedClass>::apply,
-      python::return_value_policy<python::manage_new_object>());
-  def("real", realWrapper<WrappedClass>::apply,
-      python::return_value_policy<python::manage_new_object>());
-  def("imaginary", imagWrapper<WrappedClass>::apply,
-      python::return_value_policy<python::manage_new_object>());
+  pyc
+    .def("_ufunc_conjugate", conjugateWrapper<WrappedClass>::apply,
+	python::return_value_policy<python::manage_new_object>())
+    .add_property("real", realWrapper<WrappedClass>::apply)
+    .add_property("imaginary", imagWrapper<WrappedClass>::apply);
 
 #define MAKE_UNARY_UFUNC(f) \
-  def(#f, ufuncs::unary_ufunc_applicator<WrappedClass, \
+  pyc.def("_ufunc_" #f, ufuncs::unary_ufunc_applicator<WrappedClass, \
       ufuncs::simple_function_adapter_##f<value_type> >::apply, \
       python::return_value_policy<python::manage_new_object>());
   MAKE_UNARY_UFUNC(cos);
@@ -1365,10 +1364,10 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 #undef MAKE_UNARY_UFUNC
 
 #define MAKE_BINARY_UFUNC(NAME, f) \
-  def(NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
+  pyc.def("_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
       f<value_type> >::apply, \
       python::return_value_policy<python::manage_new_object>()); \
-  def(NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
+  pyc.def("_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
       f<value_type> >::applyReversed, \
       python::return_value_policy<python::manage_new_object>());
   MAKE_BINARY_UFUNC("add", std::plus);
@@ -1564,16 +1563,16 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
   // products
 
   pyclass
-    .def("transpose", transposeMatrix<WrappedClass>,
+    .def("_internal_transpose", transposeMatrix<WrappedClass>,
 	 python::return_value_policy<python::manage_new_object>())
-    .def("hermite", hermiteMatrix<WrappedClass>,
+    .def("_internal_hermite", hermiteMatrix<WrappedClass>,
 	 python::return_value_policy<python::manage_new_object>())
 
-    .def("multiplyVector", multiplyVector<WrappedClass>,
+    .def("_internal_multiplyVector", multiplyVector<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
-    .def("premultiplyVector", premultiplyVector<WrappedClass>,
+    .def("_internal_premultiplyVector", premultiplyVector<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
-    .def("multiplyMatrix", multiplyMatrix<WrappedClass>,
+    .def("_internal_multiplyMatrix", multiplyMatrix<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
 
     .def("addScattered", addScattered<WrappedClass>)
