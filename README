@@ -27,3 +27,6 @@ UBLAS: Permutation matrices
 UBLAS: Toeplitz matrices
 UBLAS: Vandermonde matrices
 UBLAS: lu doesn't have any headers included
+UBLAS: insert discrepance: coordinate_matrix vs. everybody else.
+UBLAS: Warum ist end2 nicht das Ende der Matrix?
+UBLAS: Was ist rank bei find1/2?

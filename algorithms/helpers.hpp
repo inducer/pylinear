@@ -81,6 +81,25 @@ inline bool isHermitian(const managed_hermitian_adaptor<T> &)
 
 
 
+// isCoordinateMatrix ---------------------------------------------------------
+template <typename MatrixType>
+inline bool isCoordinateMatrix(const MatrixType &)
+{
+  return false;
+}
+
+
+
+
+template <typename T>
+inline bool isCoordinateMatrix(const ublas::coordinate_matrix<T> &)
+{
+  return true;
+}
+
+
+
+
 // conjugate ------------------------------------------------------------------
 template <typename T>
 inline T conjugate(const T &x)
@@ -147,7 +166,7 @@ void fill_matrix(MatrixType &me,
     first = generic_ublas::begin(me), last = generic_ublas::end(me);
   
   while (first != last)
-    *first = value;
+    *first++ = value;
 }
 
 

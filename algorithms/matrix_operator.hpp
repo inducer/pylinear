@@ -5,6 +5,7 @@
 
 
 #include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/operation.hpp>
 
 
 
@@ -24,6 +25,8 @@ class matrix_operator
     virtual unsigned size1() const = 0;
     virtual unsigned size2() const = 0;
 
+    /** Before using apply, after must have the correct size.
+     */
     virtual void apply(const vector_type &before, vector_type &after) const = 0;
 
     // matrix_expression compatibility
@@ -129,7 +132,9 @@ class ublas_matrix_operator : public matrix_operator<typename MatrixType::value_
 
     void apply(const vector_type &before, vector_type &after) const
     {
-      after = prod(m_matrix, before);
+      using namespace boost::numeric::ublas;
+      //after = prod(m_matrix, before);
+      axpy_prod(m_matrix, before, after, /*init*/ true);
     }
 };
 
@@ -220,7 +225,7 @@ boost::numeric::ublas::vector<ValueType> prod(
     const matrix_operator<ValueType> &mo,
     const boost::numeric::ublas::vector<ValueType> &vec)
 {
-  boost::numeric::ublas::vector<ValueType> result;
+  boost::numeric::ublas::vector<ValueType> result(mo.size1());
   mo.apply(vec, result);
   return result;
 }

@@ -438,7 +438,7 @@ static void exposeArpack(const std::string &python_valuetypename, ValueType)
 
 
 // main -----------------------------------------------------------------------
-BOOST_PYTHON_MODULE(algorithms_internal)
+BOOST_PYTHON_MODULE(_algorithms)
 {
   exposeMatrixOperators("Float64", double());
   exposeMatrixOperators("Complex64", std::complex<double>());

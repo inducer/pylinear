@@ -1,7 +1,6 @@
 import types
 import _matrices
-import _matrices_special
-from matrices_internal import *
+from _matrices import *
 
 
 

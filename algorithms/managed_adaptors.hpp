@@ -62,6 +62,11 @@ private boost::base_from_member<std::auto_ptr<AdaptedMatrix> >,
     super::operator()(i1, i2) = val;
   }
 
+  void push_back(size_type i1, size_type i2, const value_type &val)
+  {
+    super::operator()(i1, i2) = val;
+  }
+
   managed_symmetric_adaptor &operator=(const managed_symmetric_adaptor &m)
   {
     *m_data::member.operator=(*m.member);
@@ -126,6 +131,11 @@ private boost::base_from_member<std::auto_ptr<AdaptedMatrix> >,
   }
 
   void insert(size_type i1, size_type i2, const value_type &val)
+  {
+    super::operator()(i1, i2) = val;
+  }
+
+  void push_back(size_type i1, size_type i2, const value_type &val)
   {
     super::operator()(i1, i2) = val;
   }

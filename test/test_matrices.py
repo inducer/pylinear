@@ -13,6 +13,7 @@ def elementary():
 
   vec = num.zeros((3,), num.Complex64)
   for i in vec.indices():
+    print i
     vec[i] = 17
   mat[0] = vec
 
@@ -29,7 +30,7 @@ def elementary():
 def addScattered(typecode):
   a = num.zeros((10,10), typecode)
   vec = num.array([3., 5.])
-  b = num.outerproduct(vec, num.array([2., 4.]))
+  b = num.asarray(num.outerproduct(vec, num.array([2., 4.])), typecode)
   a.addScattered([5,7], [1,3], b)
   print a
 
@@ -252,7 +253,7 @@ def sparse(typecode):
     return count
 
   size = 100
-  A1 = makeRandomMatrix(100, typecode, num.SparseBuildMatrix)
+  A1 = makeRandomMatrix(size, typecode, num.SparseBuildMatrix)
   A2 = num.asarray(A1, typecode, num.SparseExecuteMatrix)
   print "sparse:", countElements(A1), countElements(A2)
 
@@ -277,36 +278,51 @@ def determinant(typecode):
 
 
 def testAll(typecode):
+  print "elementary:"
   elementary()
   print "-------------------------------------"
+  print "addScattered:"
   addScattered(typecode)
   print "-------------------------------------"
+  print "broadcast:"
+  broadcast(num.Float)
+  print "-------------------------------------"
+  print "ufunc:"
   ufunc()
   print "-------------------------------------"
+  print "cg:"
   cg(typecode)
   print "-------------------------------------"
+  print "umfpack:"
   umfpack(typecode)
   print "-------------------------------------"
   # pending fix from BPL gurus.
   #matrixoperator()
   print "-------------------------------------"
+  print "arpack:"
   arpack_generalized(typecode)
   print "-------------------------------------"
+  print "arpack_shift_invert:"
   arpack_shift_invert(typecode)
   print "-------------------------------------"
+  print "cholesky:"
   cholesky(typecode)
   print "-------------------------------------"
+  print "lu:"
   lu(typecode)
   print "-------------------------------------"
+  print "sparse:"
   sparse(typecode)
   print "-------------------------------------"
+  print "inverse:"
   inverse(typecode)
   print "-------------------------------------"
+  print "determinant:"
   determinant(typecode)
 
 
 
 
-broadcast(num.Float)
-#testAll(num.Float)
-#testAll(num.Complex)
+testAll(num.Float)
+print "-------------------------------------"
+testAll(num.Complex)

@@ -17,6 +17,12 @@ namespace generic_ublas {
   namespace ublas = boost::numeric::ublas;
   namespace mpl = boost::mpl;
 
+  namespace detail
+  {
+    class begin_tag { };
+    class end_tag { };
+  }
+
 
 
 
@@ -39,14 +45,19 @@ namespace generic_ublas {
     minilist(const value_type &v0)
     : m_size(1)
     { 
-      m_list[0] = v1;
+      m_list[0] = v0;
     }
 
     minilist(const value_type &v0, const value_type &v1)
     : m_size(2)
     { 
-      m_list[0] = v1;
-      m_list[1] = v2;
+      m_list[0] = v0;
+      m_list[1] = v1;
+    }
+
+    size_type size() const
+    {
+      return m_size;
     }
 
     void push_back(const value_type &v)
@@ -79,6 +90,10 @@ namespace generic_ublas {
     struct is_vector<ublas::vector<ValueType> > { typedef mpl::true_ type; };
   template <typename WrappedVector>
     struct is_vector<ublas::vector_slice<WrappedVector> > { typedef mpl::true_ type; };
+  template <typename WrappedVector>
+    struct is_vector<ublas::matrix_row<WrappedVector> > { typedef mpl::true_ type; };
+  template <typename WrappedVector>
+    struct is_vector<ublas::matrix_column<WrappedVector> > { typedef mpl::true_ type; };
 
 
 
@@ -86,9 +101,10 @@ namespace generic_ublas {
   // matrix_iterator ----------------------------------------------------------
   template <typename MatrixType, typename _is_vector = typename is_vector<MatrixType>::type>
   class matrix_iterator :  public boost::iterator_facade<
-    matrix_iterator<MatrixType>, 
-    typename MatrixType::value_type,
-    boost::forward_traversal_tag>
+    matrix_iterator<MatrixType>,  // Base
+    typename MatrixType::value_type, // Value
+    boost::forward_traversal_tag, // CategoryOrTraversal
+    typename MatrixType::iterator2::reference> // Reference
   {
     typedef typename MatrixType::iterator1 it1_t;
     typedef typename MatrixType::iterator2 it2_t;
@@ -99,9 +115,18 @@ namespace generic_ublas {
   public:
     matrix_iterator() { }
 
-    matrix_iterator(const it1_t &it1, const it2_t &it2)
-    : m_it1(it1), m_it2(it2)
+    matrix_iterator(MatrixType &mat, detail::begin_tag)
+    : m_it1(mat.begin1()), m_it2(m_it1.begin())
     { }
+
+    matrix_iterator(MatrixType &mat, detail::end_tag)
+    : m_it1(mat.end1()), m_it2(m_it1.begin())
+    { }
+
+    minilist<unsigned> index() const
+    {
+      return minilist<unsigned>(m_it2.index1(), m_it2.index2());
+    }
 
   private:
     friend class boost::iterator_core_access;
@@ -121,14 +146,9 @@ namespace generic_ublas {
       return m_it1 == other.m_it1 && m_it2 == other.m_it2;
     }
 
-    typename MatrixType::value_type &dereference() const 
+    typename MatrixType::iterator2::reference dereference() const 
     {
       return *m_it2; 
-    }
-
-    minilist<unsigned> index() const
-    {
-      return minilist<unsigned>(m_it1.index1(), m_it2.index2());
     }
   };
 
@@ -140,18 +160,28 @@ namespace generic_ublas {
     matrix_iterator<MatrixType>, 
     typename MatrixType::iterator,
     typename MatrixType::value_type,
-    boost::forward_traversal_tag>
+    boost::forward_traversal_tag,
+    typename MatrixType::iterator::reference>
   {
     typedef
       boost::iterator_adaptor<
       matrix_iterator<MatrixType>, 
       typename MatrixType::iterator,
       typename MatrixType::value_type,
-      boost::forward_traversal_tag>
+      boost::forward_traversal_tag,
+      typename MatrixType::iterator::reference>
         super;
 
   public:
     matrix_iterator() { }
+
+    matrix_iterator(MatrixType &mat, detail::begin_tag)
+    : super(mat.begin())
+    { }
+
+    matrix_iterator(MatrixType &mat, detail::end_tag)
+    : super(mat.end())
+    { }
 
     matrix_iterator(const typename MatrixType::iterator &it)
     : super(it)
@@ -169,143 +199,164 @@ namespace generic_ublas {
 
 
 
-  template <typename AE>
-  matrix_iterator<AE>
-  begin(ublas::matrix_expression<AE> &mat)
+  template <typename MatrixType>
+  matrix_iterator<MatrixType> begin(MatrixType &mat)
   {
-    return matrix_iterator<AE>
-      (mat().begin1(), mat().begin1().begin());
+    return matrix_iterator<MatrixType>(mat, detail::begin_tag());
   }
 
-  template <typename AE>
-  matrix_iterator<AE>
-  end(ublas::matrix_expression<AE> &mat)
+  template <typename MatrixType>
+  matrix_iterator<MatrixType> end(MatrixType &mat)
   {
-    return matrix_iterator<AE>
-      (mat().end1(), mat().end1().end());
-  }
-
-  template <typename AE>
-  matrix_iterator<AE>
-  begin(ublas::vector_expression<AE> &mat)
-  {
-    return matrix_iterator<AE>(mat().begin());
-  }
-
-  template <typename AE>
-  matrix_iterator<AE>
-  end(ublas::vector_expression<AE> &mat)
-  {
-    return matrix_iterator<AE>(mat().end());
+    return matrix_iterator<MatrixType>(mat, detail::end_tag());
   }
 
 
 
 
   // shapes and subscripting --------------------------------------------------
-  template <typename AE>
-  minilist<unsigned> getShape(const ublas::matrix_expression<AE> &mat)
+  namespace detail
   {
-    return minilist<unsigned>(mat.size1(), mat.size2());
+    template <typename MatrixType>
+    inline minilist<unsigned> getShape(const MatrixType &mat, mpl::false_)
+    {
+      return minilist<unsigned>(mat.size1(), mat.size2());
+    }
+
+    template <typename MatrixType>
+    inline minilist<unsigned> getShape(const MatrixType &mat, mpl::true_)
+    {
+      return minilist<unsigned>(mat.size());
+    }
   }
 
-  template <typename AE>
-  minilist<unsigned> getShape(const ublas::vector_expression<AE> &mat)
-  {
-    return minilist<unsigned>(mat.size());
-  }
-
-  template <typename AE>
-  void setShape(ublas::matrix_expression<AE> &mat,
-      const minilist<unsigned> &shape)
-  {
-    mat.resize(shape[0], shape[1]);
-  }
-
-  template <typename AE>
-  void setShape(ublas::vector_expression<AE> &mat,
-      const minilist<unsigned> &shape)
-  {
-    mat.resize(shape[0]);
-  }
-
-  template <typename AE>
-  AE *newWithShape(const ublas::matrix_expression<AE> &,
-      const minilist<unsigned> &shape)
-  {
-    return new AE(shape[0], shape[1]);
-  }
-
-  template <typename AE>
-  AE *newWithShape(const ublas::vector_expression<AE> &,
-      const minilist<unsigned> &shape)
-  {
-    return new AE(shape[0]);
-  }
-
-  template <typename AE>
-  void insert(const ublas::vector_expression<AE> &m,
-      const minilist<unsigned> &index,
-      const typename AE::value_type &value
-      )
-  {
-    m.insert(index[0], value);
-  }
-
-  template <typename AE>
-  void insert(const ublas::matrix_expression<AE> &m,
-      const minilist<unsigned> &index,
-      const typename AE::value_type &value
-      )
-  {
-    m.insert(index[0], index[1], value);
-  }
-
-
-
-
-  /*
   template <typename MatrixType>
-  class full_matrix_iterator :  public boost::iterator_facade<
-    matrix_iterator, 
-    typename MatrixType::value_type,
-    boost::forward_traversal_tag>
+  inline minilist<unsigned> getShape(const MatrixType &mat)
   {
-    MatrixType *m_matrix;
-    unsigned m_index1,m_index2;
+    return detail::getShape(mat, typename is_vector<MatrixType>::type());
+  }
 
-  public:
-    matrix_iterator() { }
 
-    matrix_iterator(MatrixType &mat, unsigned i1, unsigned i2)
-    : m_matrix(&mat), m_index1(i1), m_index2(i2)
-    { }
 
-  private:
-    friend class boost::iterator_core_access;
 
-    void increment() 
+  namespace detail
+  {
+    template <typename MatrixType>
+    inline void setShape(MatrixType &mat, const minilist<unsigned> &shape, mpl::false_)
     {
-      m_index2++;
-      if (m_index2 == m_i1.end())
-      {
-        m_it1++;
-        m_it2 = m_it1.begin();
-      }
+      mat.resize(shape[0], shape[1]);
     }
 
-    bool equal(matrix_iterator const& other) const
+    template <typename MatrixType>
+    inline void setShape(MatrixType &mat, const minilist<unsigned> &shape, mpl::true_)
     {
-      return m_matrix == other.m_matrix && m_index1 == other.m_index1 &&
-        m_index2 == other.m_index2;
+      mat.resize(shape[0]);
+    }
+  }
+
+  template <typename MatrixType>
+  inline void setShape(MatrixType &mat, const minilist<unsigned> &shape)
+  {
+    detail::setShape(mat, shape, typename is_vector<MatrixType>::type());
+  }
+
+
+
+
+
+
+  namespace detail
+  {
+    template <typename MatrixType>
+    inline MatrixType *newWithShape(const minilist<unsigned> &shape, mpl::false_)
+    {
+      return new MatrixType(shape[0], shape[1]);
     }
 
-    node_base& dereference() const 
+    template <typename MatrixType>
+    inline MatrixType *newWithShape(const minilist<unsigned> &shape, mpl::true_)
     {
-      return (*m_matrix)(m_index1, m_index2); 
+      return new MatrixType(shape[0]);
     }
-  };
-  */
+  }
+
+
+
+  template <typename MatrixType>
+  MatrixType *newWithShape(const minilist<unsigned> &shape)
+  {
+    return detail::newWithShape<MatrixType>(shape, typename is_vector<MatrixType>::type());
+  }
+
+
+
+
+  namespace detail
+  {
+    template <typename MatrixType>
+    inline void insert(
+        MatrixType &mat,
+        const minilist<unsigned> &index, 
+        const typename MatrixType::value_type &value,
+        mpl::false_)
+    {
+      mat.insert(index[0], index[1], value);
+    }
+
+    template <typename MatrixType>
+    inline void insert(
+        MatrixType &mat,
+        const minilist<unsigned> &index, 
+        const typename MatrixType::value_type &value,
+        mpl::true_)
+    {
+      mat.insert(index[0], value);
+    }
+  }
+
+  template <typename MatrixType>
+  inline void insert(
+      MatrixType &mat,
+      const minilist<unsigned> &index, 
+      const typename MatrixType::value_type &value)
+  {
+    detail::insert(mat,index, value, typename is_vector<MatrixType>::type());
+  }
+
+
+
+
+  namespace detail
+  {
+    template <typename MatrixType>
+    inline void set(
+        MatrixType &mat,
+        const minilist<unsigned> &index, 
+        const typename MatrixType::value_type &value,
+        mpl::false_)
+    {
+      mat(index[0], index[1]) = value;
+    }
+
+    template <typename MatrixType>
+    inline void set(
+        MatrixType &mat,
+        const minilist<unsigned> &index, 
+        const typename MatrixType::value_type &value,
+        mpl::true_)
+    {
+      mat[index[0]] = value;
+    }
+  }
+
+  template <typename MatrixType>
+  inline void set(
+      MatrixType &mat,
+      const minilist<unsigned> &index, 
+      const typename MatrixType::value_type &value)
+  {
+    detail::set(mat,index, value, typename is_vector<MatrixType>::type());
+  }
 }
 
 
