@@ -538,6 +538,18 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
          [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
   }
 
+  {
+    typedef bicgstab::bicgstab_matrix_operator<ValueType> wrapped_type;
+    python::class_<wrapped_type, 
+    python::bases<iterative_solver_matrix_operator<ValueType> > >
+      (("BiCGSTABMatrixOperator"+python_eltname).c_str(), 
+       python::init<
+         const matrix_operator<ValueType> &, 
+         const matrix_operator<ValueType>&, 
+         unsigned, double>()
+         [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
+  }
+
   { 
     typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
     typedef 

@@ -143,13 +143,19 @@ def printMatrixInGrid(a):
     h,w = a.shape
     for i in range(h):
         for j in range(w):
-            print "%.6f  " % a[i,j],
+            if a[i,j] == 0:
+                print "---------- ",
+            else:
+                print "%.6f  " % a[i,j],
         print
 def printComplexMatrixInGrid(a):
     h,w = a.shape
     for i in range(h):
         for j in range(w):
-            print "%.3f %.3fj  " % (a[i,j].real, a[i,j].imag),
+            if a[i,j] == 0:
+                print "---------- ",
+            else:
+                print "%.3f %.3fj " % (a[i,j].real, a[i,j].imag),
         print
 
 def _sign(x):
