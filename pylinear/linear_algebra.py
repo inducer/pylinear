@@ -98,3 +98,10 @@ def eigenvalues(mat):
 def eigenvectors(mat):
     w, vl, vr = algo.eigenvectors(False, True, mat)
     return vr, w
+
+
+
+
+
+def cholesky_decomposition(a):
+    return algo.cholesky(a)

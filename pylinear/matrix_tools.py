@@ -582,3 +582,32 @@ def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
 
         result[row,col] += value
     return result
+
+
+
+
+# matrix type tests -----------------------------------------------------------
+def isHermitian(mat, threshold = 1e-13):
+    return frobeniusNorm(num.hermite(mat) - mat) < threshold
+
+def isSkewHermitian(mat, threshold = 1e-13):
+    return frobeniusNorm(num.hermite(mat) + mat) < threshold
+
+def isSymmetric(mat, threshold = 1e-13):
+    return frobeniusNorm(num.transpose(mat) - mat) < threshold
+
+def isSkewSymmetric(mat, threshold = 1e-13):
+    return frobeniusNorm(num.transpose(mat) + mat) < threshold
+
+def isUnitary(mat, threshold = 1e-13):
+    mm = num.matrixmultiply
+    return isIdentity(mm(num.hermite(mat), mat), threshold)
+
+def isOrthogonal(mat, threshold = 1e-13):
+    mm = num.matrixmultiply
+    return isIdentity(mm(num.transpose(mat), mat), threshold)
+
+def isIdentity(mat, threshold = 1e-13):
+    id = num.identity(mat.shape[0], mat.typecode())
+    return frobeniusNorm(mat - id) < threshold
+

@@ -210,7 +210,7 @@ class tTestMatrices(unittest.TestCase):
     def doTestCholesky(self, typecode):
         size = 100
         A = makeRandomSPDMatrix(size, typecode)
-        L = algo.cholesky(A)
+        L = la.cholesky_decomposition(A)
         self.assertSmall(num.matrixmultiply(L,hermite(L))-A)
 
     def testCholesky(self):
