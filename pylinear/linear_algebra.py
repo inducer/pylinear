@@ -50,24 +50,3 @@ def determinant(mat):
 
 
 
-def vandermonde(vector, degree = None):
-  size, = vector.shape
-
-  if degree is None:
-    degree = size
-
-  mat = num.array((size, size), vector.typecode())
-  for i,v in zip(range(size), vector):
-    for power in range(size):
-      mat[i,power] = v**power
-  return mat
-
-
-
-
-def polyfit(x_vector, data_vector, degree):
-  vdm = vandermonde(x_vector, degree)
-  vdm2 = num.matrixmultiply(num.hermite(vdm), vdm)
-  rhs = num.matrixmultiply(num.hermite, data_vector)
-  return solve_linear_equations(vdm2, rhs) 
-

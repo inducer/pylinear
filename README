@@ -4,10 +4,10 @@ product (?)
 take, put
 concatenate?
 more ufuncs
-  - math binary ufuncs (+,-,*,%,/,**)
   - with their different methods?
   - comparison ufuncs (convert to what if not bool?)
 from/to numeric conversion
+UMFPACK crash with *really* singular matrix
 
 save time in arpack:
   avoid copies for multiplication
