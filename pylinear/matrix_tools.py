@@ -9,13 +9,11 @@ import pylinear.iteration as iteration
 
 # polynomial fits -------------------------------------------------------------
 def vandermonde(vector, degree = None):
-    size, = vector.shape
-
     if degree is None:
-        degree = size
+        degree = len(vector)
 
-    mat = num.zeros((size, degree+1), vector.typecode())
-    for i,v in zip(range(size), vector):
+    mat = num.zeros((len(vector), degree+1), vector.typecode())
+    for i, v in enumerate(vector):
         for power in range(degree+1):
             mat[i,power] = v**power
     return mat
@@ -61,6 +59,15 @@ def get_approximant(x_vector, f, degree):
 
 
 
+# interpolation ---------------------------------------------------------------
+def findInterpolationCoefficients(x_vector, to_x):
+    vm = vandermonde(x_vector, degree = len(x_vector) - 1)
+    vm_x = vandermonde(num.array([to_x], x_vector.typecode()), len(x_vector)-1)[0]
+    return num.matrixmultiply(vm_x, la.inverse(vm))
+
+    
+    
+    
 # matlab-workalikes -----------------------------------------------------------
 def linspace(x, y, n = 100):
     if type(x) is types.IntType:
@@ -488,11 +495,17 @@ def orthogonalize(vectors):
 
     
 
-def estimateConditionNumber(matrix):
+def estimateConditionNumber(matrix, min_index = 0, threshold = None):
     u, s_vec, vt = la.singular_value_decomposition(matrix)
     s_list = list(s_vec)
     s_list.sort(lambda a, b: cmp(abs(a), abs(b)))
-    return abs(s_list[-1])/abs(s_list[0])
+    i = min_index
+    if threshold is not None:
+        while abs(s_list[i]) < threshold and i < len(s_list):
+            i += 1
+        if i == len(s_list):
+            raise ValueError, "there is no eigenvalue above the threshold"
+    return abs(s_list[-1])/abs(s_list[i])
 
 
 

@@ -1,4 +1,4 @@
-import sys
+import sys, random
 import pylinear.matrices as num
 import pylinear.algorithms as algo
 import pylinear.matrix_tools as mtools
@@ -424,7 +424,6 @@ class tTestMatrices(unittest.TestCase):
         self.assert_(end_resid/initial_resid < 1e-10)
 
     def testBiCGSTAB(self):
-        #self.doTestBiCGSTAB(num.Complex)
         self.forAllTypecodes(self.doTestBiCGSTAB)
 
     def testComplexAdaptor(self):
@@ -444,7 +443,29 @@ class tTestMatrices(unittest.TestCase):
             a2_op.apply(b, result2)
             self.assert_(mtools.norm2(result1 - result2) < 1e-11)
 
+    def doTestInterpolation(self, typecode):
+        size = 4
 
+        def eval_at(x):
+            # Horner evaluation
+            result = 0.
+            for i in coefficients[::-1]:
+                result = i + x*result
+            return result
+
+        abscissae = makeRandomVector(size, typecode)
+        coefficients = makeRandomVector(size, typecode)
+        values = num.array([eval_at(abscissa) for abscissa in abscissae])
+
+        for i in range(10):
+            to_x = random.normalvariate(0,100)
+            i_coeff = mtools.findInterpolationCoefficients(abscissae, to_x)
+            f_x1 = eval_at(to_x)
+
+            self.assert_(abs(num.innerproduct(i_coeff, values)-f_x1) < 1e-7)
+
+    def testInterpolation(self):
+        self.forAllTypecodes(self.doTestInterpolation)
 
             
 if __name__ == '__main__':
