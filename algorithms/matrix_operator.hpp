@@ -219,6 +219,92 @@ class composite_matrix_operator : public matrix_operator<ValueType>
 
 
 
+template <typename ValueType>
+class sum_of_matrix_operators : public matrix_operator<ValueType>
+{
+    typedef
+      matrix_operator<ValueType>
+      super;
+
+    const super       &m_op1, &m_op2;
+
+  public:
+    typedef 
+      typename super::vector_type
+      vector_type;
+    
+    sum_of_matrix_operators (const super &op1, const super &op2)
+    : m_op1(op1), m_op2(op2)
+    { 
+      if (m_op1.size1() != m_op2.size1())
+        throw std::runtime_error("sum_of_matrix_operators: sizes do not match");
+      if (m_op1.size2() != m_op2.size2())
+        throw std::runtime_error("sum_of_matrix_operators: sizes do not match");
+    }
+
+    unsigned size1() const
+    {
+      return m_op1.size1();
+    }
+
+    unsigned size2() const
+    {
+      return m_op1.size2();
+    }
+
+    void apply(const vector_type &before, vector_type &after) const
+    {
+      vector_type temp(m_op1.size1());
+      m_op1.apply(before, temp);
+      m_op2.apply(before, after);
+
+      after += temp;
+    }
+};
+
+
+
+
+template <typename ValueType>
+class scalar_multiplication_matrix_operator : public matrix_operator<ValueType>
+{
+    typedef
+      matrix_operator<ValueType>
+      super;
+
+
+    ValueType m_factor;
+    unsigned m_size;
+
+  public:
+    typedef 
+      typename super::vector_type
+      vector_type;
+    
+    scalar_multiplication_matrix_operator(const ValueType &factor, unsigned size)
+    : m_factor(factor), m_size(size)
+    { 
+    }
+
+    unsigned size1() const
+    {
+      return m_size;
+    }
+
+    unsigned size2() const
+    {
+      return m_size;
+    }
+
+    void apply(const vector_type &before, vector_type &after) const
+    {
+      after = m_factor * before;
+    }
+};
+
+
+
+
 // generic prod() interface ---------------------------------------------------
 template <typename ValueType>
 boost::numeric::ublas::vector<ValueType> prod(

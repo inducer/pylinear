@@ -344,22 +344,37 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
   }
 
   {
-    typedef identity_matrix_operator<ValueType> wrapped_type;
-    python::class_<wrapped_type, 
+    python::class_<identity_matrix_operator<ValueType>, 
     python::bases<matrix_operator<ValueType> > >
       (("IdentityMatrixOperator"+python_eltname).c_str(), 
        python::init<unsigned>());
   }
 
   {
-    typedef composite_matrix_operator<ValueType> wrapped_type;
-    python::class_<wrapped_type, 
+    python::class_<composite_matrix_operator<ValueType>, 
     python::bases<matrix_operator<ValueType> > >
       (("CompositeMatrixOperator"+python_eltname).c_str(), 
        python::init<
          const matrix_operator<ValueType> &, 
          const matrix_operator<ValueType> &>()
          [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
+  }
+
+  {
+    python::class_<sum_of_matrix_operators<ValueType>, 
+    python::bases<matrix_operator<ValueType> > >
+      (("SumOfMatrixOperators"+python_eltname).c_str(), 
+       python::init<
+         const matrix_operator<ValueType> &, 
+         const matrix_operator<ValueType> &>()
+         [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
+  }
+
+  {
+    python::class_<scalar_multiplication_matrix_operator<ValueType>, 
+    python::bases<matrix_operator<ValueType> > >
+      (("ScalarMultiplicationMatrixOperator"+python_eltname).c_str(), 
+       python::init<ValueType, unsigned>());
   }
 
   {

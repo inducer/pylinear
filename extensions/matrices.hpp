@@ -880,13 +880,13 @@ void addScattered(MatrixType &mat,
     for (unsigned int row = 0; row < row_count; ++row)
     {
       int dest_row = extract<int>(row_indices[row]);
-      if (dest_row == -1)
+      if (dest_row < 0)
 	continue;
 
       for (unsigned col = 0; col < column_count; ++col)
       {
 	int dest_col = extract<int>(column_indices[col]);
-	if (dest_col == -1)
+	if (dest_col < 0)
 	  continue;
         mat.insert(dest_row, dest_col, little_mat(row, col));
       }
@@ -897,13 +897,13 @@ void addScattered(MatrixType &mat,
     for (unsigned int row = 0; row < row_count; ++row)
     {
       int dest_row = extract<int>(row_indices[row]);
-      if (dest_row == -1)
+      if (dest_row < 0)
 	continue;
 
       for (unsigned col = 0; col < column_count; ++col)
       {
 	int dest_col = extract<int>(column_indices[col]);
-	if (dest_col == -1)
+	if (dest_col < 0)
 	  continue;
         mat(dest_row, dest_col) += little_mat(row, col);
       }
@@ -933,12 +933,12 @@ inline void addScatteredSymmetric(MatrixType &mat,
     {
       int dest_row = extract<int>(indices[row]);
 
-      if (dest_row == -1)
+      if (dest_row < 0)
 	continue;
       for (unsigned col = 0; col <= row; ++col)
       {
 	int dest_col = extract<int>(indices[col]);
-	if (dest_col == -1)
+	if (dest_col < 0)
 	  continue;
         mat(dest_row, dest_col) += little_mat(row, col);
       }
@@ -952,13 +952,13 @@ inline void addScatteredSymmetric(MatrixType &mat,
       for (unsigned int row = 0; row < index_count; ++row)
       {
         int dest_row = extract<int>(indices[row]);
-	if (dest_row == -1)
+	if (dest_row < 0)
 	  continue;
 
         for (unsigned col = 0; col < index_count; ++col)
 	{
 	  int dest_col = extract<int>(indices[col]);
-	  if (dest_col == -1)
+	  if (dest_col < 0)
 	    continue;
           mat.insert(dest_row, dest_col, little_mat(row, col));
 	}
@@ -969,13 +969,13 @@ inline void addScatteredSymmetric(MatrixType &mat,
       for (unsigned int row = 0; row < index_count; ++row)
       {
         int dest_row = extract<int>(indices[row]);
-	if (dest_row == -1)
+	if (dest_row < 0)
 	  continue;
 
         for (unsigned col = 0; col < index_count; ++col)
 	{
 	  int dest_col = extract<int>(indices[col]);
-	  if (dest_col == -1)
+	  if (dest_col < 0)
 	    continue;
           mat(dest_row, dest_col) += little_mat(row, col);
 	}

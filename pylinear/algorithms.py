@@ -24,6 +24,10 @@ def makeIdentityMatrixOperator(n, typecode):
     my_class = _lookupClass("IdentityMatrixOperator", typecode)
     return my_class(n)
 
+def makeScalarMultiplicationMatrixOperator(factor, n, typecode):
+    my_class = _lookupClass("ScalarMultiplicationMatrixOperator", typecode)
+    return my_class(factor, n)
+
 def makeCGMatrixOperator(matrix_op, max_it, tol = 1e-12, precon_op = None):
     if precon_op is None:
         h,w = matrix_op.shape
@@ -42,5 +46,10 @@ def composeMatrixOperators(outer, inner):
     my_class = _lookupClass("CompositeMatrixOperator", inner.typecode())
     return my_class(outer, inner)
 
+def addMatrixOperators(op1, op2):
+    if op1.typecode() != op2.typecode():
+        raise TypeError, "op1 and op2 have to have identical typecode"
+    my_class = _lookupClass("SumOfMatrixOperator", inner.typecode())
+    return my_class(outer, inner)
 
 
