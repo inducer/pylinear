@@ -30,7 +30,8 @@ namespace umfpack
 
   public:
     typedef
-      ublas::compressed_matrix<ValueType, ublas::column_major>
+      ublas::compressed_matrix<ValueType, ublas::column_major,
+                               0, ublas::unbounded_array<int> >
       matrix_type;
 
     typedef 

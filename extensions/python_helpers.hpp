@@ -10,19 +10,21 @@
 
 
 template <typename T>
-inline boost::python::handle<PyObject> handle_from_new_ptr(T *ptr)
+inline PyObject *pyobject_from_new_ptr(T *ptr)
 {
-  typename boost::python::manage_new_object::apply<T *>::type out_converter;
-  return boost::python::handle<PyObject>(out_converter(ptr));
+  return typename boost::python::manage_new_object::apply<T *>::type()(ptr);
 }
 
 
 
 
 template <typename T>
-inline boost::python::handle<PyObject> handle_from_object(const T &val)
+inline PyObject *pyobject_from_rvalue(const T &val)
 {
-  return boost::python::handle<PyObject>(boost::python::borrowed(boost::python::object(val).ptr()));
+  boost::python::object obj(val);
+  PyObject *result = obj.ptr();
+  Py_INCREF(result);
+  return result;
 }
 
 

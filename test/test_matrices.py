@@ -37,11 +37,15 @@ class tTestMatrices(unittest.TestCase):
         self.assert_(mtools.frobeniusNorm(matrix) < 1e-10)
 
     def assertZero(self, matrix):
-        for i in matrix:
-            for j in i:
+        if len(matrix.shape) == 2:
+          for i in matrix:
+              for j in i:
+                  self.assert_(j == 0)
+        else:
+            for j in matrix:
                 self.assert_(j == 0)
 
-    def testElementaryStuff(self):
+    def doTestElementaryStuff(self, typecode):
         mat = num.zeros((3, 3), num.Complex64)
         mat[1,2] += 5+3j
         mat[2,1] += 7-8j
@@ -67,6 +71,17 @@ class tTestMatrices(unittest.TestCase):
 
         sum(vec)
         num.matrixmultiply(mat, mat)
+
+        m = num.zeros((11,10), typecode)
+        self.assertZero(m)
+
+        v = num.zeros((11,), typecode)
+        # believe you me, this test failed at one time
+        # weird things happen :/
+        self.assertZero(v)
+
+    def testElementaryStuff(self):
+        self.forAllTypecodes(self.doTestElementaryStuff)
 
     def doTestAddScattered(self,typecode):
         a = num.zeros((10,10), typecode)

@@ -13,10 +13,10 @@ library_dirs = ["%s/pool/lib" % home]
 
 include_dirs = [boost_path, "algorithms"]
 libraries = ["boost_python"]
-extra_compile_args = ["-fmessage-length=0"]
+extra_compile_args = ["-fmessage-length=0", "-Wno-sign-compare"]
 
 #blas_libraries = ["f77blas", "atlas", "g2c"]
-blas_libraries = ["blas2"]
+blas_libraries = ["blas"]
 
 setup(name="PyLinear",
       version="0.92",
@@ -32,8 +32,6 @@ setup(name="PyLinear",
                                "extensions/vectors.cpp", 
                                "extensions/matrices_sparse_build.cpp",
                                "extensions/matrices_sparse_ex.cpp",
-                               #"extensions/matrices_sym_ex.cpp", 
-                               #"extensions/matrices_sym_build.cpp",
                                ],
                               include_dirs = include_dirs,
                               library_dirs = library_dirs,

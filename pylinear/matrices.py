@@ -30,17 +30,26 @@ def _getTypeCodeName(typecode):
   
 
 
+def _typeCodeMax(a, b):
+    if Complex in [a, b]:
+        return Complex
+    else:
+        return Float
+
+
+
+
 class MatrixType:
     def isA(cls, object):
-        for tc in _TYPECODES:
-            try:
-                t = eval(cls.name()+_getTypeCodeName(tc))
-                if type(object) is t:
-                    return True
-            except:
-                pass
-        return False
+        try:
+            return isinstance(object, cls.classObject(object.typecode()))
+        except NameError:
+            return False
     isA = classmethod(isA)
+
+    def classObject(cls, typecode):
+        return globals()[cls.name() + _getTypeCodeName(typecode)]
+    classObject = classmethod(classObject)
       
 class Vector(MatrixType):
     def name(): return "Vector"
@@ -54,33 +63,89 @@ class SparseBuildMatrix(MatrixType):
 class SparseExecuteMatrix(MatrixType):
     def name(): return "SparseExecuteMatrix"
     name = staticmethod(name)
-class SparseSymmetricExecuteMatrix(MatrixType):
-    def name(): return "SparseSymmetricExecuteMatrix"
-    name = staticmethod(name)
-class SparseHermitianExecuteMatrix(MatrixType):
-    def name(): return "SparseHermitianExecuteMatrix"
-    name = staticmethod(name)
-class SparseSymmetricBuildMatrix(MatrixType):
-    def name(): return "SparseSymmetricBuildMatrix"
-    name = staticmethod(name)
-class SparseHermitianBuildMatrix(MatrixType):
-    def name(): return "SparseHermitianBuildMatrix"
-    name = staticmethod(name)
 
 
 
 
-_TYPES = [
-    Vector,
+_MATRIX_TYPES = [
     DenseMatrix,
     SparseBuildMatrix,
     SparseExecuteMatrix,
-    SparseSymmetricExecuteMatrix,
-    SparseHermitianExecuteMatrix,
-    SparseSymmetricBuildMatrix,
-    SparseHermitianBuildMatrix 
     ]
+_VECTOR_TYPES = [
+    Vector,
+    ]
+_TYPES = _MATRIX_TYPES + _VECTOR_TYPES
 
+
+
+
+def _is_number(value):
+    try: 
+        complex(value)
+        return True
+    except TypeError:
+        return False
+
+
+
+
+def _is_matrix(value):
+    try: 
+        _getMatrixType(value)
+        return True
+    except RuntimeError:
+        return False
+
+
+
+
+def _matrix_cast_and_retry(matrix, operation, other):
+    if _is_number(other):
+        if matrix.typecode() == Float:
+            m_cast = asarray(matrix, Complex)
+            return getattr(m_cast, "_nocast__%s__" % operation)(other)
+        else:
+            print "CONFUSED"
+            return NotImplemented
+
+    tcmax = _typeCodeMax(matrix.typecode(), other.typecode())
+    m_cast = asarray(matrix, tcmax)
+    if _getMatrixType(other) is Vector:
+        o_cast = asarray(other, tcmax)
+    else:
+        mtype = _getMatrixType(matrix)
+        o_cast = asarray(other, tcmax, mtype)
+    return getattr(m_cast, "_nocast__%s__" % operation)(o_cast)
+
+
+
+
+def _vector_cast_and_retry(vector, operation, other):
+    if _is_number(other):
+        if matrix.typecode() == Float:
+            v_cast = asarray(vector, Complex)
+            return getattr(v_cast, "_nocast__%s__" % operation)(other)
+        else:
+            print "CONFUSED"
+            return NotImplemented
+
+    if _getMatrixType(other) is not Vector:
+        return NotImplemented
+
+    tcmax = _typeCodeMax(vector.typecode(), other.typecode())
+    m_cast = asarray(vector, tcmax)
+    o_cast = asarray(other, tcmax)
+    return getattr(m_cast, "_nocast__%s__" % operation)(o_cast)
+
+
+
+
+for tc in _TYPECODES:
+    for mt in _MATRIX_TYPES:
+        mt.classObject(tc)._cast_and_retry = _matrix_cast_and_retry
+    for vt in _VECTOR_TYPES:
+        vt.classObject(tc)._cast_and_retry = _vector_cast_and_retry
 
 
 
@@ -98,21 +163,15 @@ def _maxTypeCode(list):
 
 
 # class getter ----------------------------------------------------------------
-def _makeRightType(name_trunk, typecode):
-    return globals()[name_trunk + _getTypeCodeName(typecode)]
-
-
-
-
 def _getMatrixClass(rank, typecode, matrix_type):
     if rank == 1:
-        typename = "Vector"
+        type_obj = Vector
     else:
         if rank != 2:
             raise RuntimeError, "rank must be one or two"
 
-        typename = matrix_type.name()
-    return _makeRightType(typename, typecode)
+        type_obj = matrix_type
+    return type_obj.classObject(typecode)
 
 
 
@@ -151,8 +210,8 @@ def array(data, typecode = None):
     if typecode is None:
         typecode = getBiggestType(data)
 
-    mat_class = _getMatrixClass(rank, typecode, DenseMatrix)
     if rank == 2:
+        mat_class = DenseMatrix.classObject(typecode)
         h = len(data)
         if h == 0:
             return mat_class(0, 0)
@@ -163,6 +222,7 @@ def array(data, typecode = None):
                 result[i,j] = data[i][j]
         return result
     elif rank == 1:
+        mat_class = Vector.classObject(typecode)
         h = len(data)
         result = mat_class(h)
         for i in range(h):
@@ -193,9 +253,11 @@ def _getFilledMatrix(shape, typecode, matrix_type, fill_value):
 def zeros(shape, typecode, matrix_type = DenseMatrix):
     matrix_class = _getMatrixClass(len(shape), typecode, matrix_type)
     if len(shape) == 1:
-        return matrix_class(shape[0])
+        result = matrix_class(shape[0])
     else:
-        return matrix_class(shape[0], shape[1])
+        result = matrix_class(shape[0], shape[1])
+    result.clear()
+    return result
 
 def ones(shape, typecode, matrix_type = DenseMatrix):
     return _getFilledMatrix(shape, typecode, matrix_type, 1)
@@ -248,34 +310,13 @@ def take(mat, indices, axis = 0):
 
 
 def matrixmultiply(mat1, mat2):
-    try:
-        if len(mat2.shape) == 1:
-            return mat1._internal_multiplyVector(mat2)
-        elif len(mat1.shape) == 1:
-            return mat2._internal_premultiplyVector(mat1)
-        else:
-            return mat1._internal_multiplyMatrix(mat2)
-    except:
-        if mat1.typecode() == mat2.typecode():
-            raise
-
-        mtc = _maxTypeCode([mat1.typecode(), mat2.typecode()])
-        return matrixmultiply(asarray(mat1, mtc), asarray(mat2, mtc))
-
+    return mat1 * mat2
 
 
 
 
 def innerproduct(vec1, vec2):
-    try:
-        return vec1._internal_innerproduct(vec2)
-    except:
-        if vec1.typecode() == vec2.typecode():
-            raise
-
-        mtc = _maxTypeCode([vec1.typecode(), vec2.typecode()])
-        return innerproduct(asarray(vec1, mtc), asarray(vec2, mtc))
-
+    return vec1 * vec2
 
 
 
@@ -295,13 +336,13 @@ def outerproduct(vec1, vec2):
 
 
 def transpose(mat):
-    return mat._internal_transpose()
+    return mat.T
 
 
 
 
 def hermite(mat):
-    return mat._internal_hermite()
+    return mat.H
 
 
 

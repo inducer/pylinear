@@ -88,43 +88,28 @@ namespace value_type_promotion
 
 // change_value_type
 template <typename MatrixType, typename NewValueType>
-struct change_value_type { };
+struct change_value_type { 
+};
+
+template <typename OLD, typename NEW>
+struct change_value_type<ublas::unbounded_array<OLD>, NEW>
+{ typedef ublas::unbounded_array<NEW> type; };
 
 template <typename OldValueType, typename NewValueType>
 struct change_value_type<ublas::matrix<OldValueType>, NewValueType>
 { typedef ublas::matrix<NewValueType> type; };
 
 template <typename OldValueType, typename NewValueType>
-struct change_value_type<ublas::sparse_matrix<OldValueType>, NewValueType>
-{ typedef ublas::sparse_matrix<NewValueType> type; };
-
-template <typename OldValueType, typename NewValueType>
 struct change_value_type<ublas::coordinate_matrix<OldValueType>, NewValueType>
 { typedef ublas::coordinate_matrix<NewValueType> type; };
 
-template <typename OldValueType, typename NewValueType>
-struct change_value_type<ublas::compressed_matrix<OldValueType, ublas::column_major>, NewValueType>
-{ typedef ublas::compressed_matrix<NewValueType, ublas::column_major> type; };
+template <typename OLD, typename NEW, typename L, std::size_t IB, typename IA>
+struct change_value_type<ublas::compressed_matrix<OLD, L, IB, IA>, NEW>
+{ typedef ublas::compressed_matrix<NEW, L, IB, IA> type; };
 
 template <typename OldValueType, typename NewValueType>
 struct change_value_type<ublas::vector<OldValueType>, NewValueType>
 { typedef ublas::vector<NewValueType> type; };
-
-template <typename ContainedMatrixType, typename NewValueType>
-struct change_value_type<managed_symmetric_adaptor<ContainedMatrixType>, NewValueType>
-{ 
-  typedef 
-    managed_symmetric_adaptor<
-    typename change_value_type<ContainedMatrixType, NewValueType>::type> type; 
-};
-
-template <typename ContainedMatrixType, typename NewValueType>
-struct change_value_type<managed_hermitian_adaptor<ContainedMatrixType>, NewValueType>
-{ 
-  typedef 
-    managed_hermitian_adaptor<
-    typename change_value_type<ContainedMatrixType, NewValueType>::type> type; 
-};
 
 
 
@@ -137,28 +122,14 @@ struct get_corresponding_vector_type
 
 
 
-// strip_symmetric_wrappers 
-template <typename MatrixType>
-struct strip_symmetric_wrappers
-{ typedef MatrixType type; };
-
-template <typename MatrixType>
-struct strip_symmetric_wrappers<managed_symmetric_adaptor<MatrixType> >
-{ typedef MatrixType type; };
-
-template <typename MatrixType>
-struct strip_symmetric_wrappers<managed_hermitian_adaptor<MatrixType> >
-{ typedef MatrixType type; };
-
-
-
-
 // generic instantiation infrastructure ---------------------------------------
 template <typename Exposer, typename ValueType>
 static void exposeForAllSimpleTypes(const std::string &python_eltname, const Exposer &exposer, ValueType)
 {
   exposer.expose("Matrix" + python_eltname, ublas::matrix<ValueType>());
-  exposer.expose("SparseExecuteMatrix" + python_eltname, ublas::compressed_matrix<ValueType, ublas::column_major>());
+  exposer.expose("SparseExecuteMatrix" + python_eltname, 
+                 ublas::compressed_matrix<ValueType, 
+                 ublas::column_major, 0, ublas::unbounded_array<int> >());
   exposer.expose("SparseBuildMatrix" + python_eltname, ublas::coordinate_matrix<ValueType>());
 }
 
@@ -169,11 +140,6 @@ template <typename Exposer, typename T>
 static void exposeForAllMatrices(const Exposer &exposer, T)
 {
   exposeForAllSimpleTypes("Float64", exposer, T());
-
-  exposer.expose("SparseSymmetricExecuteMatrixFloat64", managed_symmetric_adaptor<
-      ublas::compressed_matrix<T, ublas::column_major> >());
-  exposer.expose("SparseSymmetricBuildMatrixFloat64", managed_symmetric_adaptor<
-      ublas::coordinate_matrix<T> >());
 }
 
 
@@ -183,11 +149,6 @@ template <typename Exposer, typename T>
 static void exposeForAllMatrices(const Exposer &exposer, std::complex<T>)
 {
   exposeForAllSimpleTypes("Complex64", exposer, std::complex<T>());
-
-  exposer.expose("SparseHermitianExecuteMatrixComplex64", managed_hermitian_adaptor<
-      ublas::compressed_matrix<std::complex<T>, ublas::column_major> >());
-  exposer.expose("SparseHermitianBuildMatrixComplex64", managed_hermitian_adaptor<
-      ublas::coordinate_matrix<std::complex<T> > >());
 }
 
 

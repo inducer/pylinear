@@ -6,7 +6,10 @@
 template <typename ValueType>
 static void exposeAll(ValueType, const std::string &python_eltypename)
 {
-  exposeMatrixType(ublas::compressed_matrix<ValueType, ublas::column_major>(), "SparseExecuteMatrix", python_eltypename);
+  exposeMatrixType(ublas::compressed_matrix<
+                   ValueType, ublas::column_major, 0, 
+                   ublas::unbounded_array<int> >(), 
+                   "SparseExecuteMatrix", python_eltypename);
 }
 
 

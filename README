@@ -33,4 +33,4 @@ UBLAS: Warum ist end2 nicht das Ende der Matrix?
 UBLAS: Was ist rank bei find1/2?
 
 out-of-bounds index [0:8, 0:8] on 6x6 matrix causes no error
-utilize __coerce__, PyNumberMethods
+utilize __coerce__

@@ -8,6 +8,7 @@
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/matrix_expression.hpp>
+#include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <boost/tuple/tuple.hpp>
 #include "helpers.hpp"
 #include <complex>
@@ -17,7 +18,6 @@
 namespace lu
 {
   namespace ublas = boost::numeric::ublas;
-  using namespace boost::numeric::ublas;
   using namespace helpers;
   using namespace boost::tuples;
 
@@ -114,8 +114,8 @@ namespace lu
         /*
          * vectorizing does not make this faster:
         u(row, col) = a()(permut[row], col) - inner_prod(
-            project(ublas::row(l, row), range(0, row)),
-            project(column(u, col), range(0, row))
+            ublas::project(ublas::row(l, row), range(0, row)),
+            ublas::project(ublas::column(u, col), range(0, row))
             );
             */
       }
@@ -160,8 +160,8 @@ namespace lu
 
         // swap rows of l accordingly
         swap(
-            project(ublas::row(l, col), range(0, col+1)), 
-            project(ublas::row(l, biggest_row), range(0, col+1))
+            ublas::project(l, ublas::range(col, col+1), ublas::range(0, col+1)), 
+            ublas::project(l, ublas::range(biggest_row, biggest_row+1), ublas::range(0, col+1))
             );
 
         parity *= -1;
@@ -169,7 +169,9 @@ namespace lu
       pivot = u(col, col) = l(col, col);
       l(col, col) = 1;
 
-      project(column(l, col), range(col+1, n)) *= 1. / pivot;
+      ublas::project(l,
+                     ublas::range(col+1, n), 
+                     ublas::range(col, col+1)) *= 1. / pivot;
     }
 
     return make_tuple(result_l.release(), result_u.release(), permut_ptr.release(), parity);

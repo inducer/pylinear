@@ -153,7 +153,7 @@ struct python_matrix_value_iterator
     return this;
   }
 
-  python::handle<PyObject> next()
+  python::object next()
   {
     if (m_row_index >= m_matrix.size1())
     {
@@ -161,7 +161,7 @@ struct python_matrix_value_iterator
       throw python::error_already_set();
     }
 
-    return handle_from_new_ptr(
+    return python::object(
         new typename get_corresponding_vector_type<MatrixType>::type(
           ublas::row(m_matrix, m_row_index++)));
   }
@@ -256,7 +256,7 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
 
 
 template <typename MatrixType>
-static python::handle<PyObject> getElement(const MatrixType &m, PyObject *index)
+static python::object getElement(const MatrixType &m, PyObject *index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
@@ -273,17 +273,21 @@ static python::handle<PyObject> getElement(const MatrixType &m, PyObject *index)
     translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
     if (!si1.m_was_slice && !si2.m_was_slice)
-      return handle_from_object(m(si1.m_start, si2.m_start));
+      return python::object(m(si1.m_start, si2.m_start));
     else if (!si1.m_was_slice)
-      return handle_from_new_ptr(new vector_t(row(m,si1.m_start)));
+      return python::object(new vector_t(row(m,si1.m_start)));
     else if (!si2.m_was_slice)
-      return handle_from_new_ptr(new vector_t(column(m,si2.m_start)));
+      return python::object(new vector_t(column(m,si2.m_start)));
     else
     {
-      return handle_from_new_ptr(
-          new MatrixType(project(m,
-              ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength))));
+      return python::object(
+          new MatrixType(
+            project(
+              m,
+              ublas::basic_slice<typename MatrixType::size_type>
+              (si1.m_start, si1.m_step, si1.m_sliceLength),
+              ublas::basic_slice<typename MatrixType::size_type>
+              (si2.m_start, si2.m_step, si2.m_sliceLength))));
     }
   }
   else
@@ -292,12 +296,16 @@ static python::handle<PyObject> getElement(const MatrixType &m, PyObject *index)
     translateIndex(index, si, m.size1());
 
     if (!si.m_was_slice)
-      return handle_from_new_ptr(new vector_t(row(m, si.m_start)));
+      return python::object(new vector_t(row(m, si.m_start)));
     else
-      return handle_from_new_ptr(
-          new MatrixType(project(m,
-              ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
-              ublas::slice(0, 1, m.size2())
+      return python::object(
+          new MatrixType(
+            project(
+              m,
+              ublas::basic_slice<typename MatrixType::size_type>
+              (si.m_start, si.m_step, si.m_sliceLength),
+              ublas::basic_slice<typename MatrixType::size_type>
+              (0, 1, m.size2())
               )));
   }
 }
@@ -306,15 +314,15 @@ static python::handle<PyObject> getElement(const MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-static python::handle<PyObject> getElement(const ublas::vector<ValueType> &m, PyObject *index)
+static python::object getElement(const ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
   translateIndex(index, si, m.size());
 
   if (!si.m_was_slice)
-    return handle_from_object(m(si.m_start));
+    return python::object(m(si.m_start));
   else
-    return handle_from_new_ptr(
+    return python::object(
       new ublas::vector<ValueType>(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
 }
 
@@ -363,8 +371,8 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       else
       {
         ublas::matrix_slice<MatrixType> my_slice(m,
-              ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength));
+              ublas::basic_slice<typename MatrixType::size_type>(si1.m_start, si1.m_step, si1.m_sliceLength),
+              ublas::basic_slice<typename MatrixType::size_type>(si2.m_start, si2.m_step, si2.m_sliceLength));
         helpers::fill_matrix(my_slice, new_scalar());
       }
     }
@@ -392,8 +400,8 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       {
         // broadcast vector across matrix
         ublas::matrix_slice<MatrixType> my_slice(m,
-              ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength));
+              ublas::basic_slice<typename MatrixType::size_type>(si1.m_start, si1.m_step, si1.m_sliceLength),
+              ublas::basic_slice<typename MatrixType::size_type>(si2.m_start, si2.m_step, si2.m_sliceLength));
 
         if (new_vec.size() != my_slice.size2())
           throw std::out_of_range("submatrix is wrong size for assignment");
@@ -409,9 +417,13 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       if (int(new_mat.size1()) != si1.m_sliceLength || int(new_mat.size2()) != si2.m_sliceLength)
         throw std::out_of_range("submatrix is wrong size for assignment");
 
-      project(m,
-          ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
-          ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength)) = new_mat;
+      project(
+        m,
+        ublas::basic_slice<typename MatrixType::size_type>
+        (si1.m_start, si1.m_step, si1.m_sliceLength),
+        ublas::basic_slice<typename MatrixType::size_type>
+        (si2.m_start, si2.m_step, si2.m_sliceLength)) 
+        = new_mat;
     }
     else
     {
@@ -435,9 +447,12 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       }
       else
       {
-        ublas::matrix_slice<MatrixType> my_slice(m,
-            ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
-            ublas::slice(0, 1, m.size2()));
+        ublas::matrix_slice<MatrixType> my_slice(
+          m,
+          ublas::basic_slice<typename MatrixType::size_type>
+          (si.m_start, si.m_step, si.m_sliceLength),
+          ublas::basic_slice<typename MatrixType::size_type>
+          (0, 1, m.size2()));
         helpers::fill_matrix(my_slice, new_scalar());
       }
     }
@@ -470,8 +485,8 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
         throw std::out_of_range("submatrix is wrong size for assignment");
 
       project(m,
-          ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
-          ublas::slice(0, 1, m.size2())) = new_mat();
+          ublas::basic_slice<typename MatrixType::size_type>(si.m_start, si.m_step, si.m_sliceLength),
+          ublas::basic_slice<typename MatrixType::size_type>(0, 1, m.size2())) = new_mat();
     }
     else
     {
@@ -561,9 +576,10 @@ struct sparse_pickle_suite : python::pickle_suite
     unsigned len = python::extract<unsigned>(entries.attr("__len__")());
     for (unsigned i = 0; i < len; i++)
     {
-      generic_ublas::insert(m,
-			    getMinilist(python::extract<python::tuple>(entries[i][0])),
-			    python::extract<typename MatrixType::value_type>(entries[i][1]));
+      generic_ublas::insert_element(
+        m,
+        getMinilist(python::extract<python::tuple>(entries[i][0])),
+        python::extract<typename MatrixType::value_type>(entries[i][1]));
     }
   }
 };
@@ -688,98 +704,67 @@ inline MatrixType *copyNew(const MatrixType &m)
 
 
 template <typename MatrixType>
-ublas::vector<typename MatrixType::value_type> *
-multiplyVector(const MatrixType &mat, 
-	       const ublas::vector<typename MatrixType::value_type> &vec)
+static MatrixType *multiplyInPlaceByScalar(MatrixType &mat,
+                                           const typename MatrixType::value_type &scalar)
 {
-  if (mat.size2() != vec.size())
-    throw std::runtime_error("matrix size doesn't match vector");
-
-  ublas::vector<typename MatrixType::value_type> *result = new
-    ublas::vector<typename MatrixType::value_type>(mat.size1());
-  ublas::axpy_prod(mat, vec, *result);
-  return result;
+  return &(mat *= scalar);
 }
 
 
 
 
 template <typename MatrixType>
-ublas::vector<typename MatrixType::value_type> *
-premultiplyVector(const MatrixType &mat, 
-		  const ublas::vector<typename MatrixType::value_type> &vec)
+static MatrixType *multiplyInPlaceByMatrix(MatrixType &mat,
+                                           const MatrixType &mat2)
 {
-  if (mat.size1() != vec.size())
-    throw std::runtime_error("matrix size doesn't match vector");
-
-  return new ublas::vector<typename MatrixType::value_type>(prod(vec,mat));
+  mat = prod(mat, mat2);
+  return &mat;
 }
 
 
 
 
 template <typename MatrixType>
-MatrixType *multiplyMatrix(const MatrixType &mat1, 
-			   const MatrixType &mat2)
+static MatrixType *divideInPlaceByScalar(MatrixType &mat,
+                                           const typename MatrixType::value_type &scalar)
 {
-  if (mat1.size2() != mat2.size1())
-    throw std::runtime_error("matrix sizes don't match");
-  return new MatrixType(prod(mat1,mat2));
-}
-
-
-
-
-template <typename Op1, typename Op2>
-struct inner_prodWrapper
-{
-  typedef 
-    typename value_type_promotion::bigger_type<typename Op1::value_type, typename Op2::value_type>::type
-    result_type;
-
-  static result_type apply(const Op1 &op1, const Op2 &op2)
-  {
-    if (op1.size() != op2.size())
-      throw std::runtime_error("vector sizes for inner product don't match");
-    return inner_prod(op1, op2);
-  }
-};
-
-
-
-
-template <typename Op1, typename Op2>
-struct outer_prodWrapper
-{
-  typedef 
-    typename value_type_promotion::bigger_type<typename Op1::value_type, typename Op2::value_type>::type
-    result_value_type;
-  typedef 
-    typename ublas::matrix<result_value_type> 
-    result_type;
-
-  inline static result_type *apply(const Op1 &op1, const Op2 &op2)
-  {
-    return new result_type(outer_prod(op1, op2));
-  }
-};
-
-
-
-
-template <typename MatrixType>
-static MatrixType *transposeMatrix(const MatrixType &m)
-{
-  return new MatrixType(trans(m));
+  return &(mat /= scalar);
 }
 
 
 
 
 template <typename MatrixType>
-static MatrixType *hermiteMatrix(const MatrixType &m)
+static python::object hermiteMatrix(const MatrixType &m)
 {
-  return new MatrixType(herm(m));
+  return python::object(new MatrixType(herm(m)));
+}
+
+
+
+
+template <typename MatrixType>
+static python::object transposeMatrix(const MatrixType &m)
+{
+  return python::object(new MatrixType(trans(m)));
+}
+
+
+
+
+template <typename VectorType>
+static python::object hermiteVector(const VectorType &m)
+{
+  return python::object(new VectorType(conj(m)));
+}
+
+
+
+
+template <typename VectorType>
+static python::object transposeVector(const VectorType &m)
+{
+  return python::object(new VectorType(m));
 }
 
 
@@ -793,9 +778,9 @@ struct realWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static python::handle<PyObject> apply(const MatrixType &m)
+  inline static python::object apply(const MatrixType &m)
   {
-    return handle_from_new_ptr(new result_type(real(m)));
+    return python::object(new result_type(real(m)));
   }
 };
 
@@ -810,9 +795,9 @@ struct imagWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static python::handle<PyObject> apply(const MatrixType &m)
+  inline static python::object apply(const MatrixType &m)
   {
-    return handle_from_new_ptr(new result_type(imag(m)));
+    return python::object(new result_type(imag(m)));
   }
 };
 
@@ -873,7 +858,7 @@ void addScattered(MatrixType &mat,
 	int dest_col = extract<int>(column_indices[col]);
 	if (dest_col < 0)
 	  continue;
-        mat.insert(dest_row, dest_col, little_mat(row, col));
+        mat.insert_element(dest_row, dest_col, little_mat(row, col));
       }
     }
   }
@@ -911,59 +896,38 @@ inline void addScatteredSymmetric(MatrixType &mat,
   if (index_count != little_mat.size1() || index_count != little_mat.size2())
     throw std::runtime_error("addScatteredSymmetric: sizes don't match");
 
-  if (helpers::isHermitian(mat))
+  // FIXME: hack
+  if (helpers::isCoordinateMatrix(mat))
   {
-    // FIXME: Until now, hermitian matrices can't count as coordinate matrices.
     for (unsigned int row = 0; row < index_count; ++row)
     {
       int dest_row = extract<int>(indices[row]);
-
       if (dest_row < 0)
-	continue;
-      for (unsigned col = 0; col <= row; ++col)
+        continue;
+
+      for (unsigned col = 0; col < index_count; ++col)
       {
-	int dest_col = extract<int>(indices[col]);
-	if (dest_col < 0)
-	  continue;
-        mat(dest_row, dest_col) += little_mat(row, col);
+        int dest_col = extract<int>(indices[col]);
+        if (dest_col < 0)
+          continue;
+        mat.insert_element(dest_row, dest_col, little_mat(row, col));
       }
     }
   }
   else
   {
-    // FIXME: hack
-    if (helpers::isCoordinateMatrix(mat))
+    for (unsigned int row = 0; row < index_count; ++row)
     {
-      for (unsigned int row = 0; row < index_count; ++row)
-      {
-        int dest_row = extract<int>(indices[row]);
-	if (dest_row < 0)
-	  continue;
+      int dest_row = extract<int>(indices[row]);
+      if (dest_row < 0)
+        continue;
 
-        for (unsigned col = 0; col < index_count; ++col)
-	{
-	  int dest_col = extract<int>(indices[col]);
-	  if (dest_col < 0)
-	    continue;
-          mat.insert(dest_row, dest_col, little_mat(row, col));
-	}
-      }
-    }
-    else
-    {
-      for (unsigned int row = 0; row < index_count; ++row)
+      for (unsigned col = 0; col < index_count; ++col)
       {
-        int dest_row = extract<int>(indices[row]);
-	if (dest_row < 0)
-	  continue;
-
-        for (unsigned col = 0; col < index_count; ++col)
-	{
-	  int dest_col = extract<int>(indices[col]);
-	  if (dest_col < 0)
-	    continue;
-          mat(dest_row, dest_col) += little_mat(row, col);
-	}
+        int dest_col = extract<int>(indices[col]);
+        if (dest_col < 0)
+          continue;
+        mat(dest_row, dest_col) += little_mat(row, col);
       }
     }
   }
@@ -1233,7 +1197,8 @@ namespace ufuncs
 
         for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
           for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert(it2.index1(), it2.index2(), f(*it2, m2(it2.index1(), it2.index2())));
+            new_mat->insert_element(it2.index1(), it2.index2(), 
+                            f(*it2, m2(it2.index1(), it2.index2())));
       }
       else if (v2_extractor.check())
       {
@@ -1244,7 +1209,8 @@ namespace ufuncs
 
         for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
           for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert(it2.index1(), it2.index2(), f(*it2, v2(it2.index2())));
+            new_mat->insert_element(it2.index1(), it2.index2(), 
+                            f(*it2, v2(it2.index2())));
       }
       else if (s2_extractor.check())
       {
@@ -1252,7 +1218,7 @@ namespace ufuncs
 
         for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
           for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert(it2.index1(), it2.index2(), f(*it2, s2));
+            new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, s2));
       }
       else if (n2_extractor.check())
       {
@@ -1260,7 +1226,7 @@ namespace ufuncs
 
         for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
           for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert(it2.index1(), it2.index2(), f(*it2, n2));
+            new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, n2));
       }
       else
       {
@@ -1315,21 +1281,21 @@ namespace ufuncs
           throw std::runtime_error("cannot apply binary ufunc to vectors of different sizes");
 
         for (it_t it = m1.begin(); it != m1.end(); ++it) 
-          new_mat->insert(it.index(), f(*it, m2(it.index())));
+          new_mat->insert_element(it.index(), f(*it, m2(it.index())));
       }
       else if (s2_extractor.check())
       {
         value_type s2 = s2_extractor();
 
         for (it_t it = m1.begin(); it != m1.end(); ++it) 
-          new_mat->insert(it.index(), f(*it, s2));
+          new_mat->insert_element(it.index(), f(*it, s2));
       }
       else if (n2_extractor.check())
       {
         value_type n2 = n2_extractor();
 
         for (it_t it = m1.begin(); it != m1.end(); ++it) 
-          new_mat->insert(it.index(), f(*it, n2));
+          new_mat->insert_element(it.index(), f(*it, n2));
       }
       else
       {
@@ -1424,6 +1390,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("typecode", &typecode<WrappedClass>)
     .def("copy", copyNew<WrappedClass>, 
         python::return_value_policy<python::manage_new_object>())
+    .def("clear", &WrappedClass::clear)
 
     .add_property("shape", 
         (python::object (*)(const WrappedClass &)) getShape, 
@@ -1431,7 +1398,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__len__", (unsigned (*)(const WrappedClass &)) getLength)
     .def("swap", &WrappedClass::swap)
 
-    .def("__getitem__", (python::handle<PyObject> (*)(const WrappedClass &, PyObject *)) getElement)
+    .def("__getitem__", (python::object (*)(const WrappedClass &, PyObject *)) getElement)
     .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
     // stringification
@@ -1440,31 +1407,12 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     // unary negation
     .def("__neg__", negateOp<WrappedClass>)
 
-    // matrix - matrix
+    // container - container
     .def("__add__", plusOp<WrappedClass>)
     .def("__sub__", minusOp<WrappedClass>)
     .def("__iadd__", plusAssignOp<WrappedClass>, python::return_self<>())
     .def("__isub__", minusAssignOp<WrappedClass>, python::return_self<>())
-
-    // scalar - matrix
-    .def("__mul__", scalarTimesOp<WrappedClass, double>)
-    .def("__rmul__", scalarTimesOp<WrappedClass, double>)
-    .def("__div__", scalarDivideOp<WrappedClass, double>)
-    .def("__imul__", scalarTimesAssignOp<WrappedClass, double>, python::return_self<>())
-    .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>, python::return_self<>())
     ;
-
-  if (helpers::isComplex(value_type()))
-  {
-    // scalar-matrix for complex types
-    pyc
-      .def("__mul__", scalarTimesOp<WrappedClass, value_type>)
-      .def("__rmul__", scalarTimesOp<WrappedClass, value_type>)
-      .def("__div__", scalarDivideOp<WrappedClass, value_type>)
-      .def("__imul__", scalarTimesAssignOp<WrappedClass, value_type>, python::return_self<>())
-      .def("__idiv__", scalarDivideAssignOp<WrappedClass, value_type>, python::return_self<>())
-      ;
-  }
 
   exposeUfuncs(pyc, WrappedClass());
 
@@ -1517,6 +1465,59 @@ static void exposeIterator(PythonClass &pyc, const std::string &python_typename,
 
 
 // vector wrapper -------------------------------------------------------------
+template <typename VectorType>
+static PyObject *multiplyVectorBase(python::object op1, python::object op2)
+{
+  typedef typename VectorType::value_type value_t;
+
+  python::extract<VectorType> op2_vec(op2);
+  if (op2_vec.check())
+  {
+    const VectorType &vec = python::extract<VectorType>(op1);
+    const VectorType &vec2 = op2_vec();
+    return pyobject_from_rvalue(inner_prod(vec, vec2));
+  }
+
+  python::extract<typename VectorType::value_type> op2_scalar(op2);
+  if (op2_scalar.check())
+  {
+    const VectorType &vec = python::extract<VectorType>(op1);
+    return pyobject_from_new_ptr(new VectorType(vec * op2_scalar()));
+  }
+
+  Py_INCREF(Py_NotImplemented);
+  return Py_NotImplemented;
+}
+
+
+
+
+template <typename VectorType>
+static PyObject *multiplyVector(python::object op1, python::object op2)
+{
+  PyObject *result = multiplyVectorBase<VectorType>(op1, op2);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    return PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                               "mul", op2.ptr());
+  }
+}
+
+
+
+
+template <typename VectorType>
+static PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
+{
+  return multiplyVectorBase<VectorType>(op1, op2);
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
 static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
 {
@@ -1524,11 +1525,23 @@ static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
 
   exposeElementWiseBehavior(pyc, WrappedClass());
 
-  // inner and outer products
   pyc
-    .def("_internal_innerproduct", inner_prodWrapper<WrappedClass, WrappedClass>::apply)
+    .add_property("H", hermiteVector<WrappedClass>)
+    .add_property("T", transposeVector<WrappedClass>)
+
+    // products
+    .def("__mul__", multiplyVector<WrappedClass>)
+    .def("__rmul__", multiplyVector<WrappedClass>)
+    .def("_nocast__mul__", multiplyVectorWithoutCoercion<WrappedClass>)
+    .def("__imul__", multiplyInPlaceByScalar<WrappedClass>,
+         python::return_self<>())
+    .def("__idiv__", divideInPlaceByScalar<WrappedClass>,
+         python::return_self<>());
+  /*
+  pyc
     .def("_internal_outerproduct", outer_prodWrapper<WrappedClass, WrappedClass>::apply,
 	 python::return_value_policy<python::manage_new_object>());
+  */
 }
 
 
@@ -1586,6 +1599,111 @@ static void exposeVectorType(WrappedClass, const std::string &python_typename, c
 
 
 // matrix wrapper -------------------------------------------------------------
+template <typename MatrixType>
+static PyObject *multiplyMatrixBase(python::object op1, python::object op2, 
+                                    bool reverse)
+{
+  python::extract<MatrixType> op2_mat(op2);
+  if (op2_mat.check())
+  {
+    const MatrixType &mat = python::extract<MatrixType>(op1);
+    const MatrixType &mat2 = op2_mat();
+    if (mat.size2() != mat2.size1())
+      throw std::runtime_error("matrix sizes don't match");
+    if (!reverse)
+      return pyobject_from_new_ptr(new MatrixType(prod(mat, mat2)));
+    else
+      return pyobject_from_new_ptr(new MatrixType(prod(mat2, mat)));
+  }
+
+  typedef
+    typename get_corresponding_vector_type<MatrixType>::type
+    vector_t;
+
+  python::extract<vector_t> op2_vec(op2);
+  if (op2_vec.check())
+  {
+    const MatrixType &mat = python::extract<MatrixType>(op1);
+    const vector_t &vec = op2_vec();
+    if (mat.size1() != vec.size())
+      throw std::runtime_error("matrix size doesn't match vector");
+
+    std::auto_ptr<ublas::vector<typename MatrixType::value_type> > result(new
+                                                                          ublas::vector<typename MatrixType::value_type>(mat.size1()));
+
+    if (!reverse)
+      ublas::axpy_prod(mat, vec, *result);
+    else
+      ublas::axpy_prod(vec, mat, *result);
+    return pyobject_from_new_ptr(result.release());
+  }
+
+  python::extract<typename MatrixType::value_type> op2_scalar(op2);
+  if (op2_scalar.check())
+  {
+    const MatrixType &mat = python::extract<MatrixType>(op1);
+    return pyobject_from_new_ptr(new MatrixType(mat * op2_scalar()));
+  }
+
+  Py_INCREF(Py_NotImplemented);
+  return Py_NotImplemented;
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *multiplyMatrix(python::object op1, python::object op2)
+{
+  PyObject *result = multiplyMatrixBase<MatrixType>(op1, op2, false);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    return PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                               "mul", op2.ptr());
+  }
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *multiplyMatrixWithoutCoercion(python::object op1, python::object op2)
+{
+  return multiplyMatrixBase<MatrixType>(op1, op2, false);
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *rmultiplyMatrix(python::object op1, python::object op2)
+{
+  PyObject *result = multiplyMatrixBase<MatrixType>(op1, op2, true);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    return PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                               "rmul", op2.ptr());
+  }
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
+{
+  return multiplyMatrixBase<MatrixType>(op1, op2, true);
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
 static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 {
@@ -1593,20 +1711,23 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 
   exposeElementWiseBehavior(pyclass, WrappedClass());
 
-  // products
-
   pyclass
-    .def("_internal_transpose", transposeMatrix<WrappedClass>,
-	 python::return_value_policy<python::manage_new_object>())
-    .def("_internal_hermite", hermiteMatrix<WrappedClass>,
-	 python::return_value_policy<python::manage_new_object>())
+    .add_property("H", hermiteMatrix<WrappedClass>)
+    .add_property("T", transposeMatrix<WrappedClass>)
 
-    .def("_internal_multiplyVector", multiplyVector<WrappedClass>,
-        python::return_value_policy<python::manage_new_object>())
-    .def("_internal_premultiplyVector", premultiplyVector<WrappedClass>,
-        python::return_value_policy<python::manage_new_object>())
-    .def("_internal_multiplyMatrix", multiplyMatrix<WrappedClass>,
-        python::return_value_policy<python::manage_new_object>())
+    // products
+    .def("__mul__", multiplyMatrix<WrappedClass>)
+    .def("__rmul__", rmultiplyMatrix<WrappedClass>)
+    .def("_nocast__mul__", multiplyMatrixWithoutCoercion<WrappedClass>)
+    .def("_nocast__rmul__", rmultiplyMatrixWithoutCoercion<WrappedClass>)
+    .def("__imul__", multiplyInPlaceByScalar<WrappedClass>,
+         python::return_self<>())
+    .def("__imul__", multiplyInPlaceByMatrix<WrappedClass>,
+         python::return_self<>())
+    /*
+    .def("__div__", scalarDivideOp<WrappedClass, double>)
+    .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>, python::return_self<>())
+    */
 
     .def("addScattered", addScattered<WrappedClass>)
     .def("addScatteredSymmetric", addScatteredSymmetric<WrappedClass>)

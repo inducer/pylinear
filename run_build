@@ -1,9 +1,4 @@
 #! /bin/bash
-export CC=colorgcc
-if time python setup.py build ; then
-  xmessage "build done"
-else
-  xmessage "build failed"
-fi
+CC=colorgcc time python setup.py build 
 
 

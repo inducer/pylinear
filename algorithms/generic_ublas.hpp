@@ -302,33 +302,33 @@ namespace generic_ublas {
   namespace detail
   {
     template <typename MatrixType>
-    inline void insert(
+    inline void insert_element(
         MatrixType &mat,
         const minilist<unsigned> &index, 
         const typename MatrixType::value_type &value,
         mpl::false_)
     {
-      mat.insert(index[0], index[1], value);
+      mat.insert_element(index[0], index[1], value);
     }
 
     template <typename MatrixType>
-    inline void insert(
+    inline void insert_element(
         MatrixType &mat,
         const minilist<unsigned> &index, 
         const typename MatrixType::value_type &value,
         mpl::true_)
     {
-      mat.insert(index[0], value);
+      mat.insert_element(index[0], value);
     }
   }
 
   template <typename MatrixType>
-  inline void insert(
+  inline void insert_element(
       MatrixType &mat,
       const minilist<unsigned> &index, 
       const typename MatrixType::value_type &value)
   {
-    detail::insert(mat,index, value, typename is_vector<MatrixType>::type());
+    detail::insert_element(mat,index, value, typename is_vector<MatrixType>::type());
   }
 
 

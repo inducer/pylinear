@@ -174,8 +174,7 @@ public:
   template <typename MatrixType>
   void expose(const std::string &python_mattype, MatrixType) const
   {
-    python::def("cholesky", cholesky::cholesky<MatrixType, 
-        typename strip_symmetric_wrappers<MatrixType>::type>,
+    python::def("cholesky", cholesky::cholesky<MatrixType, MatrixType>,
         python::return_value_policy<python::manage_new_object>());
   }
 };
@@ -238,9 +237,7 @@ My LU is still slow, but faster than the UBLAS builtin.
 template <typename MatrixType>
 python::object luWrapper(const MatrixType &a)
 {
-  typedef 
-    typename strip_symmetric_wrappers<MatrixType>::type
-    result_type;
+  typedef MatrixType result_type;
   boost::tuple<result_type *, result_type *, std::vector<unsigned> *, int> result = 
     lu::lu<MatrixType, result_type, result_type>(a);
   std::auto_ptr<result_type> l(result.get<0>()), u(result.get<1>());
