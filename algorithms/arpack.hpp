@@ -79,7 +79,7 @@ namespace arpack
     {
       // result generation for real types
       // slightly more complicated: take care of complex conjugate pairs
-      std::auto_ptr<results<BaseType> > results(new results<BaseType>);
+      std::auto_ptr<results<BaseType> > my_results(new results<BaseType>);
 
       unsigned i = 0;
 
@@ -91,31 +91,31 @@ namespace arpack
           if (i + 1 >= nconv)
             throw std::runtime_error("arpack: complex pair split up");
 
-          results->m_ritz_values.push_back(d[i]);
-          results->m_ritz_values.push_back(d[i+1]);
+          my_results->m_ritz_values.push_back(d[i]);
+          my_results->m_ritz_values.push_back(d[i+1]);
 
           ublas::vector<std::complex<BaseType> > ritz_vector(n);
           for (unsigned j = 0; j < n; j++)
             ritz_vector[j] = std::complex<BaseType>(z[i*n + j], z[(i+1)*n +j]);
 
-          results->m_ritz_vectors.push_back(ritz_vector);
-          results->m_ritz_vectors.push_back(conj(ritz_vector));
+          my_results->m_ritz_vectors.push_back(ritz_vector);
+          my_results->m_ritz_vectors.push_back(conj(ritz_vector));
 
           i += 2;
         }
         else
         {
           // real eigenvalue, single eigenvector
-          results->m_ritz_values.push_back(d[i]);
+          my_results->m_ritz_values.push_back(d[i]);
           ublas::vector<std::complex<BaseType> > ritz_vector(n);
           for (unsigned j = 0; j < n; j++)
             ritz_vector[j] = z[i*n + j];
-          results->m_ritz_vectors.push_back(ritz_vector);
+          my_results->m_ritz_vectors.push_back(ritz_vector);
           i++;
         }
       }
 
-      return results.release();
+      return my_results.release();
     }
 
     template <typename BaseType>
@@ -123,20 +123,20 @@ namespace arpack
         std::complex<BaseType> *z, std::complex<BaseType> *d)
     {
       // result generation for complex types
-      std::auto_ptr<results<BaseType> > results(new results<BaseType>);
+      std::auto_ptr<results<BaseType> > my_results(new results<BaseType>);
 
       // simple: just copy everything over.
       for (unsigned i = 0; i < nconv; i++)
       {
-        results->m_ritz_values.push_back(d[i]);
+        my_results->m_ritz_values.push_back(d[i]);
 
         ublas::vector<std::complex<BaseType> > ritz_vector(n);
         for (unsigned j = 0; j < n; j++)
           ritz_vector[j] = z[i*n + j];
-        results->m_ritz_vectors.push_back(ritz_vector);
+        my_results->m_ritz_vectors.push_back(ritz_vector);
       }
 
-      return results.release();
+      return my_results.release();
     }
   }
 

@@ -117,8 +117,14 @@ namespace cg
 
     void apply(const vector_type &before, vector_type &after) const
     {
-      cg::solveCG(m_matrix, m_preconditioner, after, before, m_tolerance,
-          m_maxIterations, const_cast<unsigned *>(&m_lastIterationCount), m_debugLevel);
+      cg::solveCG(m_matrix, 
+		  m_preconditioner, 
+		  after, 
+		  before, 
+		  this->m_tolerance,
+		  this->m_maxIterations, 
+		  const_cast<unsigned *>(&this->m_lastIterationCount), 
+		  this->m_debugLevel);
     }
   };
 }

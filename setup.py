@@ -14,8 +14,8 @@ include_dirs = [boost_path, "algorithms"]
 libraries = ["boost_python"]
 extra_compile_args = ["-fmessage-length=0"]
 
-#blas_libraries = ["f77blas", "atlas", "g2c"]
-blas_libraries = ["blas2"]
+blas_libraries = ["f77blas", "atlas", "g2c"]
+#blas_libraries = ["blas2"]
 
 setup(name="PyLinear",
       version="0.90",
