@@ -347,9 +347,19 @@ class tTestMatrices(unittest.TestCase):
         self.assertSmall(mm(q, mm(aprime, herm(q))) - a)
         self.assert_(after / before <= 1e-10)
 
-
     def testCodiagonalization(self):
         self.forAllTypecodes(self.doTestCodiagonalization)
+
+    def doTestMatrixExp(self, typecode):
+        a = mtools.makeRandomSPDMatrix(4, num.Complex)
+        e_a1 = mtools.matrixExp(a)
+        e_a2 = mtools.matrixExpByDiagonalization(a)
+        self.assert_(mtools.frobeniusNorm(e_a1-e_a2)
+                     / mtools.frobeniusNorm(e_a1)
+                     / mtools.frobeniusNorm(e_a2) <= 1e-15)
+
+    def testMatrixExp(self):
+        self.forAllTypecodes(self.doTestMatrixExp)
 
 
 

@@ -374,7 +374,7 @@ def matrixExp(a, eps = 1e-15):
         
     
 
-def matrixExpByDiagonalization(a, eps = 1e-15):
+def matrixExpByDiagonalization(a):
     # a has to be symmetric
     h,w = a.shape
     assert h == w
