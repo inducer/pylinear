@@ -1,6 +1,5 @@
 import types
-import _matrices
-from _matrices import *
+from pylinear._matrices import *
 
 
 
@@ -88,8 +87,8 @@ _TYPES = [
 
 
 # class getter ----------------------------------------------------------------
-def makeRightType(module, name_trunk, typecode):
-    return module.__dict__[name_trunk + _getTypeCodeName(typecode)]
+def _makeRightType(name_trunk, typecode):
+    return globals()[name_trunk + _getTypeCodeName(typecode)]
 
 
 
@@ -102,7 +101,7 @@ def _getMatrixClass(rank, typecode, matrix_type):
             raise RuntimeError, "rank must be one or two"
 
         typename = matrix_type.name()
-    return makeRightType(_matrices, typename, typecode)
+    return _makeRightType(typename, typecode)
 
 
 

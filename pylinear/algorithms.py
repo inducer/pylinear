@@ -1,5 +1,5 @@
 import pylinear.matrices as num
-from _algorithms import *
+from pylinear._algorithms import *
 
 
 
