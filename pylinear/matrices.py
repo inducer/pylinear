@@ -306,6 +306,13 @@ def hermite(mat):
 
 
 
+def trace(mat, k = 0):
+    diag = diagonal(mat, k)
+    return sum(diag)
+
+
+
+
 # ufuncs ----------------------------------------------------------------------
 def conjugate(m): return m._ufunc_conjugate()
 def cos(m): return m._ufunc_cos()

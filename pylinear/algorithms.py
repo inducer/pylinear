@@ -60,3 +60,6 @@ def applyMatrixOperator(mat_op, vec):
     temp = num.zeros((h,), vec.typecode())
     mat_op.apply(vec, temp)
     return temp
+
+
+

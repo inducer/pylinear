@@ -1,6 +1,7 @@
 import math, cmath, random, types
 import pylinear.matrices as num
 import pylinear.linear_algebra as la
+import pylinear.algorithms as algo
 import pylinear.iteration as iteration
 
 
@@ -329,6 +330,14 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
 
 
 # some tools ------------------------------------------------------------------
+def solve_linear_system_cg(matrix, vector):
+    m_inv = algo.makeCGMatrixOperator(algo.makeMatrixOperator(matrix), 
+                                      matrix.shape[0]*2)
+    return algo.applyMatrixOperator(m_inv, vector)
+    
+
+
+
 def entrySum(a):
     result = 0
     for i,j in a.indices():
