@@ -82,13 +82,13 @@ def delta(x,y):
 
 
 def sp(x,y):
-    return num.innerproduct(num.conjugate(y),x)
+    return num.innerproduct(y,num.conjugate(x))
 
 
 
 
 def norm2squared(x):
-    val = num.innerproduct(num.conjugate(x),x)
+    val = num.innerproduct(x,num.conjugate(x))
     try:
       return val.real
     except AttributeError:
@@ -100,7 +100,7 @@ def norm2squared(x):
 
 
 def norm2(x):
-    scalar_product = num.innerproduct(num.conjugate(x),x)
+    scalar_product = num.innerproduct(x,num.conjugate(x))
     try:
         return math.sqrt(scalar_product.real)
     except AttributeError:
