@@ -9,6 +9,7 @@
 
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
+#include <boost/numeric/ublas/triangular.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
 #include <helpers.hpp>
@@ -732,7 +733,7 @@ inline std::string stringify(const T &obj)
 
 
 template <typename MatrixType>
-inline void addScattered(MatrixType &mat, 
+void addScattered(MatrixType &mat, 
     python::object row_indices, 
     python::object column_indices,
     const ublas::matrix<typename MatrixType::value_type> &little_mat)
@@ -821,6 +822,32 @@ inline void addScatteredSymmetric(MatrixType &mat,
       }
     }
   }
+}
+
+
+
+
+template <typename MatrixType>
+typename get_corresponding_vector_type<MatrixType>::type *
+solveLower(const MatrixType &mat, 
+    const typename get_corresponding_vector_type<MatrixType>::type &vec)
+{
+  return new 
+    typename get_corresponding_vector_type<MatrixType>::type
+    (ublas::solve(mat, vec, ublas::lower_tag()));
+}
+
+
+
+
+template <typename MatrixType>
+typename get_corresponding_vector_type<MatrixType>::type *
+solveUpper(const MatrixType &mat, 
+    const typename get_corresponding_vector_type<MatrixType>::type &vec)
+{
+  return new 
+    typename get_corresponding_vector_type<MatrixType>::type
+    (ublas::solve(mat, vec, ublas::upper_tag()));
 }
 
 
@@ -1417,6 +1444,10 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
   pyclass
     .def("addScattered", addScattered<WrappedClass>)
     .def("addScatteredSymmetric", addScatteredSymmetric<WrappedClass>)
+    .def("solveLower", solveLower<WrappedClass>,
+	 python::return_value_policy<python::manage_new_object>())
+    .def("solveUpper", solveUpper<WrappedClass>,
+	 python::return_value_policy<python::manage_new_object>())
     ;
 }
 

@@ -233,6 +233,14 @@ def cholesky(typecode):
   resid = num.matrixmultiply(L,hermite(L))-A
   print "cholesky residual:", getResidual(resid)
 
+def solve(typecode):
+  size = 200
+  A = makeFullRandomMatrix(size, typecode)
+  b = num.zeros((size,), typecode)
+  writeRandomVector(b)
+  x = la.solve_linear_equations(A,b)
+  print "solve residual:", norm2(num.matrixmultiply(A,x)-b)
+
 def lu(typecode):
   size = 500
   A = makeFullRandomMatrix(size, typecode)
@@ -319,12 +327,16 @@ def testAll(typecode):
   print "inverse:"
   inverse(typecode)
   print "-------------------------------------"
+  print "solve:"
+  solve(typecode)
+  print "-------------------------------------"
   print "determinant:"
   determinant(typecode)
 
 
 
+inverse(num.Complex)
 
-testAll(num.Float)
+#testAll(num.Float)
 print "-------------------------------------"
-testAll(num.Complex)
+#testAll(num.Complex)

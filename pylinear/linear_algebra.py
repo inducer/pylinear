@@ -4,7 +4,7 @@ import pylinear.algorithms as algo
 
 
 
-def solve_linear_equations(mat, rhs):
+def solve_linear_equations_umf(mat, rhs):
   typecode = mat.typecode()
   h,w = mat.shape
   umf_operator = algo.makeUMFPACKMatrixOperator(
@@ -27,6 +27,30 @@ def solve_linear_equations(mat, rhs):
 
 
 
+def solve_linear_equations(mat, rhs):
+  typecode = mat.typecode()
+  h,w = mat.shape
+  l, u, permut, sign = algo.lu(mat)
+
+  temp = num.zeros((h,), typecode)
+  if len(rhs.shape) == 1:
+    for i in range(h):
+      temp[i] = rhs[permut[i]]
+    return u.solveUpper(l.solveLower(temp))
+  else:
+    rhh, rhw = rhs.shape
+
+    solution = num.zeros(rhs.shape, typecode)
+    assert rhh == h
+    for col in range(rhw):
+      for i in range(h):
+        temp[i] = rhs[permut[i],col]
+      solution[:,col] = u.solveUpper(l.solveLower(temp))
+    return solution
+
+
+
+
 def inverse(mat):
   w,h = mat.shape
   assert h == w
@@ -38,14 +62,16 @@ def inverse(mat):
 def determinant(mat):
   h,w = mat.shape
   assert h == w
+  if h == 2:
+    return mat[0,0]*mat[1,1] - mat[1,0]*mat[0,1]
+  else:
+    l,u, permut, sign = algo.lu(mat)
 
-  l,u, permut, sign = algo.lu(mat)
+    product = 1
+    for i in range(h):
+      product *= u[i,i]
 
-  product = 1
-  for i in range(h):
-    product *= u[i,i]
-
-  return product * sign
+    return product * sign
 
 
 

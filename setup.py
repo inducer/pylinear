@@ -14,6 +14,9 @@ include_dirs = [boost_path, "algorithms"]
 libraries = ["boost_python"]
 extra_compile_args = ["-fmessage-length=0"]
 
+#blas_libraries = ["f77blas", "atlas", "g2c"]
+blas_libraries = ["blas2"]
+
 setup(name="PyLinear",
       version="0.90",
       description="Matrix handling in Python",
@@ -46,7 +49,7 @@ setup(name="PyLinear",
           include_dirs = include_dirs + 
           ["3rdparty/ublas_bindings", "3rdparty/arpack"],
           library_dirs = library_dirs,
-          libraries = libraries + ["umfpack", "amd", "arpack", "lapack", "f77blas", "atlas", "g2c"],
+          libraries = libraries + ["umfpack", "amd", "arpack", "lapack"] + blas_libraries,
           extra_compile_args = extra_compile_args,
           ),
         ]
