@@ -19,7 +19,7 @@ extra_compile_args = ["-fmessage-length=0"]
 blas_libraries = ["blas2"]
 
 setup(name="PyLinear",
-      version="0.91",
+      version="0.92",
       description="Matrix handling in Python",
       author="Andreas Kloeckner",
       author_email="ak@ixion.net",
