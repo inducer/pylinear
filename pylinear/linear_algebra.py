@@ -65,13 +65,17 @@ def determinant(mat):
   if h == 2:
     return mat[0,0]*mat[1,1] - mat[1,0]*mat[0,1]
   else:
-    l,u, permut, sign = algo.lu(mat)
+    try
+      l,u, permut, sign = algo.lu(mat)
 
-    product = 1
-    for i in range(h):
-      product *= u[i,i]
+      product = 1
+      for i in range(h):
+        product *= u[i,i]
 
-    return product * sign
+      return product * sign
+    except RuntimeError:
+      # responds to the "is singular" exception
+      return 0
 
 
 
