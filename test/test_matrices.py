@@ -11,18 +11,18 @@ from test_tools import *
 
 # TEST ME!
 class tMyMatrixOperator(algo.MatrixOperatorFloat64):
-  def __init__(self, mat):
-    self.Matrix = mat
+    def __init__(self, mat):
+        self.Matrix = mat
 
-  def typecode(self):
-    return num.Float64
+    def typecode(self):
+        return num.Float64
 
-  def size(self):
-    w,h = self.Matrix.shape
-    return w
+    def size(self):
+        w,h = self.Matrix.shape
+        return w
 
-  def apply(self, before, after):
-    after[:] = num.matrximultiply(self.Matrix, after)
+    def apply(self, before, after):
+        after[:] = num.matrximultiply(self.Matrix, after)
 
 
 
@@ -289,6 +289,30 @@ class tTestMatrices(unittest.TestCase):
 
     def testSVD(self):
         self.forAllTypecodes(self.doTestSVD)
+
+    def doTestJacobi(self, typecode):
+        size = 20
+        
+        def off_diag_norm_squared(a):
+            result = 0
+            for i,j in a.indices():
+                if i != j:
+                    result += abs(a[i,j])**2
+            return result
+
+        a = mtools.makeRandomSPDMatrix(size, typecode)
+        before = math.sqrt(off_diag_norm_squared(a))
+        q, aprime = mtools.diagonalize(a, 1e-10)
+        after = math.sqrt(off_diag_norm_squared(aprime))
+
+        mm = num.matrixmultiply
+        herm = num.hermite
+
+        self.assertSmall(mm(herm(q), mm(a, q)) - aprime)
+        self.assert_(after / before <= 1e-10)
+
+    def testJacobi(self):
+        self.forAllTypecodes(self.doTestJacobi)
 
 
 

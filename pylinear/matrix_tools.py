@@ -90,8 +90,9 @@ class tRotationShapeMatrix:
         self.JI = ji
         self.JJ = jj
 
-    def hermite():
-        return tRotationShapeMatrix(_conjugate(self.II), _conjugate(self.JI),
+    def hermite(self):
+        return tRotationShapeMatrix(self.I, self.J,
+                                    _conjugate(self.II), _conjugate(self.JI),
                                     _conjugate(self.IJ), _conjugate(self.JJ))
 
     def applyFromLeft(self, mat):
@@ -110,28 +111,35 @@ class tRotationShapeMatrix:
 
 
 
-def makeJacobiRotation(cos, sin):
-    return tRotationShapeMatrix(cos, _conjugate(sin),
+def makeJacobiRotation(i, j, cos, sin):
+    return tRotationShapeMatrix(i,j,
+                                cos, _conjugate(sin),
                                 -sin, _conjugate(cos))
         
 
 
 
-def codiagonalize(matrices, tolerance = 1e-10):
-    # From A. Bunse-Gerstner, R. Byers, V. Mehrmann:
-    # Numerical methods for simultaneous diagonalization
-    # SIAM J. of Matrix Analysis and Applications, Vol. 14, No. 4, 927-949
-    # (1993)
+def printMatrixInGrid(a):
+    h,w = a.shape
+    for i in range(h):
+        for j in range(w):
+            print "%.6f  " % a[i,j],
+        print
+def printComplexMatrixInGrid(a):
+    h,w = a.shape
+    for i in range(h):
+        for j in range(w):
+            print "%.3f %.3fj  " % (a[i,j].real, a[i,j].imag),
+        print
 
-    h,w = matrices[0].shape
-    tc = matrices[0].typecode()
-    for mat in matrices[1:]:
-        assert mat.shape == (h,w)
-        assert mat.typecode() == tc
-    assert h == w
-    n = h
+def _sign(x):
+    return x / abs(x)
 
-    q = num.identity(n, tc)
+def diagonalize(matrix, tolerance = 1e-10, max_iterations = None):
+    # Simple Jacobi
+
+    rows, columns = matrix.shape
+    tc = matrix.typecode()
 
     def off_diag_norm_squared(a):
         result = 0
@@ -140,20 +148,134 @@ def codiagonalize(matrices, tolerance = 1e-10):
                 result += abs(a[i,j])**2
         return result
 
-    frobsum = sum([frobeniusNorm(mat) for mat in matrices])
+    q = num.identity(rows, tc)
+    norm_before = off_diag_norm_squared(matrix)
+    mymatrix = matrix.copy()
+    iterations = 0
 
-    mymats = [mat.copy() for mat in matrices]
+    while off_diag_norm_squared(mymatrix) >= tolerance**2 * norm_before:
+        for i in range(rows):
+            for j in range(0,min(columns,i)):
+                if abs(mymatrix[i,j]) < tolerance ** 3:
+                    continue
+
+                theta = (mymatrix[j,j] - mymatrix[i,i])/mymatrix[i,j]
+                t = _sign(theta)/(abs(theta)+math.sqrt(abs(theta)**2+1))
+
+                other_cos = 1 / math.sqrt(abs(t)**2 + 1)
+                other_sin = t * other_cos
+
+                rot = makeJacobiRotation(i, j, other_cos, other_sin)
+                rot.applyFromRight(q)
+                rot.hermite().applyFromLeft(mymatrix)
+                rot.applyFromRight(mymatrix)
+
+        iterations += 1
+        if max_iterations and (iterations >= max_iterations):
+            raise RuntimeError, "Jacobi diagonalization failed to converge"
+    return q, mymatrix
+
+
+
+
+def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
+    # From A. Bunse-Gerstner, R. Byers, V. Mehrmann:
+    # Numerical methods for simultaneous diagonalization
+    # SIAM J. of Matrix Analysis and Applications, Vol. 14, No. 4, 927-949
+    # (1993)
+
+    # For the determination of the Jacobi angles, see 
+    # J.-F. Cardoso, A. Souloumiac, Jacobi Angles for Simultaneous
+    # Diagonalization, also published by SIAM.
+
+    rows, columns = matrices[0].shape
+    tc = matrices[0].typecode()
+    for mat in matrices[1:]:
+        assert mat.shape == (height, width)
+        assert mat.typecode() == tc
+
+    def off_diag_norm_squared(a):
+        result = 0
+        for i,j in a.indices():
+            if i != j:
+                result += abs(a[i,j])**2
+        return result
+
+    q = num.identity(rows, num.Complex)
+    frobsum = sum([frobeniusNormSquared(mat) for mat in matrices])
+    mymats = [num.asarray(mat, num.Float).copy() for mat in matrices]
+    iterations = 0
+
+    print_all = False
 
     while sum([off_diag_norm_squared(mat) for mat in mymats]) \
-          < tolerance * frobsum:
+          >= tolerance * frobsum:
+        print "HA!", sum([off_diag_norm_squared(mat) for mat in mymats]) \
 
-        for i in range(n):
-            for j in range(i+1,n):
-                rot = makeJacobiRotation(i, j, cos, sin)
+        for i in range(rows):
+            for j in range(0,min(columns,i)):
+                if True:
+                    g = num.zeros((3,3), num.Complex)
+                    for a in mymats:
+                        h = num.array([a[i,i] - a[j,j],
+                                       a[i,j] + a[j,i],
+                                       1j * (a[j,i] - a[i,j])])
+                        g += num.outerproduct(num.conjugate(h), h)
+                    g = g.real
+                    u, diag_mat = diagonalize(g)
+
+                    max_index = None
+                    for index in range(3):
+                        if (not max_index or abs(diag_mat[index,index]) > current_max) \
+                             and u[0,index] >= 0:
+                            max_index = index
+                            current_max = abs(diag_mat[index,index])
+
+                    if max_index is None:
+                        continue
+                
+                    # eigenvector belonging to largest eigenvalue
+                    bev = u[:,max_index]
+                    r = norm2(bev)
+                    if (bev[0] + r)/r < 1e-7:
+                        continue
+
+                    cos = math.sqrt((bev[0]+r)/(2*r))
+                    sin = (bev[1] - 1j*bev[2])/ math.sqrt(2*r*(bev[0]+r))
+
+                a = mymats[0]
+                theta = (a[j,j] - a[i,i])/a[i,j]
+                t = _sign(theta)/(abs(theta)+math.sqrt(theta**2+1))
+
+                other_cos = 1 / math.sqrt(t*t + 1)
+                other_sin = t * other_cos
+
+                print cos, "vs.", other_cos
+                print sin, "vs.", other_sin
+
+                rot = makeJacobiRotation(i, j, other_cos, other_sin)
                 rot.applyFromRight(q)
                 for mat in mymats:
                     rot.hermite().applyFromLeft(mat)
                     rot.applyFromRight(mat)
+
+                if print_all:
+                    print i,j
+                    for mat in mymats:
+                        printComplexMatrixInGrid(mat)
+                    raw_input()
+
+        sel = raw_input()
+        print_all = False
+        if sel == "p":
+            for mat in mymats:
+                printComplexMatrixInGrid(mat)
+        if sel == "a":
+            print_all = True
+
+        iterations += 1
+        if max_iterations and (iterations >= max_iterations):
+            raise RuntimeError, "Codiagonalization failed to converge"
     return q, mymats
 
 
