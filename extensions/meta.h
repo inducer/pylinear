@@ -9,6 +9,7 @@
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
 #include "managed_adaptors.h"
+#include <helpers.h>
 
 
 
@@ -88,22 +89,6 @@ struct is_vector<ublas::vector<ValueType> > { typedef mpl::true_ type; };
 template <typename WrappedVector>
 struct is_vector<ublas::vector_slice<WrappedVector> > { typedef mpl::true_ type; };
 
-
-
-
-
-// decomplexify
-template <typename T>
-struct decomplexify
-{
-  typedef T type;
-};
-
-template <typename ELT>
-struct decomplexify<std::complex<ELT> >
-{
-  typedef ELT type;
-};
 
 
 

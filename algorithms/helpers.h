@@ -9,6 +9,22 @@
 
 
 namespace helpers {
+// decomplexify ---------------------------------------------------------------
+template <typename T>
+struct decomplexify
+{
+  typedef T type;
+};
+
+template <typename ELT>
+struct decomplexify<std::complex<ELT> >
+{
+  typedef ELT type;
+};
+
+
+
+
 // isComplex ------------------------------------------------------------------
 template <typename T>
 inline bool isComplex(const T &)

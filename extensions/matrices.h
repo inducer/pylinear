@@ -305,52 +305,40 @@ void extractTwoTuple(const python::tuple &tup, T &i, T &j)
 
 
 // shape accessors ------------------------------------------------------------
-template <typename MatrixType, typename _is_vector = typename is_vector<MatrixType>::type >
-struct getShape
-{
-  static python::object apply(const MatrixType &m)
-  { 
-    return python::make_tuple(m.size1(), m.size2());
-  }
-};
+template <typename MatrixType>
+inline python::object getShape(const MatrixType &m)
+{ 
+  return python::make_tuple(m.size1(), m.size2());
+}
+
+
+
+
+template <typename ValueType>
+inline python::object getShape(const ublas::vector<ValueType> &m)
+{ 
+  return python::make_tuple(m.size());
+}
 
 
 
 
 template <typename MatrixType>
-struct getShape<MatrixType, mpl::true_>
-{
-  static python::object apply(const MatrixType &m)
-  { 
-    return python::make_tuple(m.size());
-  }
-};
+inline void setShape(MatrixType &m, const python::tuple &new_shape)
+{ 
+  typename MatrixType::size_type h,w;
+  extractTwoTuple(new_shape, h, w);
+  m.resize(h,w);
+}
 
 
 
 
-template <typename MatrixType, typename _is_vector = typename is_vector<MatrixType>::type >
-struct setShape
-{
-  static void apply(MatrixType &m, const python::tuple &new_shape)
-  { 
-    typename MatrixType::size_type h,w;
-    extractTwoTuple(new_shape, h, w);
-    m.resize(h,w);
-  }
-};
-
-
-
-
-template <typename MatrixType>
-struct setShape<MatrixType, mpl::true_>
-{
-  static void apply(MatrixType &m, const python::tuple &new_shape)
-  { 
-    m.resize(extractOneTuple(new_shape, typename MatrixType::size_type()));
-  }
-};
+template <typename ValueType>
+inline void setShape(ublas::vector<ValueType> &m, const python::tuple &new_shape)
+{ 
+  m.resize(extractOneTuple(new_shape, typename MatrixType::size_type()));
+}
 
 
 
@@ -505,7 +493,7 @@ struct slice_info
 
 
 
-void translateSlice(PyObject *slice_or_constant, slice_info &si, int my_length)
+static void translateSlice(PyObject *slice_or_constant, slice_info &si, int my_length)
 {
   if (PySlice_Check(slice_or_constant))
   {
@@ -535,190 +523,175 @@ void translateSlice(PyObject *slice_or_constant, slice_info &si, int my_length)
 
 
 
-template <typename MatrixType, typename _is_vector = typename is_vector<MatrixType>::type >
-struct getElement
-{
-  static python::object apply(MatrixType &m, python::object &index)
-  { 
-    typedef
-      typename get_corresponding_vector_type<MatrixType>::type
-      vector_t;
+template <typename MatrixType>
+inline python::object getElement(MatrixType &m, PyObject *index)
+{ 
+  typedef
+    typename get_corresponding_vector_type<MatrixType>::type
+    vector_t;
 
-    if (PyTuple_Check(index.ptr()))
+  if (PyTuple_Check(index))
+  {
+    // we have a tuple
+    if (PyTuple_GET_SIZE(index) != 2)
+      throw std::out_of_range("expected tuple of size 2");
+
+    slice_info si1, si2;
+    translateSlice(PyTuple_GET_ITEM(index, 0), si1, m.size1());
+    translateSlice(PyTuple_GET_ITEM(index, 1), si2, m.size2());
+
+    if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1)
+      return python::object(m(si1.m_start, si2.m_start));
+    else if (si1.m_sliceLength == 1)
+      return python::object(new vector_t(row(m,si1.m_start)));
+    else if (si2.m_sliceLength == 1)
+      return python::object(new vector_t(column(m,si2.m_start)));
+    else
     {
-      // we have a tuple
-      if (PyTuple_GET_SIZE(index.ptr()) != 2)
-        throw std::out_of_range("expected tuple of size 2");
-
-      slice_info si1, si2;
-      translateSlice(PyTuple_GET_ITEM(index.ptr(), 0), si1, m.size1());
-      translateSlice(PyTuple_GET_ITEM(index.ptr(), 1), si2, m.size2());
-
-      if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1)
-        return python::object(m(si1.m_start, si2.m_start));
-      else if (si1.m_sliceLength == 1)
-        return python::object(new vector_t(row(m,si1.m_start)));
-      else if (si2.m_sliceLength == 1)
-        return python::object(new vector_t(column(m,si2.m_start)));
-      else
-      {
-        return python::object(
-            new MatrixType(project(m,
+      return python::object(
+          new MatrixType(project(m,
               ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
               ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength))));
-      }
-    }
-    else
-    {
-      slice_info si;
-      translateSlice(index.ptr(), si, m.size1());
-
-      if (si.m_sliceLength == 1)
-        return python::object(
-            new vector_t(
-              row(m, si.m_start)));
-      else
-        return python::object(
-            new MatrixType(project(m,
-                ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
-                ublas::slice(0, 1, m.size2())
-                )));
     }
   }
-};
-
-
-
-
-template <typename MatrixType>
-struct getElement<MatrixType, mpl::true_>
-{
-  static python::object
-    apply(MatrixType &m, python::object &index)
-  { 
+  else
+  {
     slice_info si;
-    translateSlice(index.ptr(), si, m.size());
+    translateSlice(index, si, m.size1());
 
     if (si.m_sliceLength == 1)
-      return python::object(m(si.m_start));
+      return python::object(
+          new vector_t(
+            row(m, si.m_start)));
     else
       return python::object(
-          new MatrixType(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
+          new MatrixType(project(m,
+              ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
+              ublas::slice(0, 1, m.size2())
+              )));
   }
-};
+}
 
 
 
 
-template <typename MatrixType, typename _is_vector = typename is_vector<MatrixType>::type >
-struct setElement
-{
-  static void apply(MatrixType &m, python::object &index,
-      python::object &new_value)
-  { 
-    python::extract<typename MatrixType::value_type> new_scalar(new_value);
-    python::extract<MatrixType> new_matrix(new_value);
+template <typename ValueType>
+inline python::object getElement(ublas::vector<ValueType> &m, PyObject *index)
+{ 
+  slice_info si;
+  translateSlice(index, si, m.size());
 
-    typedef 
-      typename get_corresponding_vector_type<MatrixType>::type
-      vector_type;
-
-    python::extract<vector_type> new_vector(new_value);
-
-    if (PyTuple_Check(index.ptr()))
-    {
-      // we have a tuple
-      if (PyTuple_GET_SIZE(index.ptr()) != 2)
-        throw std::out_of_range("expected tuple of size 2");
-
-      slice_info si1, si2;
-      translateSlice(PyTuple_GET_ITEM(index.ptr(), 0), si1, m.size1());
-      translateSlice(PyTuple_GET_ITEM(index.ptr(), 1), si2, m.size2());
-
-      if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1 && new_scalar.check())
-      {
-        m(si1.m_start, si2.m_start) = new_scalar();
-      }
-      else if (si1.m_sliceLength == 1 && new_vector.check())
-      {
-        vector_type new_vec = new_vector();
-
-        if (new_vec.size() != m.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
-
-        row(m,si1.m_start) = new_vec;
-      }
-      else if (si2.m_sliceLength == 1 && new_vector.check())
-      {
-        vector_type new_vec = new_vector();
-
-        if (new_vec.size() != m.size1())
-          throw std::out_of_range("submatrix is wrong size for assignment");
-
-        column(m,si2.m_start) = new_vec;
-      }
-      else
-      {
-        MatrixType new_mat = new_matrix();
-        if (int(new_mat.size1()) != si1.m_sliceLength || int(new_mat.size2()) != si2.m_sliceLength)
-          throw std::out_of_range("submatrix is wrong size for assignment");
-
-        project(m,
-              ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength)) = new_mat;
-      }
-    }
-    else
-    {
-      slice_info si;
-      translateSlice(index.ptr(), si, m.size1());
-
-      if (si.m_sliceLength == 1 && new_vector.check())
-      {
-        vector_type new_vec = new_vector();
-
-        if (new_vec.size() != m.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
-
-        row(m,si.m_start) = new_vec;
-      }
-      else
-      {
-        MatrixType new_mat = new_matrix();
-
-        if (int(new_mat.size1()) != si.m_sliceLength || new_mat.size2() != m.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
-
-        project(m,
-            ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
-            ublas::slice(0, 1, m.size2())) = new_matrix();
-      }
-    }
-  }
-};
+  if (si.m_sliceLength == 1)
+    return python::object(m(si.m_start));
+  else
+    return python::object(
+        new MatrixType(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
+}
 
 
 
 
 template <typename MatrixType>
-struct setElement<MatrixType, mpl::true_>
-{
-  static void apply(MatrixType &m, python::object &index, 
-    python::object &new_value)
-  { 
-    python::extract<typename MatrixType::value_type> new_scalar(new_value);
-    python::extract<MatrixType> new_matrix(new_value);
+inline void setElement(MatrixType &m, PyObject *obj, python::object &new_value)
+{ 
+  python::extract<typename MatrixType::value_type> new_scalar(new_value);
+  python::extract<MatrixType> new_matrix(new_value);
 
-    slice_info si;
-    translateSlice(index.ptr(), si, m.size());
+  typedef 
+    typename get_corresponding_vector_type<MatrixType>::type
+    vector_type;
 
-    if (si.m_sliceLength == 1 && new_scalar.check())
-      m(si.m_start) = new_scalar();
+  python::extract<vector_type> new_vector(new_value);
+
+  if (PyTuple_Check(index))
+  {
+    // we have a tuple
+    if (PyTuple_GET_SIZE(index) != 2)
+      throw std::out_of_range("expected tuple of size 2");
+
+    slice_info si1, si2;
+    translateSlice(PyTuple_GET_ITEM(index, 0), si1, m.size1());
+    translateSlice(PyTuple_GET_ITEM(index, 1), si2, m.size2());
+
+    if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1 && new_scalar.check())
+    {
+      m(si1.m_start, si2.m_start) = new_scalar();
+    }
+    else if (si1.m_sliceLength == 1 && new_vector.check())
+    {
+      vector_type new_vec = new_vector();
+
+      if (new_vec.size() != m.size2())
+        throw std::out_of_range("submatrix is wrong size for assignment");
+
+      row(m,si1.m_start) = new_vec;
+    }
+    else if (si2.m_sliceLength == 1 && new_vector.check())
+    {
+      vector_type new_vec = new_vector();
+
+      if (new_vec.size() != m.size1())
+        throw std::out_of_range("submatrix is wrong size for assignment");
+
+      column(m,si2.m_start) = new_vec;
+    }
     else
-      project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength)) = 
-        new_matrix();
+    {
+      MatrixType new_mat = new_matrix();
+      if (int(new_mat.size1()) != si1.m_sliceLength || int(new_mat.size2()) != si2.m_sliceLength)
+        throw std::out_of_range("submatrix is wrong size for assignment");
+
+      project(m,
+          ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
+          ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength)) = new_mat;
+    }
   }
-};
+  else
+  {
+    slice_info si;
+    translateSlice(index, si, m.size1());
+
+    if (si.m_sliceLength == 1 && new_vector.check())
+    {
+      vector_type new_vec = new_vector();
+
+      if (new_vec.size() != m.size2())
+        throw std::out_of_range("submatrix is wrong size for assignment");
+
+      row(m,si.m_start) = new_vec;
+    }
+    else
+    {
+      MatrixType new_mat = new_matrix();
+
+      if (int(new_mat.size1()) != si.m_sliceLength || new_mat.size2() != m.size2())
+        throw std::out_of_range("submatrix is wrong size for assignment");
+
+      project(m,
+          ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
+          ublas::slice(0, 1, m.size2())) = new_matrix();
+    }
+  }
+}
+
+
+
+
+template <typename ValueType>
+inline void setElement(ublas::vector<ValueType> &m, python::object &index, python::object &new_value)
+{ 
+  python::extract<typename MatrixType::value_type> new_scalar(new_value);
+  python::extract<MatrixType> new_matrix(new_value);
+
+  slice_info si;
+  translateSlice(index.ptr(), si, m.size());
+
+  if (si.m_sliceLength == 1 && new_scalar.check())
+    m(si.m_start) = new_scalar();
+  else
+    project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength)) = 
+      new_matrix();
+}
 
 
 
@@ -841,8 +814,8 @@ void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("copy", copyNew<WrappedClass>, 
         python::return_value_policy<python::manage_new_object>())
 
-    .def("__getitem__", getElement<WrappedClass>::apply)
-    .def("__setitem__", setElement<WrappedClass>::apply)
+    .def("__getitem__", (void (*)(const WrappedClass &, PyObject *)) getElement)
+    .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object)) setElement)
 
     // stringification
     .def("__str__", &stringify<WrappedClass>)
@@ -858,9 +831,9 @@ void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 
     // scalar - matrix
 
-    // this is redundant for doubles, but that's faster than yet
+    // this is redundant for doubles, but that's faster to compile than yet
     // another partial specialization. Boost.Python doesn't mind
-    // double definitions.
+    // double definitions. FIXME: Performance hit?
     .def("__mul__", scalarTimesOp<WrappedClass, double>)
     .def("__mul__", scalarTimesOp<WrappedClass, value_type>)
 

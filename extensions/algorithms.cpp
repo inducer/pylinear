@@ -1,6 +1,7 @@
 #include <boost/python.hpp>
 #include <cg.h>
 #include <umfpack.h>
+#include <arpack.h>
 #include "meta.h"
 
 

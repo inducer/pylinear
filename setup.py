@@ -43,7 +43,8 @@ setup(name="PyLinear",
           [
             "extensions/algorithms.cpp", 
           ],
-          include_dirs = include_dirs + ["algorithms", "3rdparty/ublas_bindings"],
+          include_dirs = include_dirs + 
+          ["algorithms", "3rdparty/ublas_bindings", "3rdparty/arpack"],
           library_dirs = library_dirs,
           libraries = libraries + ["umfpack", "amd"],
           extra_compile_args = extra_compile_args,
