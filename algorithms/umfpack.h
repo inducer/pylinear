@@ -24,19 +24,25 @@ namespace umfpack
   class umfpack_matrix_operator : public algorithm_matrix_operator<ValueType>,
   boost::noncopyable
   {
-    ublas::compressed_matrix<ValueType, ublas::column_major> m_matrix;
-    umf::numeric_type<ValueType>        m_numeric;
-
     typedef
       algorithm_matrix_operator<ValueType>
       super;
+
   public:
+    typedef
+      ublas::compressed_matrix<ValueType, ublas::column_major>
+      matrix_type;
+
     typedef 
       typename super::vector_type
       vector_type;
-    
-    template <typename MatrixType>
-    umfpack_matrix_operator(const MatrixType &src)
+
+  private:
+    const matrix_type                   &m_matrix;
+    umf::numeric_type<ValueType>        m_numeric;
+
+  public:
+    umfpack_matrix_operator(const matrix_type &src)
     : m_matrix(src)
     { 
       umf::factor(m_matrix, m_numeric);

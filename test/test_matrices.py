@@ -21,18 +21,38 @@ def elementary():
   for i in mat.indices():
     print i, mat[i]
 
+  for i in vec:
+    print i
   print sum(vec)
   print num.matrixmultiply(mat, mat)
 
-def cg():
+def ufunc():
+  vec = num.array([3., 5.])
+  a = num.outerproduct(vec, num.array([2., 4.]))
+
+  vec2 = num.array([1., 17.])
+  b = num.outerproduct(vec2, num.array([5., 1.]))
+
+  print "a:", a
+  print "b:", b
+  print "min(a,b):", num.minimum(a,b)
+  print "max(a,b):", num.maximum(a,b)
+
+  print "a*2 residual:", num.multiply(a, 2) - 2 * a
+  print "a*vec:", num.multiply(a, vec)
+  print "a*a:", num.multiply(a, a)
+  print "2*a residual:", num.multiply(a, 2) - num.multiply(2, a)
+  print "vec*a residual:", num.multiply(a, vec) - num.multiply(vec, a)
+
+def cg(typecode):
   size = 100
 
   job = stopwatch.tJob( "make spd" )
-  A = makeRandomSPDMatrix(size, num.Complex64)
+  A = makeRandomSPDMatrix(size, typecode)
   Aop = algo.makeMatrixOperator(A)
-  b = makeRandomVector(size, num.Complex64)
+  b = makeRandomVector(size, typecode)
   cg_op = algo.makeCGMatrixOperator(Aop, 1000)
-  x = num.zeros((size,), num.Complex64)
+  x = num.zeros((size,), typecode)
   job.done()
 
   job = stopwatch.tJob( "cg" )
@@ -41,17 +61,17 @@ def cg():
 
   print norm2(b - num.matrixmultiply(A, x))
 
-def umfpack():
+def umfpack(typecode):
   size = 100
   job = stopwatch.tJob("make matrix")
-  A = makeRandomMatrix(size, num.Complex)
+  A = num.asarray(makeRandomMatrix(size, typecode), typecode, num.SparseExecuteMatrix)
   job.done()
 
   job = stopwatch.tJob("umfpack")
   umf_op = algo.makeUMFPACKMatrixOperator(A)
   job.done()
-  b = makeRandomVector(size, num.Complex64)
-  x = num.zeros((size,), num.Complex64)
+  b = makeRandomVector(size, typecode)
+  x = num.zeros((size,), typecode)
 
   umf_op.apply(b, x)
 
@@ -98,7 +118,8 @@ def arpack_generalized(typecode):
   #Iop = algo.makeIdentityMatrixOperator(size, typecode)
 
   job = stopwatch.tJob("make spd")
-  M = makeRandomSPDMatrix(size, typecode)
+  M = num.asarray(makeRandomSPDMatrix(size, typecode), typecode,
+    num.SparseExecuteMatrix)
   job.done()
 
   Mop = algo.makeMatrixOperator(M)
@@ -136,7 +157,7 @@ def arpack_shift_invert(typecode):
   Mop = algo.makeMatrixOperator(M)
 
   job = stopwatch.tJob( "shifted matrix")
-  shifted_mat = A - sigma * M
+  shifted_mat = num.asarray(A - sigma * M, typecode, num.SparseExecuteMatrix)
   job.done()
 
   job = stopwatch.tJob( "umfpack factor")
@@ -159,10 +180,10 @@ def arpack_shift_invert(typecode):
       num.matrixmultiply(Mcomplex, vector))
     print
 
-def sumAbsoluteValues(matrix):
+def getResidual(matrix):
   my_sum = 0
   for i in matrix:
-    my_sum += abs(i)
+    my_sum += num.innerproduct(num.conjugate(i),i)
   return my_sum
 
 def cholesky(typecode):
@@ -170,7 +191,7 @@ def cholesky(typecode):
   A = makeRandomSPDMatrix(size, typecode)
   L = algo.cholesky(A)
   resid = num.matrixmultiply(L,hermite(L))-A
-  print "cholesky residual:", sumAbsoluteValues(resid)
+  print "cholesky residual:", getResidual(resid)
 
 def lu(typecode):
   size = 500
@@ -178,9 +199,11 @@ def lu(typecode):
   job = stopwatch.tJob("lu")
   L,U,permut,sign = algo.lu(A)
   job.done()
+  print permut
   permut_mat = makePermutationMatrix(permut, typecode)
   permut_a = num.matrixmultiply(permut_mat, A)
-  print "lu residual:", sumAbsoluteValues(num.matrixmultiply(L, U)-permut_a)
+  print "lu residual:", getResidual(num.matrixmultiply(L, U)-permut_a)
+  #print num.matrixmultiply(L, U)-permut_a
 
 def sparse(typecode):
   def countElements(mat):
@@ -200,8 +223,8 @@ def inverse(typecode):
   Ainv = la.inverse(A)
   Id = num.identity(size, typecode)
 
-  print "inverse residual 1:", sumAbsoluteValues(num.matrixmultiply(Ainv,A)-Id)
-  print "inverse residual 2:", sumAbsoluteValues(num.matrixmultiply(A,Ainv)-Id)
+  print "inverse residual 1:", getResidual(num.matrixmultiply(Ainv,A)-Id)
+  print "inverse residual 2:", getResidual(num.matrixmultiply(A,Ainv)-Id)
 
 def determinant(typecode):
   size = 10
@@ -214,30 +237,34 @@ def determinant(typecode):
 
 
 
-lu(num.Float)
-sys.exit(0)
+def testAll(typecode):
+  elementary()
+  print "-------------------------------------"
+  ufunc()
+  print "-------------------------------------"
+  cg(typecode)
+  print "-------------------------------------"
+  umfpack(typecode)
+  print "-------------------------------------"
+  # pending fix from BPL gurus.
+  #matrixoperator()
+  print "-------------------------------------"
+  arpack_generalized(typecode)
+  print "-------------------------------------"
+  arpack_shift_invert(typecode)
+  print "-------------------------------------"
+  cholesky(typecode)
+  print "-------------------------------------"
+  lu(typecode)
+  print "-------------------------------------"
+  sparse(typecode)
+  print "-------------------------------------"
+  inverse(typecode)
+  print "-------------------------------------"
+  determinant(typecode)
 
-elementary()
-print "-------------------------------------"
-cg()
-print "-------------------------------------"
-umfpack()
-print "-------------------------------------"
-# pending fix from BPL gurus.
-#matrixoperator()
-print "-------------------------------------"
-arpack_generalized(num.Complex)
-print "-------------------------------------"
-arpack_shift_invert(num.Float)
-print "-------------------------------------"
-cholesky(num.Complex)
-print "-------------------------------------"
-lu(num.Complex)
-print "-------------------------------------"
-sparse(num.Complex)
-print "-------------------------------------"
-inverse(num.Complex)
-print "-------------------------------------"
-determinant(num.Complex)
 
 
+
+testAll(num.Float)
+testAll(num.Complex)

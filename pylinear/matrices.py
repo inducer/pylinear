@@ -168,10 +168,11 @@ def array(data, typecode = None):
 
 
 def asarray(data, typecode, matrix_type = None):
-  if data.typecode() == typecode:
-    return data
+  given_matrix_type = _getMatrixType(data)
   if matrix_type is None:
-    matrix_type = _getMatrixType(data)
+    matrix_type = given_matrix_type
+  if data.typecode() == typecode and given_matrix_type == matrix_type:
+    return data
   mat_class = _getMatrixClass(len(data.shape), typecode, matrix_type)
   return mat_class(data)
   

@@ -7,7 +7,8 @@ import pylinear.algorithms as algo
 def solve_linear_equations(mat, rhs):
   typecode = mat.typecode()
   h,w = mat.shape
-  umf_operator = algo.makeUMFPACKMatrixOperator(mat)
+  umf_operator = algo.makeUMFPACKMatrixOperator(
+    num.asarray(mat, mat.typecode(), num.SparseExecuteMatrix))
 
   temp = num.zeros((h,), typecode)
   if len(rhs.shape) == 1:

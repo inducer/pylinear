@@ -5,6 +5,13 @@
 #include <umfpack.h>
 #include <arpack.h>
 #include "meta.h"
+#include <boost/numeric/bindings/traits/ublas_matrix.hpp>
+#include <boost/numeric/bindings/atlas/clapack.hpp>
+#include <boost/numeric/ublas/triangular.hpp>
+/*
+#include <boost/numeric/ublas/lu.hpp>
+*/
+
 
 
 
@@ -151,30 +158,6 @@ struct ublas_matrix_operator_exposer
 
 
 
-// umfpack_matrix_operator ----------------------------------------------------
-template <typename PythonClass>
-struct umfpack_matrix_operator_constructor_exposer
-{
-  PythonClass &m_pyclass;
-
-public:
-  umfpack_matrix_operator_constructor_exposer(PythonClass &pyclass)
-  : m_pyclass(pyclass)
-  {
-  }
-
-  template <typename MatrixType>
-  void expose(const std::string &python_mattype, MatrixType) const
-  {
-    m_pyclass
-      .def(python::init<const MatrixType &>());
-  }
-};
-
-
-
-
-
 // cholesky_exposer -----------------------------------------------------------
 struct cholesky_exposer
 {
@@ -192,7 +175,56 @@ public:
 
 
 
-// lu_exposer -----------------------------------------------------------------
+// lu -------------------------------------------------------------------------
+/*
+ UBLAS builtin lu is dog-slow.
+template <typename MatrixType>
+python::object luWrapper(const MatrixType &a)
+{
+  using namespace ublas;
+
+  typedef 
+    typename strip_symmetric_wrappers<MatrixType>::type
+    result_type;
+  typedef
+    permutation_matrix<unsigned>
+    permut_type;
+
+  std::auto_ptr<MatrixType> a_copy(new MatrixType(a));
+  std::auto_ptr<permut_type> permut_ptr(new permut_type(a.size1()));
+
+  axpy_lu_factorize(*a_copy, *permut_ptr);
+
+  std::auto_ptr<result_type> l(new result_type(
+        triangular_adaptor<MatrixType, unit_lower>(*a_copy)));
+  std::auto_ptr<result_type> u(new result_type(
+      triangular_adaptor<MatrixType, upper>(*a_copy)));
+
+  int sign = 1;
+  python::list py_permut;
+  for (unsigned i = 0; i < permut_ptr->size(); i++)
+  {
+    // FIXME: BUG...
+    py_permut.append((*permut_ptr)[i]);
+    // FIXME: prove that this is right.
+    if ((*permut_ptr)[i] != i) 
+      sign *= -1;
+  }
+  
+  python::object py_result = python::make_tuple(l.get(), u.get(), py_permut, sign);
+  l.release();
+  u.release();
+
+  return py_result;
+}
+*/
+
+
+
+
+/*
+My LU is still slow, but faster that UBLAS builtin
+*/
 template <typename MatrixType>
 python::object luWrapper(const MatrixType &a)
 {
@@ -219,66 +251,58 @@ python::object luWrapper(const MatrixType &a)
 
 
 
-struct lu_exposer
+/*
+ couldn't find atlas CLAPACK 
+template <typename MatrixType>
+python::object luWrapper(const MatrixType &a)
 {
-public:
-  template <typename MatrixType>
-  void expose(const std::string &python_mattype, MatrixType) const
+  using namespace boost::numeric::bindings::atlas;
+
+  typedef 
+    typename strip_symmetric_wrappers<MatrixType>::type
+    result_type;
+  typedef
+    ublas::vector<int>
+    permut_type;
+
+  std::auto_ptr<MatrixType> a_copy(new MatrixType(a));
+  std::auto_ptr<permut_type> permut_ptr(new permut_type(a.size1()));
+
+  lu_factor(*a_copy, *permut_ptr);
+
+  std::auto_ptr<result_type> l(new result_type(
+        ublas::triangular_adaptor<MatrixType, ublas::unit_lower>(*a_copy)));
+  std::auto_ptr<result_type> u(new result_type(
+        ublas::triangular_adaptor<MatrixType, ublas::upper>(*a_copy)));
+
+  int sign = 1;
+  python::list py_permut;
+  for (unsigned i = 0; i < permut_ptr->size(); i++)
   {
-    python::def("lu", luWrapper<MatrixType>);
+    // FIXME: BUG...
+    py_permut.append((*permut_ptr)[i]);
+    // FIXME: prove that this is right.
+    if ((*permut_ptr)[i] != i) 
+      sign *= -1;
   }
-};
+  
+  python::object py_result = python::make_tuple(l.get(), u.get(), py_permut, sign);
+  l.release();
+  u.release();
+
+  return py_result;
+}
+*/
 
 
 
 
-
-// generic instantiation infrastructure ---------------------------------------
-template <typename Exposer, typename ValueType>
-static void exposeForAllSimpleTypes(const std::string &python_eltname, const Exposer &exposer, ValueType)
+template <typename ValueType>
+void exposeLU(ValueType)
 {
-  exposer.expose("Matrix" + python_eltname, ublas::matrix<ValueType>());
-  exposer.expose("SparseExecuteMatrix" + python_eltname, ublas::compressed_matrix<ValueType>());
-  exposer.expose("SparseBuildMatrix" + python_eltname, ublas::coordinate_matrix<ValueType>());
+  python::def("lu", luWrapper<ublas::matrix<ValueType> >);
 }
 
-
-
-
-template <typename Exposer>
-static void exposeForAllMatrices(const Exposer &exposer, double)
-{
-  exposeForAllSimpleTypes("Float64", exposer, double());
-
-  exposer.expose("SparseSymmetricExecuteMatrixFloat64", managed_symmetric_adaptor<
-      ublas::compressed_matrix<double> >());
-  exposer.expose("SparseSymmetricBuildMatrixFloat64", managed_symmetric_adaptor<
-      ublas::coordinate_matrix<double> >());
-}
-
-
-
-
-template <typename Exposer>
-static void exposeForAllMatrices(const Exposer &exposer, std::complex<double>)
-{
-  exposeForAllSimpleTypes("Complex64", exposer, std::complex<double>());
-
-  exposer.expose("SparseHermitianExecuteMatrixComplex64", managed_hermitian_adaptor<
-      ublas::compressed_matrix<std::complex<double> > >());
-  exposer.expose("SparseHermitianBuildMatrixComplex64", managed_hermitian_adaptor<
-      ublas::coordinate_matrix<std::complex<double> > >());
-}
-
-
-
-
-template <typename Exposer>
-static void exposeForAllMatrices(const Exposer &exposer)
-{
-  exposeForAllMatrices(exposer, double());
-  exposeForAllMatrices(exposer, std::complex<double>());
-}
 
 
 
@@ -350,18 +374,16 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
          [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
   }
 
-  { typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
+  { 
+    typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
     typedef 
       python::class_<wrapped_type, 
       python::bases<algorithm_matrix_operator<ValueType> >, boost::noncopyable>    
         wrapper_type;
 
     wrapper_type pyclass(("UMFPACKMatrixOperator"+python_eltname).c_str(), 
-       python::init<const ublas::identity_matrix<ValueType> &>());
-    
-    exposeForAllMatrices(
-        umfpack_matrix_operator_constructor_exposer<wrapper_type>(pyclass), 
-        ValueType());
+       python::init<const typename wrapped_type::matrix_type &>()
+       [python::with_custodian_and_ward<1,2>()]);
   }
 }
 
@@ -441,6 +463,8 @@ BOOST_PYTHON_MODULE(algorithms_internal)
   exposeArpack("Float64", double());
   exposeArpack("Complex64", std::complex<double>());
 
+  exposeLU(double());
+  exposeLU(std::complex<double>());
+
   exposeForAllMatrices(cholesky_exposer());
-  exposeForAllMatrices(lu_exposer());
 }
