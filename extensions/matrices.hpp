@@ -371,11 +371,11 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
     }
     else if (new_vector.check())
     {
-      // vector broadcast 
       vector_type new_vec = new_vector();
 
       if (si1.m_sliceLength == 1)
       {
+	// replace row
         if (new_vec.size() != m.size2())
           throw std::out_of_range("submatrix is wrong size for assignment");
 
@@ -383,6 +383,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       }
       else if (si2.m_sliceLength == 1)
       {
+	// replace column
         if (new_vec.size() != m.size1())
           throw std::out_of_range("submatrix is wrong size for assignment");
 
@@ -395,11 +396,11 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
               ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
               ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength));
 
-        if (new_vec.size() != my_slice.size1())
+        if (new_vec.size() != my_slice.size2())
           throw std::out_of_range("submatrix is wrong size for assignment");
 
-        for (unsigned i = 0; i < my_slice.size2(); ++i)
-          column(my_slice, i) = new_vec;
+        for (unsigned i = 0; i < my_slice.size1(); ++i)
+          row(my_slice, i) = new_vec;
       }
     }
     else
@@ -1254,12 +1255,12 @@ namespace ufuncs
       {
         const vector_type &v2 = v2_extractor();
 
-        if (m1.size1() != v2.size())
+        if (m1.size2() != v2.size())
           throw std::runtime_error("cannot apply binary ufunc to arrays of different sizes");
 
         for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
           for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert(it2.index1(), it2.index2(), f(*it2, v2(it2.index1())));
+            new_mat->insert(it2.index1(), it2.index2(), f(*it2, v2(it2.index2())));
       }
       else if (s2_extractor.check())
       {

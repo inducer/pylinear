@@ -95,7 +95,7 @@ class tTestMatrices(unittest.TestCase):
             self.assertZero(a[3:7])
 
         def vec_broadcast2(a):
-            v = num.zeros((size,), typecode)
+            v = num.zeros((2,), typecode)
             a[:,2:4] = v
             self.assertZero(a[:, 2:4])
 
