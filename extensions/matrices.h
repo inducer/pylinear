@@ -10,6 +10,9 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <boost/numeric/ublas/hermitian.hpp>
+#include <boost/numeric/ublas/symmetric.hpp>
+#include <boost/utility/base_from_member.hpp>
 
 
 
@@ -35,6 +38,143 @@ enum SupportedElementTypes {
 
 inline SupportedElementTypes getTypeCode(double) { return Float64; }
 inline SupportedElementTypes getTypeCode(std::complex<double>) { return Complex64; }
+
+
+
+
+// managed adaptors -----------------------------------------------------------
+namespace
+{
+  template <typename AdaptedMatrix>
+  class managed_symmetric_adaptor : 
+    private base_from_member<std::auto_ptr<AdaptedMatrix> >,
+    public ublas::symmetric_adaptor<AdaptedMatrix>
+  {
+    typedef ublas::symmetric_adaptor<AdaptedMatrix> super;
+    typedef boost::base_from_member<std::auto_ptr<AdaptedMatrix> > m_data;
+  public:
+    typedef AdaptedMatrix adapted_matrix;
+    typedef typename super::size_type size_type;
+    typedef typename super::value_type value_type;
+
+    managed_symmetric_adaptor()
+      : m_data(new AdaptedMatrix()), super(*m_data::member)
+      {
+      }
+
+    managed_symmetric_adaptor(size_type s1, size_type s2)
+      : m_data(new AdaptedMatrix(s1, s1)), super(*m_data::member)
+      {
+        if (s1 != s2)
+          throw std::runtime_error( "symmetric matrices are quadratic" );
+      }
+
+    managed_symmetric_adaptor(const managed_symmetric_adaptor &m)
+      : m_data(new AdaptedMatrix(*m.member)), super(*m_data::member)
+      {
+      }
+
+    template <class AE>
+    managed_symmetric_adaptor(const ublas::matrix_expression<AE> &ae)
+      : m_data(new AdaptedMatrix(ae().size1(), ae().size1())), super(*m_data::member)
+      {
+        if (ae().size1() != ae().size2())
+          throw std::runtime_error( "symmetric matrices are quadratic" );
+        super::operator=(ae);
+      }
+
+    void resize(size_type s1, size_type s2)
+    {
+      if (s1 != s2)
+        throw std::runtime_error( "symmetric matrices are quadratic" );
+      m_data::member->resize(s1, s2);
+    }
+
+    void insert(size_type i1, size_type i2, const value_type &val)
+    {
+      super::operator()(i1, i2) = val;
+    }
+    
+    managed_symmetric_adaptor &operator=(const managed_symmetric_adaptor &m)
+    {
+      *m_data::member.operator=(*m.member);
+    }
+
+    template <class AE>
+    managed_symmetric_adaptor &operator=(const ublas::matrix_expression<AE> &ae)
+    {
+      if (ae().size1() != ae().size2())
+        throw std::runtime_error( "symmetric matrices are quadratic" );
+      m_data::member->resize(ae.size1(), ae.size2());
+      super::operator=(ae);
+    }
+  };
+
+  template <typename AdaptedMatrix>
+  class managed_hermitian_adaptor : 
+    private base_from_member<std::auto_ptr<AdaptedMatrix> >,
+    public ublas::hermitian_adaptor<AdaptedMatrix>
+  {
+    typedef ublas::hermitian_adaptor<AdaptedMatrix> super;
+    typedef boost::base_from_member<std::auto_ptr<AdaptedMatrix> > m_data;
+  public:
+    typedef AdaptedMatrix adapted_matrix;
+    typedef typename super::size_type size_type;
+    typedef typename super::value_type value_type;
+
+    managed_hermitian_adaptor()
+      : m_data(new AdaptedMatrix()), super(*m_data::member)
+      {
+      }
+
+    managed_hermitian_adaptor(size_type s1, size_type s2)
+      : m_data(new AdaptedMatrix(s1, s1)), super(*m_data::member)
+      {
+        if (s1 != s2)
+          throw std::runtime_error( "hermitian matrices are quadratic" );
+      }
+
+    managed_hermitian_adaptor(const managed_hermitian_adaptor &m)
+      : m_data(new AdaptedMatrix(*m.member)), super(*m_data::member)
+      {
+      }
+
+    template <class AE>
+    managed_hermitian_adaptor(const ublas::matrix_expression<AE> &ae)
+      : m_data(new AdaptedMatrix(ae().size1(), ae().size1())), super(*m_data::member)
+      {
+        if (ae().size1() != ae().size2())
+          throw std::runtime_error( "hermitian matrices are quadratic" );
+        super::operator=(ae);
+      }
+
+    void resize(size_type s1, size_type s2)
+    {
+      if (s1 != s2)
+        throw std::runtime_error( "hermitian matrices are quadratic" );
+      m_data::member->resize(s1, s2);
+    }
+
+    void insert(size_type i1, size_type i2, const value_type &val)
+    {
+      super::operator()(i1, i2) = val;
+    }
+    
+    managed_hermitian_adaptor &operator=(const managed_hermitian_adaptor &m)
+    {
+      *m_data::member.operator=(*m.member);
+    }
+
+    template <class AE>
+    managed_hermitian_adaptor &operator=(const ublas::matrix_expression<AE> &ae)
+    {
+      if (ae().size1() != ae().size2())
+        throw std::runtime_error( "hermitian matrices are quadratic" );
+      m_data::member->resize(ae.size1(), ae.size2());
+      super::operator=(ae);
+    }
+  };
+}
 
 
 
@@ -135,6 +275,22 @@ struct change_value_type<ublas::compressed_matrix<OldValueType>, NewValueType>
 template <typename OldValueType, typename NewValueType>
 struct change_value_type<ublas::vector<OldValueType>, NewValueType>
 { typedef ublas::vector<NewValueType> type; };
+
+template <typename ContainedMatrixType, typename NewValueType>
+struct change_value_type<managed_symmetric_adaptor<ContainedMatrixType>, NewValueType>
+{ 
+  typedef 
+    managed_symmetric_adaptor<
+    typename change_value_type<ContainedMatrixType, NewValueType>::type> type; 
+};
+
+template <typename ContainedMatrixType, typename NewValueType>
+struct change_value_type<managed_hermitian_adaptor<ContainedMatrixType>, NewValueType>
+{ 
+  typedef 
+    managed_hermitian_adaptor<
+    typename change_value_type<ContainedMatrixType, NewValueType>::type> type; 
+};
 
 
 
@@ -675,6 +831,10 @@ struct getElement
 {
   static python::object apply(MatrixType &m, python::object &index)
   { 
+    typedef
+      typename get_corresponding_vector_type<MatrixType>::type
+      vector_t;
+
     if (PyTuple_Check(index.ptr()))
     {
       // we have a tuple
@@ -687,6 +847,10 @@ struct getElement
 
       if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1)
         return python::object(m(si1.m_start, si2.m_start));
+      else if (si1.m_sliceLength == 1)
+        return python::object(new vector_t(row(m,si1.m_start)));
+      else if (si2.m_sliceLength == 1)
+        return python::object(new vector_t(column(m,si2.m_start)));
       else
       {
         return python::object(
@@ -702,7 +866,7 @@ struct getElement
 
       if (si.m_sliceLength == 1)
         return python::object(
-            new typename get_corresponding_vector_type<MatrixType>::type(
+            new vector_t(
               row(m, si.m_start)));
       else
         return python::object(
@@ -746,6 +910,12 @@ struct setElement
     python::extract<typename MatrixType::value_type> new_scalar(new_value);
     python::extract<MatrixType> new_matrix(new_value);
 
+    typedef 
+      typename get_corresponding_vector_type<MatrixType>::type
+      vector_type;
+
+    python::extract<vector_type> new_vector(new_value);
+
     if (PyTuple_Check(index.ptr()))
     {
       // we have a tuple
@@ -760,6 +930,24 @@ struct setElement
       {
         m(si1.m_start, si2.m_start) = new_scalar();
       }
+      else if (si1.m_sliceLength == 1 && new_vector.check())
+      {
+        vector_type new_vec = new_vector();
+
+        if (new_vec.size() != m.size2())
+          throw std::out_of_range("submatrix is wrong size for assignment");
+
+        row(m,si1.m_start) = new_vec;
+      }
+      else if (si2.m_sliceLength == 1 && new_vector.check())
+      {
+        vector_type new_vec = new_vector();
+
+        if (new_vec.size() != m.size1())
+          throw std::out_of_range("submatrix is wrong size for assignment");
+
+        column(m,si2.m_start) = new_vec;
+      }
       else
       {
         MatrixType new_mat = new_matrix();
@@ -773,11 +961,6 @@ struct setElement
     }
     else
     {
-      typedef 
-        typename get_corresponding_vector_type<MatrixType>::type
-        vector_type;
-      python::extract<vector_type> new_vector(new_value);
-
       slice_info si;
       translateSlice(index.ptr(), si, m.size1());
 
@@ -849,9 +1032,12 @@ MatrixType *getFilledMatrix(
     const typename MatrixType::value_type &value)
 {
   std::auto_ptr<MatrixType> mat(new MatrixType(size1, size2));
-  for (typename MatrixType::iterator1 it1 = mat->begin1(); it1 != mat->end1(); it1++)
-    for (typename MatrixType::iterator2 it2 = it1.begin(); it2 != it1.end(); it2++)
-      *it2 = value;
+  
+  // cannot use iterators here since sparse types are initially "empty"
+  for (unsigned i = 0; i < mat->size1(); i++)
+    for (unsigned j = 0; j < mat->size1(); j++)
+      (*mat)(i,j) = value;
+
   return mat.release();
 }
 
@@ -864,10 +1050,44 @@ MatrixType *getFilledVector(
     const typename MatrixType::value_type &value)
 {
   std::auto_ptr<MatrixType> mat(new MatrixType(size1));
-  for (typename MatrixType::iterator it = mat->begin(); it < mat->end(); it++)
-    *it = value;
+
+  // cannot use iterators here since sparse types are initially "empty"
+  for (unsigned i = 0; i < mat->size(); i++)
+    (*mat)(i) = value;
+
   return mat.release();
 }
+
+
+
+
+// operators ------------------------------------------------------------------
+template <typename MatrixType>
+MatrixType negateOp(const MatrixType &m) { return -m; }
+
+template <typename MatrixType>
+MatrixType plusOp(const MatrixType &m1, const MatrixType &m2) { return m1+m2; }
+
+template <typename MatrixType>
+MatrixType minusOp(const MatrixType &m1, const MatrixType &m2) { return m1-m2; }
+
+template <typename MatrixType>
+MatrixType plusAssignOp(MatrixType &m1, const MatrixType &m2) { return m1 += m2; }
+
+template <typename MatrixType>
+MatrixType minusAssignOp(MatrixType &m1, const MatrixType &m2) { return m1 -= m2; }
+
+template <typename MatrixType, typename Scalar>
+MatrixType scalarTimesOp(const MatrixType &m1, const Scalar &s) { return m1 * s; }
+
+template <typename MatrixType, typename Scalar>
+MatrixType scalarDivideOp(const MatrixType &m1, const Scalar &s) { return m1 / s; }
+
+template <typename MatrixType, typename Scalar>
+MatrixType scalarTimesAssignOp(MatrixType &m1, const Scalar &s) { return m1 *= s; }
+
+template <typename MatrixType, typename Scalar>
+MatrixType scalarDivideAssignOp(MatrixType &m1, const Scalar &s) { return m1 /= s; }
 
 
 
@@ -906,7 +1126,7 @@ void exposeUfuncs(PythonClass &pyc, WrappedClass)
 template <typename PythonClass, typename WrappedClass>
 void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 {
-  typedef typename WrappedClass::value_type ELT;
+  typedef typename WrappedClass::value_type value_type;
   pyc
     .def("typecode", &typecode<WrappedClass>)
     .def("copy", copyNew<WrappedClass>, 
@@ -919,20 +1139,33 @@ void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__str__", &stringify<WrappedClass>)
 
     // unary negation
-    .def(- self)
+    .def("__neg__", negateOp<WrappedClass>)
 
     // matrix - matrix
-    .def(self + self)
-    .def(self - self)
-    .def(self += self)
-    .def(self -= self)
+    .def("__add__", plusOp<WrappedClass>)
+    .def("__sub__", minusOp<WrappedClass>)
+    .def("__iadd__", plusAssignOp<WrappedClass>)
+    .def("__isub__", minusAssignOp<WrappedClass>)
 
     // scalar - matrix
-    .def(self * ELT())
-    .def(ELT() * self)
-    .def(self / ELT())
-    .def(self *= ELT())
-    .def(self /= ELT())
+
+    // this is redundant for doubles, but that's faster than yet
+    // another partial specialization. Boost.Python doesn't mind
+    // double definitions.
+    .def("__mul__", scalarTimesOp<WrappedClass, double>)
+    .def("__mul__", scalarTimesOp<WrappedClass, value_type>)
+
+    .def("__rmul__", scalarTimesOp<WrappedClass, double>)
+    .def("__rmul__", scalarTimesOp<WrappedClass, value_type>)
+
+    .def("__div__", scalarDivideOp<WrappedClass, double>)
+    .def("__div__", scalarDivideOp<WrappedClass, value_type>)
+
+    .def("__imul__", scalarTimesAssignOp<WrappedClass, double>)
+    .def("__imul__", scalarTimesAssignOp<WrappedClass, value_type>)
+
+    .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>)
+    .def("__idiv__", scalarDivideAssignOp<WrappedClass, value_type>)
     ;
 
   exposeUfuncs(pyc, WrappedClass());
@@ -1043,6 +1276,66 @@ void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 
 
 
+template <typename PythonClass, typename WrappedClass, typename ValueType>
+void exposeMatrixConvertersForValueType(PythonClass &pyclass, WrappedClass, ValueType)
+{
+  pyclass
+    .def(python::init<const ublas::matrix<ValueType> &>())
+    .def(python::init<const ublas::coordinate_matrix<ValueType> &>())
+    .def(python::init<const ublas::compressed_matrix<ValueType> &>())
+    ;
+}
+
+
+
+
+template <typename PythonClass, typename WrappedClass, 
+  typename _ValueType = typename WrappedClass::value_type>
+struct exposeMatrixConverters { };
+
+template <typename PythonClass, typename WrappedClass>
+struct exposeMatrixConverters<PythonClass, WrappedClass, std::complex<double> >
+{
+  static void apply(PythonClass &pyclass, WrappedClass)
+  {
+    exposeMatrixConvertersForValueType(pyclass, WrappedClass(), double());
+    exposeMatrixConvertersForValueType(pyclass, WrappedClass(), std::complex<double>());
+
+    pyclass
+      .def(python::init<
+          const managed_symmetric_adaptor<ublas::compressed_matrix<double> > &>())
+      .def(python::init<
+          const managed_hermitian_adaptor<ublas::compressed_matrix<std::complex<double> > > &>())
+      .def(python::init<
+          const managed_symmetric_adaptor<ublas::coordinate_matrix<double> > &>())
+      .def(python::init<
+          const managed_hermitian_adaptor<ublas::coordinate_matrix<std::complex<double> > > &>())
+      ;
+  }
+};
+
+
+
+
+template <typename PythonClass, typename WrappedClass>
+struct exposeMatrixConverters<PythonClass, WrappedClass, double>
+{
+  static void apply(PythonClass &pyclass, WrappedClass)
+  {
+    exposeMatrixConvertersForValueType(pyclass, WrappedClass(), double());
+
+    pyclass
+      .def(python::init<
+          const managed_symmetric_adaptor<ublas::compressed_matrix<double> > &>())
+      .def(python::init<
+          const managed_symmetric_adaptor<ublas::coordinate_matrix<double> > &>())
+      ;
+  }
+};
+
+
+
+
 template <typename WrappedClass>
 void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
@@ -1065,8 +1358,8 @@ void exposeMatrixType(WrappedClass, const std::string &python_typename, const st
     ;
 
   exposeMatrixConcept(pyclass, WrappedClass());
-
   exposeIterator(pyclass, total_typename, WrappedClass());
+  exposeMatrixConverters<class_<WrappedClass>, WrappedClass>::apply(pyclass, WrappedClass());
 }
 
 

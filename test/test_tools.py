@@ -1,14 +1,13 @@
 import math
 import cmath
-import Numeric as num
-import LinearAlgebra as la
+import pylinear.matrices as num
 import random
 
 
 
 
 def sp(x,y):
-  return num.dot(num.conjugate(y),x)
+  return num.innerproduct(num.conjugate(y),x)
 
 
 
@@ -109,6 +108,25 @@ def makeRandomSPDMatrix(size, typecode):
 
 
 
+def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
+  result = num.zeros((size, size), typecode)
+  elements = size ** 2 / 10
+
+  for i in range(elements):
+    row = random.randrange(0, size)
+    col = random.randrange(0, size)
+    
+    value = random.normalvariate(0,10)
+    if typecode == num.Complex64:
+      value += 1j*random.normalvariate(0,10)
+
+    result[i,j] += value
+  return result
+
+
+
+
+  
 def _test():
   print makeRandomSPDMatrix(4, num.Complex64)
 

@@ -1,0 +1,9 @@
+#! /bin/bash
+export CC=colorgcc
+time if python setup.py build 2>&1 | tee ,,build_log ; then
+  xmessage "build done"
+else
+  xmessage "build failed"
+fi
+
+

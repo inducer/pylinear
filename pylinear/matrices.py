@@ -14,7 +14,26 @@ Complex = Complex64
 
 # matrix types ----------------------------------------------------------------
 class DenseMatrix:
-  pass
+  def name(): return "DenseMatrix"
+  name = staticmethod(name)
+class SparseBuildMatrix:
+  def name(): return "SparseBuildMatrix"
+  name = staticmethod(name)
+class SparseExecuteMatrix:
+  def name(): return "SparseExecuteMatrix"
+  name = staticmethod(name)
+class SparseSymmetricExecuteMatrix:
+  def name(): return "SparseSymmetricExecuteMatrix"
+  name = staticmethod(name)
+class SparseHermitianExecuteMatrix:
+  def name(): return "SparseHermitianExecuteMatrix"
+  name = staticmethod(name)
+class SparseSymmetricBuildMatrix:
+  def name(): return "SparseSymmetricBuildMatrix"
+  name = staticmethod(name)
+class SparseHermitianBuildMatrix:
+  def name(): return "SparseHermitianBuildMatrix"
+  name = staticmethod(name)
 
 
 
@@ -42,7 +61,10 @@ def _getMatrixClass(rank, typecode, matrix_type):
       print rank
       raise RuntimeError, "rank must be one or two"
 
+    typename = matrix_type.name()
     if matrix_type is DenseMatrix:
+      typename = "Matrix"
+    elif matrix_type is SparseBuildMatrix:
       typename = "Matrix"
     else:
       raise RuntimeError, "an invalid matrix_type was specified"

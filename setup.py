@@ -24,8 +24,24 @@ setup(name="PyLinear",
       ext_modules=[
         Extension(
           "matrices_internal", 
-          ["extensions/matrices.cpp", "extensions/matrices2.cpp", "extensions/matrices3.cpp"],
+          [
+            "extensions/matrices.cpp", 
+            "extensions/matrices2.cpp", 
+            "extensions/matrices3.cpp",
+            "extensions/matrices4.cpp",
+            "extensions/matrices5.cpp",
+            ],
           include_dirs = include_dirs,
+          library_dirs = library_dirs,
+          libraries = libraries,
+          extra_compile_args = extra_compile_args,
+          ),
+        Extension(
+          "algorithms", 
+          [
+            "extensions/algorithms.cpp", 
+          ],
+          include_dirs = include_dirs + ["algorithms"],
           library_dirs = library_dirs,
           libraries = libraries,
           extra_compile_args = extra_compile_args,
