@@ -1,12 +1,12 @@
-#ifndef HEADER_SEEN_ARPACK_H
-#define HEADER_SEEN_ARPACK_H
+#ifndef HEADER_SEEN_ARPACK_HPP
+#define HEADER_SEEN_ARPACK_HPP
 
 
 
 
-#include <matrix_operator.h>
+#include <matrix_operator.hpp>
 #include <arpack_proto.h>
-#include <helpers.h>
+#include <helpers.hpp>
 #include <vector>
 
 

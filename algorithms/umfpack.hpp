@@ -1,5 +1,5 @@
-#ifndef HEADER_SEEN_UMFPACK_H
-#define HEADER_SEEN_UMFPACK_H
+#ifndef HEADER_SEEN_UMFPACK_HPP
+#define HEADER_SEEN_UMFPACK_HPP
 
 
 
@@ -7,7 +7,7 @@
 #include <boost/numeric/bindings/traits/ublas_vector.hpp>
 #include <boost/numeric/bindings/traits/ublas_sparse.hpp>
 #include <boost/numeric/bindings/umfpack/umfpack.hpp>
-#include <matrix_operator.h>
+#include "matrix_operator.hpp"
 
 
 
@@ -65,4 +65,8 @@ namespace umfpack
   };
 
 }
+
+
+
+
 #endif

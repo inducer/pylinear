@@ -7,7 +7,7 @@ import os.path
 
 home = os.getenv("HOME")
 
-boost_path = "%s/src/boost" % home
+boost_path = "%s/work/boost" % home
 library_dirs = ["%s/pool/lib" % home] 
 
 include_dirs = [boost_path, "algorithms"]
@@ -25,28 +25,37 @@ setup(name="PyLinear",
       ext_package="pylinear",
       ext_modules=[
         Extension(
-          "matrices_internal", 
+          "_matrices", 
           [
             "extensions/matrices.cpp", 
-            "extensions/matrices2.cpp", 
-            "extensions/matrices3.cpp",
-            "extensions/matrices4.cpp",
-            "extensions/matrices5.cpp",
-            ],
+          ],
           include_dirs = include_dirs,
           library_dirs = library_dirs,
           libraries = libraries,
           extra_compile_args = extra_compile_args,
           ),
         Extension(
-          "algorithms_internal", 
+          "_algorithms", 
           [
             "extensions/algorithms.cpp", 
           ],
           include_dirs = include_dirs + 
           ["3rdparty/ublas_bindings", "3rdparty/arpack"],
           library_dirs = library_dirs,
-          libraries = libraries + ["umfpack", "amd", "arpack", "lapack", "f77blas", "atlas", "g2c"],
+          libraries = libraries + ["umfpack", "amd", "arpack", "lapack", "blas2", "g2c"],
+          extra_compile_args = extra_compile_args,
+          ),
+        Extension(
+          "_matrices_special", 
+          [
+            "extensions/matrices2.cpp", 
+            "extensions/matrices3.cpp",
+            "extensions/matrices4.cpp",
+            "extensions/matrices5.cpp",
+          ],
+          include_dirs = include_dirs,
+          library_dirs = library_dirs,
+          libraries = libraries,
           extra_compile_args = extra_compile_args,
           ),
         ]

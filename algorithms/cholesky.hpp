@@ -1,5 +1,5 @@
-#ifndef HEADER_SEEN_CHOLESKY_H
-#define HEADER_SEEN_CHOLESKY_H
+#ifndef HEADER_SEEN_CHOLESKY_HPP
+#define HEADER_SEEN_CHOLESKY_HPP
 
 
 
@@ -7,7 +7,7 @@
 #include <stdexcept>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
-#include "helpers.h"
+#include "helpers.hpp"
 
 
 

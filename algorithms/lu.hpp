@@ -1,5 +1,5 @@
-#ifndef HEADER_SEEN_LU_H
-#define HEADER_SEEN_LU_H
+#ifndef HEADER_SEEN_LU_HPP
+#define HEADER_SEEN_LU_HPP
 
 
 
@@ -9,7 +9,7 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/matrix_expression.hpp>
 #include <boost/tuple/tuple.hpp>
-#include "helpers.h"
+#include "helpers.hpp"
 #include <complex>
 
 

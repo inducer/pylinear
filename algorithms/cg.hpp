@@ -1,5 +1,5 @@
-#ifndef HEADER_SEEN_CG_H
-#define HEADER_SEEN_CG_H
+#ifndef HEADER_SEEN_CG_HPP
+#define HEADER_SEEN_CG_HPP
 
 
 
@@ -7,8 +7,8 @@
 #include <stdexcept>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
-#include "helpers.h"
-#include "matrix_operator.h"
+#include "helpers.hpp"
+#include "matrix_operator.hpp"
 
 
 

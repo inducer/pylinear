@@ -1,10 +1,10 @@
 #include <boost/python.hpp>
-#include <cg.h>
-#include <lu.h>
-#include <cholesky.h>
-#include <umfpack.h>
-#include <arpack.h>
-#include "meta.h"
+#include <cg.hpp>
+#include <lu.hpp>
+#include <cholesky.hpp>
+#include <umfpack.hpp>
+#include <arpack.hpp>
+#include "meta.hpp"
 #include <boost/numeric/bindings/traits/ublas_matrix.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 /*

@@ -1,11 +1,11 @@
-#ifndef HEADER_SEEN_HELPERS_H
-#define HEADER_SEEN_HELPERS_H
+#ifndef HEADER_SEEN_HELPERS_HPP
+#define HEADER_SEEN_HELPERS_HPP
 
 
 
 #include <complex>
-#include "managed_adaptors.h"
-#include "generic_iterator.h"
+#include "managed_adaptors.hpp"
+#include "generic_ublas.hpp"
 #include <boost/numeric/ublas/vector.hpp>
 
 
@@ -143,8 +143,8 @@ template <typename MatrixType>
 void fill_matrix(MatrixType &me, 
     const typename MatrixType::value_type &value)
 {
-  generic_iterator::matrix_iterator<MatrixType>
-    first = generic_iterator::begin(me), last = generic_iterator::end(me);
+  generic_ublas::matrix_iterator<MatrixType>
+    first = generic_ublas::begin(me), last = generic_ublas::end(me);
   
   while (first != last)
     *first = value;

@@ -1,5 +1,5 @@
-#ifndef HEADER_SEEN_META_H
-#define HEADER_SEEN_META_H
+#ifndef HEADER_SEEN_META_HPP
+#define HEADER_SEEN_META_HPP
 
 
 
@@ -8,14 +8,20 @@
 #include <boost/numeric/ublas/vector.hpp>
 #include <boost/numeric/ublas/matrix_sparse.hpp>
 
-#include "managed_adaptors.h"
-#include <helpers.h>
+#include <managed_adaptors.hpp>
+#include <helpers.hpp>
+#include <generic_ublas.hpp>
 
 
 
 
 using namespace boost;
 namespace ublas = boost::numeric::ublas;
+
+
+
+
+using generic_ublas::is_vector;
 
 
 
@@ -76,19 +82,6 @@ namespace value_type_promotion
 
   template <> struct bigger_type<complex<double>, complex<float> > { typedef complex<double> type; };
 }
-
-
-
-
-// is_vector
-template <typename UblasType>
-struct is_vector { typedef mpl::false_ type; };
-
-template <typename ValueType>
-struct is_vector<ublas::vector<ValueType> > { typedef mpl::true_ type; };
-template <typename WrappedVector>
-struct is_vector<ublas::vector_slice<WrappedVector> > { typedef mpl::true_ type; };
-
 
 
 

@@ -1,5 +1,6 @@
 import types
-import matrices_internal
+import _matrices
+import _matrices_special
 from matrices_internal import *
 
 
@@ -22,9 +23,9 @@ _TYPECODES = [
 
 
 def _getTypeCodeName(typecode):
-  if typecode == matrices_internal.Float64:
+  if typecode == Float64:
     return "Float64"
-  elif typecode == matrices_internal.Complex64:
+  elif typecode == Complex64:
     return "Complex64"
   else:
     raise RuntimeError, "Invalid typecode specified"
@@ -102,7 +103,7 @@ def _getMatrixClass(rank, typecode, matrix_type):
       raise RuntimeError, "rank must be one or two"
 
     typename = matrix_type.name()
-  return makeRightType(matrices_internal, typename, typecode)
+  return makeRightType(_matrices, typename, typecode)
 
 
 

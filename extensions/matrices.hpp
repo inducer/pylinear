@@ -4,15 +4,14 @@
 #include <functional>
 
 #include <boost/python.hpp>
-#include <boost/mpl/bool.hpp>
 
-#include "meta.h"
+#include "meta.hpp"
 
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
-#include <helpers.h>
+#include <helpers.hpp>
 
 
 
@@ -777,21 +776,29 @@ inline void addScattered(MatrixType &mat,
 
   if (helpers::isHermitian(mat))
   {
+    std::cout << "IS HERMITIAN!" << std::endl;
     for (unsigned int row = 0; row < row_count; row++)
+    {
+      unsigned dest_row = extract<unsigned>(row_indices[row]);
+
       for (unsigned col = 0; col <= row; col++)
-        mat.insert(
-            extract<unsigned>(row_indices[row]),
+        mat.insert(dest_row,
             extract<unsigned>(column_indices[col]),
             little_mat(row, col));
+    }
   }
   else
   {
+    std::cout << "IS NOT HERMITIAN!" << std::endl;
     for (unsigned int row = 0; row < row_count; row++)
+    {
+      unsigned dest_row = extract<unsigned>(row_indices[row]);
+
       for (unsigned col = 0; col < column_count; col++)
-        mat.insert(
-            extract<unsigned>(row_indices[row]),
+        mat.insert(dest_row,
             extract<unsigned>(column_indices[col]),
             little_mat(row, col));
+    }
   }
 }
 
@@ -956,6 +963,34 @@ namespace ufuncs
     {
       Function f;
 
+      std::auto_ptr<result_type> new_mat(
+          generic_ublas::newWithShape(m, generic_ublas::getShape(m)));
+
+      // FIXME: should be const
+      generic_ublas::matrix_iterator<MatrixType>
+        first = generic_ublas::begin(m), generic_ublas::end(m);
+
+      while (first != last)
+        generic_ublas::insert(*new_mat, first.index(), *first);
+
+      return new_mat.release();
+    }
+  };
+
+
+
+  /*
+  template <typename MatrixType, typename Function, typename _is_vector = typename is_vector<MatrixType>::type>
+  struct unary_ufunc_applicator
+  {
+    typedef 
+      typename change_value_type<MatrixType, typename Function::result_type>::type
+      result_type;
+
+    static result_type *apply(const MatrixType &m)
+    {
+      Function f;
+
       std::auto_ptr<result_type> new_mat(new result_type(m.size1(), m.size2()));
 
       typedef typename MatrixType::const_iterator1 it1_t;
@@ -991,6 +1026,7 @@ namespace ufuncs
       return new_mat.release();
     }
   };
+  */
 
 
 
