@@ -18,6 +18,8 @@ class matrix_operator
 
     typedef boost::numeric::ublas::vector<ValueType> vector_type;
 
+    virtual ~matrix_operator() { }
+
     virtual unsigned size1() const = 0;
     virtual unsigned size2() const = 0;
     virtual void apply(const vector_type &before, vector_type &after) const = 0;

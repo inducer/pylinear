@@ -32,5 +32,6 @@ def makeCGMatrixOperator(matrix_op, max_it, tol = 1e-12, precon_op = None):
   my_class = _lookupClass("CGMatrixOperator", matrix_op.typecode())
   return my_class(matrix_op, precon_op, max_it, tol)
   
-
-
+def makeUMFPACKMatrixOperator(matrix):
+  my_class = _lookupClass("UMFPACKMatrixOperator", matrix.typecode())
+  return my_class(matrix)

@@ -6,9 +6,11 @@ import os
 import os.path
 
 home = os.getenv("HOME")
+
 boost_path = "%s/work/boost" % home
-include_dirs = [boost_path]
 library_dirs = ["%s/pool/lib" % home] 
+
+include_dirs = [boost_path]
 libraries = ["boost_python"]
 extra_compile_args = ["-fmessage-length=0"]
 
@@ -41,9 +43,9 @@ setup(name="PyLinear",
           [
             "extensions/algorithms.cpp", 
           ],
-          include_dirs = include_dirs + ["algorithms"],
+          include_dirs = include_dirs + ["algorithms", "3rdparty/ublas_bindings"],
           library_dirs = library_dirs,
-          libraries = libraries,
+          libraries = libraries + ["umfpack", "amd"],
           extra_compile_args = extra_compile_args,
           ),
         ]

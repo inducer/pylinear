@@ -22,8 +22,8 @@ def elementary():
   print sum(vec)
   print num.matrixmultiply(mat, mat)
 
-def solvers():
-  size = 1000
+def cg():
+  size = 100
 
   job = stopwatch.tJob( "make spd" )
   A = makeRandomSPDMatrix(size, num.Complex64)
@@ -39,7 +39,28 @@ def solvers():
 
   print norm2(b - num.matrixmultiply(A, x))
 
-solvers()
+def umfpack():
+  size = 1000
+  job = stopwatch.tJob("make matrix")
+  A = makeRandomMatrix(size, num.Complex)
+  job.done()
+
+  job = stopwatch.tJob("umfpack")
+  umf_op = algo.makeUMFPACKMatrixOperator(A)
+  job.done()
+  b = makeRandomVector(size, num.Complex64)
+  x = num.zeros((size,), num.Complex64)
+
+  umf_op.apply(b, x)
+
+  print x
+
+  print norm2(b - num.matrixmultiply(A, x))
+
+
+#elementary()
+#cg()
+umfpack()
   
 
 

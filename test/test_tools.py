@@ -128,7 +128,7 @@ def makeRandomMatrix(size, typecode):
     if typecode == num.Complex64:
       value += 1j*random.normalvariate(0,10)
 
-    result[i,j] += value
+    result[row,col] += value
   return result
 
 

@@ -1,5 +1,6 @@
 #include <boost/python.hpp>
 #include <cg.h>
+#include <umfpack.h>
 #include "meta.h"
 
 
@@ -118,10 +119,10 @@ ublas_matrix_operator<MatrixType> *makeMatrixOperator(const MatrixType &mat)
 
 
 
-struct ublas_matrix_operator_type
+struct ublas_matrix_operator_exposer
 {
   template <typename MatrixType>
-  static void expose(const std::string &python_mattype, MatrixType)
+  void expose(const std::string &python_mattype, MatrixType) const
   {
     typedef 
       typename MatrixType::value_type
@@ -144,32 +145,75 @@ struct ublas_matrix_operator_type
 
 
 
-// generic instantiation infrastructure ---------------------------------------
-template <typename AlgorithmType, typename ValueType>
-void exposeForAllSimpleTypes(const std::string &python_eltname, AlgorithmType, ValueType)
+// umfpack_matrix_operator ----------------------------------------------------
+template <typename PythonClass>
+struct umfpack_matrix_operator_constructor_exposer
 {
-  AlgorithmType::expose("Matrix" + python_eltname, ublas::matrix<ValueType>());
-  AlgorithmType::expose("SparseExecuteMatrix" + python_eltname, ublas::compressed_matrix<ValueType>());
-  AlgorithmType::expose("SparseBuildMatrix" + python_eltname, ublas::coordinate_matrix<ValueType>());
+  PythonClass &m_pyclass;
+
+public:
+  umfpack_matrix_operator_constructor_exposer(PythonClass &pyclass)
+  : m_pyclass(pyclass)
+  {
+  }
+
+  template <typename MatrixType>
+  void expose(const std::string &python_mattype, MatrixType) const
+  {
+    m_pyclass
+      .def(python::init<const MatrixType &>());
+  }
+};
+
+
+
+
+
+// generic instantiation infrastructure ---------------------------------------
+template <typename Exposer, typename ValueType>
+void exposeForAllSimpleTypes(const std::string &python_eltname, const Exposer &exposer, ValueType)
+{
+  exposer.expose("Matrix" + python_eltname, ublas::matrix<ValueType>());
+  exposer.expose("SparseExecuteMatrix" + python_eltname, ublas::compressed_matrix<ValueType>());
+  exposer.expose("SparseBuildMatrix" + python_eltname, ublas::coordinate_matrix<ValueType>());
 }
 
 
 
 
-template <typename AlgorithmType>
-void exposeForAllMatrices(AlgorithmType)
+template <typename Exposer>
+void exposeForAllMatrices(const Exposer &exposer, double)
 {
-  exposeForAllSimpleTypes("Float64", AlgorithmType(), double());
-  exposeForAllSimpleTypes("Complex64", AlgorithmType(), std::complex<double>());
+  exposeForAllSimpleTypes("Float64", exposer, double());
 
-  AlgorithmType::expose("SparseSymmetricExecuteMatrixFloat64", managed_symmetric_adaptor<
+  exposer.expose("SparseSymmetricExecuteMatrixFloat64", managed_symmetric_adaptor<
       ublas::compressed_matrix<double> >());
-  AlgorithmType::expose("SparseSymmetricBuildMatrixFloat64", managed_symmetric_adaptor<
+  exposer.expose("SparseSymmetricBuildMatrixFloat64", managed_symmetric_adaptor<
       ublas::coordinate_matrix<double> >());
-  AlgorithmType::expose("SparseHermitianExecuteMatrixComplex64", managed_hermitian_adaptor<
+}
+
+
+
+
+template <typename Exposer>
+void exposeForAllMatrices(const Exposer &exposer, std::complex<double>)
+{
+  exposeForAllSimpleTypes("Complex64", exposer, std::complex<double>());
+
+  exposer.expose("SparseHermitianExecuteMatrixComplex64", managed_hermitian_adaptor<
       ublas::compressed_matrix<std::complex<double> > >());
-  AlgorithmType::expose("SparseHermitianBuildMatrixComplex64", managed_hermitian_adaptor<
+  exposer.expose("SparseHermitianBuildMatrixComplex64", managed_hermitian_adaptor<
       ublas::coordinate_matrix<std::complex<double> > >());
+}
+
+
+
+
+template <typename Exposer>
+void exposeForAllMatrices(const Exposer &exposer)
+{
+  exposeForAllMatrices(exposer, double());
+  exposeForAllMatrices(exposer, std::complex<double>());
 }
 
 
@@ -230,6 +274,21 @@ void exposeMatrixOperators(const std::string &python_eltname, ValueType)
          unsigned, double>()
          [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
   }
+
+  {
+    typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
+    typedef 
+      python::class_<wrapped_type, 
+      python::bases<algorithm_matrix_operator<ValueType> >, boost::noncopyable>    
+        wrapper_type;
+
+    wrapper_type pyclass(("UMFPACKMatrixOperator"+python_eltname).c_str(), 
+       python::init<const ublas::identity_matrix<ValueType> &>());
+    
+    exposeForAllMatrices(
+        umfpack_matrix_operator_constructor_exposer<wrapper_type>(pyclass), 
+        ValueType());
+  }
 }
 
 
@@ -240,5 +299,5 @@ BOOST_PYTHON_MODULE(algorithms_internal)
   exposeMatrixOperators("Float64", double());
   exposeMatrixOperators("Complex64", std::complex<double>());
 
-  exposeForAllMatrices(ublas_matrix_operator_type());
+  exposeForAllMatrices(ublas_matrix_operator_exposer());
 }
