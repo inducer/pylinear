@@ -309,6 +309,24 @@ void extractTwoTuple(const python::tuple &tup, T &i, T &j)
 
 // shape accessors ------------------------------------------------------------
 template <typename MatrixType>
+inline unsigned getLength(const MatrixType &m)
+{ 
+  return m.size1() * m.size2();
+}
+
+
+
+
+template <typename ValueType>
+inline unsigned getLength(const ublas::vector<ValueType> &m)
+{ 
+  return m.size();
+}
+
+
+
+
+template <typename MatrixType>
 inline python::object getShape(const MatrixType &m)
 { 
   return python::make_tuple(m.size1(), m.size2());
@@ -487,6 +505,7 @@ struct python_matrix_iterator<MatrixType, ResultGenerator, mpl::true_>
 // element accessors ----------------------------------------------------------
 struct slice_info
 {
+  bool m_was_slice;
   int m_start;
   int m_end;
   int m_step;
@@ -496,9 +515,10 @@ struct slice_info
 
 
 
-static void translateSlice(PyObject *slice_or_constant, slice_info &si, int my_length)
+static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_length)
 {
-  if (PySlice_Check(slice_or_constant))
+  si.m_was_slice = PySlice_Check(slice_or_constant);
+  if (si.m_was_slice)
   {
     PySliceObject *slice = reinterpret_cast<PySliceObject *>(slice_or_constant);
     if (PySlice_GetIndicesEx(slice, my_length, &si.m_start, &si.m_end, 
@@ -540,14 +560,14 @@ static python::object getElement(const MatrixType &m, PyObject *index)
       throw std::out_of_range("expected tuple of size 2");
 
     slice_info si1, si2;
-    translateSlice(PyTuple_GET_ITEM(index, 0), si1, m.size1());
-    translateSlice(PyTuple_GET_ITEM(index, 1), si2, m.size2());
+    translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
+    translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
-    if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1)
+    if (!si1.m_was_slice && !si2.m_was_slice)
       return python::object(m(si1.m_start, si2.m_start));
-    else if (si1.m_sliceLength == 1)
+    else if (!si1.m_was_slice)
       return python::object(new vector_t(row(m,si1.m_start)));
-    else if (si2.m_sliceLength == 1)
+    else if (!si2.m_was_slice)
       return python::object(new vector_t(column(m,si2.m_start)));
     else
     {
@@ -560,9 +580,9 @@ static python::object getElement(const MatrixType &m, PyObject *index)
   else
   {
     slice_info si;
-    translateSlice(index, si, m.size1());
+    translateIndex(index, si, m.size1());
 
-    if (si.m_sliceLength == 1)
+    if (!si.m_was_slice)
       return python::object(
           new vector_t(
             row(m, si.m_start)));
@@ -582,9 +602,9 @@ template <typename ValueType>
 static python::object getElement(const ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
-  translateSlice(index, si, m.size());
+  translateIndex(index, si, m.size());
 
-  if (si.m_sliceLength == 1)
+  if (!si.m_was_slice)
     return python::object(m(si.m_start));
   else
     return python::object(
@@ -613,8 +633,8 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       throw std::out_of_range("expected tuple of size 2");
 
     slice_info si1, si2;
-    translateSlice(PyTuple_GET_ITEM(index, 0), si1, m.size1());
-    translateSlice(PyTuple_GET_ITEM(index, 1), si2, m.size2());
+    translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
+    translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
     if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1 && new_scalar.check())
     {
@@ -652,7 +672,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
   else
   {
     slice_info si;
-    translateSlice(index, si, m.size1());
+    translateIndex(index, si, m.size1());
 
     if (si.m_sliceLength == 1 && new_vector.check())
     {
@@ -687,7 +707,7 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
   python::extract<ublas::vector<ValueType> > new_matrix(new_value);
 
   slice_info si;
-  translateSlice(index, si, m.size());
+  translateIndex(index, si, m.size());
 
   if (si.m_sliceLength == 1 && new_scalar.check())
     m(si.m_start) = new_scalar();
@@ -820,6 +840,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .add_property("shape", 
         (python::object (*)(const WrappedClass &)) getShape, 
         (void (*)(WrappedClass &, const python::tuple &)) setShape)
+    .def("__len__", (unsigned (*)(const WrappedClass &)) getLength)
     .def("swap", &WrappedClass::swap)
 
     .def("__getitem__", (python::object (*)(const WrappedClass &, PyObject *)) getElement)

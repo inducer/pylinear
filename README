@@ -10,7 +10,8 @@ more ufuncs
 explicit type coercion
 from/to numeric conversion
 
-cholesky
+think about SIGFPEs
+
 save time in arpack:
   avoid copies for multiplication
   make it possible to take advantage of difference IDO=+/- 1

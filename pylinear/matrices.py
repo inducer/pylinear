@@ -135,7 +135,7 @@ def array(data, typecode = None):
 
     if type(data[0]) is types.ListType:
       for i in data:
-        prev_biggest_type = getBiggestType(data, prev_biggest_type)
+        prev_biggest_type = getBiggestType(i, prev_biggest_type)
       return prev_biggest_type
     else:
       for i in data:
@@ -157,11 +157,13 @@ def array(data, typecode = None):
     for i in range(h):
       for j in range(w):
         result[i,j] = data[i][j]
+    return result
   elif rank == 1:
     h = len(data)
     result = mat_class(h)
     for i in range(h):
       result[i] = data[i]
+    return result
 
 
 
