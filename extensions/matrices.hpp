@@ -30,7 +30,7 @@ namespace {
 // helpers --------------------------------------------------------------------
 generic_ublas::minilist<unsigned> getMinilist(const python::tuple &tup)
 {
-  unsigned len = python::extract<unsigned>(tup.attr("__len__"));
+  unsigned len = python::extract<unsigned>(tup.attr("__len__")());
 
   generic_ublas::minilist<unsigned> result;
   for (unsigned i = 0; i < len; ++i)
@@ -530,7 +530,7 @@ struct sparse_pickle_suite : python::pickle_suite
     {
       result.append(python::make_tuple(getPythonIndexTuple(first.index()),
 				       typename MatrixType::value_type(*first)));
-	first++;
+      first++;
     }
 
     return result;
