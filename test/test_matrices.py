@@ -173,10 +173,14 @@ def cholesky(typecode):
   print "cholesky residual:", sumAbsoluteValues(resid)
 
 def lu(typecode):
-  size = 100
+  size = 500
   A = makeFullRandomMatrix(size, typecode)
-  L,U = algo.lu(A)
-  print "lu residual:", sumAbsoluteValues(num.matrixmultiply(L,U)-A)
+  job = stopwatch.tJob("lu")
+  L,U,permut,sign = algo.lu(A)
+  job.done()
+  permut_mat = makePermutationMatrix(permut, typecode)
+  permut_a = num.matrixmultiply(permut_mat, A)
+  print "lu residual:", sumAbsoluteValues(num.matrixmultiply(L, U)-permut_a)
 
 def sparse(typecode):
   def countElements(mat):
@@ -210,6 +214,8 @@ def determinant(typecode):
 
 
 
+lu(num.Float)
+sys.exit(0)
 
 elementary()
 print "-------------------------------------"

@@ -38,11 +38,11 @@ def determinant(mat):
   h,w = mat.shape
   assert h == w
 
-  l,u = algo.lu(mat)
+  l,u, permut, sign = algo.lu(mat)
 
   product = 1
   for i in range(h):
     product *= u[i,i]
 
-  return product
+  return product * sign
 

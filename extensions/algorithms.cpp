@@ -199,9 +199,21 @@ python::object luWrapper(const MatrixType &a)
   typedef 
     typename strip_symmetric_wrappers<MatrixType>::type
     result_type;
-  std::pair<result_type *, result_type *> result = 
+  boost::tuple<result_type *, result_type *, std::vector<unsigned> *, int> result = 
     lu::lu<MatrixType, result_type, result_type>(a);
-  return python::make_tuple(result.first, result.second);
+  std::auto_ptr<result_type> l(result.get<0>()), u(result.get<1>());
+  std::auto_ptr<std::vector<unsigned> > permut_ptr(result.get<2>());
+  std::vector<unsigned> &permut = *permut_ptr;
+
+  python::list py_permut;
+  for (unsigned i = 0; i < permut.size(); i++)
+    py_permut.append(permut[i]);
+  
+  python::object py_result = python::make_tuple(l.get(), u.get(), py_permut, result.get<3>());
+  l.release();
+  u.release();
+
+  return py_result;
 }
 
 
