@@ -223,7 +223,7 @@ python::object luWrapper(const MatrixType &a)
 
 
 /*
-My LU is still slow, but faster that UBLAS builtin
+My LU is still slow, but faster than the UBLAS builtin.
 */
 template <typename MatrixType>
 python::object luWrapper(const MatrixType &a)

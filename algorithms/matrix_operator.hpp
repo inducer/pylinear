@@ -205,7 +205,7 @@ class composite_matrix_operator : public matrix_operator<ValueType>
 
     unsigned size2() const
     {
-      return m_inner.size1();
+      return m_inner.size2();
     }
 
     void apply(const vector_type &before, vector_type &after) const

@@ -49,7 +49,7 @@ def composeMatrixOperators(outer, inner):
 def addMatrixOperators(op1, op2):
     if op1.typecode() != op2.typecode():
         raise TypeError, "op1 and op2 have to have identical typecode"
-    my_class = _lookupClass("SumOfMatrixOperator", inner.typecode())
-    return my_class(outer, inner)
+    my_class = _lookupClass("SumOfMatrixOperators", op1.typecode())
+    return my_class(op1, op2)
 
 
