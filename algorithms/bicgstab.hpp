@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <boost/numeric/ublas/matrix.hpp>
 #include <boost/numeric/ublas/vector.hpp>
+#include <boost/numeric/ublas/io.hpp>
 #include "helpers.hpp"
 #include "matrix_operator.hpp"
 
@@ -37,6 +38,9 @@ namespace bicgstab
 
     if (A().size1() != A().size2())
       throw std::runtime_error("bicgstab: A is not quadratic");
+
+    if (debug_level >= 2)
+      std::cout << "rhs:" << b << std::endl;
 
     // typed up from Figure 2.10 of 
     // Templates for the Solution of Linear Systems: 
@@ -106,8 +110,11 @@ namespace bicgstab
 
       last_rho = rho;
 
-      if (debug_level && (iterations % 10 == 0))
-        std::cout << double(norm_2(r)) << std::endl;
+      if (debug_level)
+        {
+          if (debug_level >= 2 || iterations % 10 == 0)
+            std::cout << double(norm_2(r)) << std::endl;
+        }
       iterations++;
     }
 
