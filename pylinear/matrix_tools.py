@@ -488,6 +488,15 @@ def orthogonalize(vectors):
 
     
 
+def estimateConditionNumber(matrix):
+    u, s_vec, vt = la.singular_value_decomposition(matrix)
+    s_list = list(s_vec)
+    s_list.sort(lambda a, b: cmp(abs(a), abs(b)))
+    return abs(s_list[-1])/abs(s_list[0])
+
+
+
+
 # random matrices -------------------------------------------------------------
 def writeRandomVector(vec):
     size, = vec.shape
