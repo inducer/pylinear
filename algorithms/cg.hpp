@@ -122,6 +122,8 @@ namespace cg
 
     void apply(const vector_type &before, vector_type &after) const
     {
+      super::apply(before, after);
+
       cg::solveCG(m_matrix, 
 		  m_preconditioner, 
 		  after, 

@@ -692,6 +692,9 @@ ublas::vector<typename MatrixType::value_type> *
 multiplyVector(const MatrixType &mat, 
 	       const ublas::vector<typename MatrixType::value_type> &vec)
 {
+  if (mat.size2() != vec.size())
+    throw std::runtime_error("matrix size doesn't match vector");
+
   ublas::vector<typename MatrixType::value_type> *result = new
     ublas::vector<typename MatrixType::value_type>(mat.size1());
   ublas::axpy_prod(mat, vec, *result);
@@ -706,6 +709,9 @@ ublas::vector<typename MatrixType::value_type> *
 premultiplyVector(const MatrixType &mat, 
 		  const ublas::vector<typename MatrixType::value_type> &vec)
 {
+  if (mat.size1() != vec.size())
+    throw std::runtime_error("matrix size doesn't match vector");
+
   return new ublas::vector<typename MatrixType::value_type>(prod(vec,mat));
 }
 
@@ -716,48 +722,10 @@ template <typename MatrixType>
 MatrixType *multiplyMatrix(const MatrixType &mat1, 
 			   const MatrixType &mat2)
 {
+  if (mat1.size2() != mat2.size1())
+    throw std::runtime_error("matrix sizes don't match");
   return new MatrixType(prod(mat1,mat2));
 }
-
-
-
-
-/*
-template <typename Op1, typename Op2>
-struct prodMatMatWrapper
-{
-  typedef 
-    typename value_type_promotion::bigger_type<typename Op1::value_type, typename Op2::value_type>::type
-    result_value_type;
-  typedef 
-    typename ublas::matrix<result_value_type> 
-    result_type;
-
-  static result_type *apply(const Op1 &op1, const Op2 &op2)
-  {
-    return new result_type(prod(op1, op2));
-  }
-};
-
-
-
-
-template <typename Op1, typename Op2>
-struct prodMatVecWrapper
-{
-  typedef 
-    typename value_type_promotion::bigger_type<typename Op1::value_type, typename Op2::value_type>::type
-    result_value_type;
-  typedef 
-    typename ublas::vector<result_value_type> 
-    result_type;
-
-  static result_type *apply(const Op1 &op1, const Op2 &op2)
-  {
-    return new result_type(prod(op1, op2));
-  }
-};
-*/
 
 
 
@@ -771,6 +739,8 @@ struct inner_prodWrapper
 
   static result_type apply(const Op1 &op1, const Op2 &op2)
   {
+    if (op1.size() != op2.size())
+      throw std::runtime_error("vector sizes for inner product don't match");
     return inner_prod(op1, op2);
   }
 };

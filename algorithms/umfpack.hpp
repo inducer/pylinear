@@ -59,6 +59,7 @@ namespace umfpack
 
     void apply(const vector_type &before, vector_type &after) const
     {
+      super::apply(before, after);
       umf::solve(m_matrix, after, before, m_numeric);
       // FIXME: honor debug levels?
     }

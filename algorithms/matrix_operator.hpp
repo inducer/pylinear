@@ -27,7 +27,11 @@ class matrix_operator
 
     /** Before using apply, after must have the correct size.
      */
-    virtual void apply(const vector_type &before, vector_type &after) const = 0;
+    virtual void apply(const vector_type &before, vector_type &after) const
+    {
+      if (size2() != before.size() || size1() != after.size())
+	throw std::runtime_error("invalid vector sizes in matrix_operator::apply");
+    }
 
     // matrix_expression compatibility
     const matrix_operator &operator()() const
@@ -109,6 +113,7 @@ template <typename MatrixType>
 class ublas_matrix_operator : public matrix_operator<typename MatrixType::value_type>
 {
     const MatrixType &m_matrix;
+    typedef matrix_operator<typename MatrixType::value_type> super;
 
   public:
     typedef 
@@ -132,6 +137,8 @@ class ublas_matrix_operator : public matrix_operator<typename MatrixType::value_
 
     void apply(const vector_type &before, vector_type &after) const
     {
+      super::apply(before, after);
+      
       using namespace boost::numeric::ublas;
       //after = prod(m_matrix, before);
       axpy_prod(m_matrix, before, after, /*init*/ true);
@@ -170,6 +177,7 @@ class identity_matrix_operator : public matrix_operator<ValueType>
 
     void apply(const vector_type &before, vector_type &after) const
     {
+      super::apply(before, after);
       after = before;
     }
 };
@@ -210,6 +218,8 @@ class composite_matrix_operator : public matrix_operator<ValueType>
 
     void apply(const vector_type &before, vector_type &after) const
     {
+      super::apply(before, after);
+
       vector_type temp(m_inner.size1());
       m_inner.apply(before, temp);
       m_outer.apply(temp, after);
@@ -254,7 +264,9 @@ class sum_of_matrix_operators : public matrix_operator<ValueType>
 
     void apply(const vector_type &before, vector_type &after) const
     {
-      vector_type temp(m_op1.size1());
+      super::apply(before, after);
+
+      vector_type temp(size1());
       m_op1.apply(before, temp);
       m_op2.apply(before, after);
 
@@ -271,7 +283,6 @@ class scalar_multiplication_matrix_operator : public matrix_operator<ValueType>
     typedef
       matrix_operator<ValueType>
       super;
-
 
     ValueType m_factor;
     unsigned m_size;
@@ -298,6 +309,7 @@ class scalar_multiplication_matrix_operator : public matrix_operator<ValueType>
 
     void apply(const vector_type &before, vector_type &after) const
     {
+      super::apply(before, after);
       after = m_factor * before;
     }
 };

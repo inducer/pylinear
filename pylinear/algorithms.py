@@ -53,3 +53,10 @@ def addMatrixOperators(op1, op2):
     return my_class(op1, op2)
 
 
+
+
+def applyMatrixOperator(mat_op, vec):
+    h, w = mat_op.shape
+    temp = num.zeros((h,), vec.typecode())
+    mat_op.apply(vec, temp)
+    return temp
