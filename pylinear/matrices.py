@@ -249,6 +249,34 @@ def matrixmultiply(mat1, mat2):
 
 
 
+def innerproduct(vec1, vec2):
+    try:
+        return vec1._internal_innerproduct(vec2)
+    except:
+        if vec1.typecode() == vec2.typecode():
+            raise
+
+        mtc = _maxTypeCode([vec1.typecode(), vec2.typecode()])
+        return innerproduct(asarray(vec1, mtc), asarray(vec2, mtc))
+
+
+
+
+
+def outerproduct(vec1, vec2):
+    try:
+        return vec1._internal_outerproduct(vec2)
+    except:
+        if vec1.typecode() == vec2.typecode():
+            raise
+
+        mtc = _maxTypeCode([vec1.typecode(), vec2.typecode()])
+        return outerproduct(asarray(vec1, mtc), asarray(vec2, mtc))
+
+
+
+
+
 def transpose(mat):
     return mat._internal_transpose()
 

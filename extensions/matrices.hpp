@@ -1518,16 +1518,17 @@ static void exposeIterator(PythonClass &pyc, const std::string &python_typename,
 
 // vector wrapper -------------------------------------------------------------
 template <typename PythonClass, typename WrappedClass>
-static void exposeVectorConcept(PythonClass &pyclass, WrappedClass)
+static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
 
-  exposeElementWiseBehavior(pyclass, WrappedClass());
+  exposeElementWiseBehavior(pyc, WrappedClass());
 
   // inner and outer products
-  def("innerproduct", inner_prodWrapper<WrappedClass, WrappedClass>::apply);
-  def("outerproduct", outer_prodWrapper<WrappedClass, WrappedClass>::apply,
-      python::return_value_policy<python::manage_new_object>());
+  pyc
+    .def("_internal_innerproduct", inner_prodWrapper<WrappedClass, WrappedClass>::apply)
+    .def("_internal_outerproduct", outer_prodWrapper<WrappedClass, WrappedClass>::apply,
+	 python::return_value_policy<python::manage_new_object>());
 }
 
 

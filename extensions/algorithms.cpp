@@ -6,6 +6,7 @@
 #include <arpack.hpp>
 #include "meta.hpp"
 #include <boost/numeric/bindings/traits/ublas_matrix.hpp>
+#include <boost/numeric/bindings/lapack/gesdd.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 /*
 #include <boost/numeric/bindings/atlas/clapack.hpp>
@@ -298,11 +299,31 @@ python::object luWrapper(const MatrixType &a)
 
 
 template <typename ValueType>
-void exposeLU(ValueType)
+void exposeSpecialAlgorithms(ValueType)
 {
   python::def("lu", luWrapper<ublas::matrix<ValueType> >);
+  python::def("singular_value_decomposition", luWrapper<ublas::matrix<ValueType> >);
 }
 
+
+
+
+
+// svd ------------------------------------------------------------------------
+template <typename ValueType>
+static python::object svd(const ublas::matrix<ValueType> &A)
+{
+  ublas::matrix<ValueType> U, Vt;
+  ublas::vector<ValueType> s;
+  
+  int ierr = boost::numeric::bindings::lapack::gesdd(A, s, U, Vt);
+  if (ierr < 0)
+    throw runtime_error("invalid argument to gesdd");
+  else if (ierr > 0)
+    throw runtime_error("no convergence for given matrix");
+
+  return python::make_tuple(U, s, Vt);
+}
 
 
 
@@ -478,8 +499,8 @@ BOOST_PYTHON_MODULE(_algorithms)
   exposeArpack("Float64", double());
   exposeArpack("Complex64", std::complex<double>());
 
-  exposeLU(double());
-  exposeLU(std::complex<double>());
+  exposeSpecialAlgorithms(double());
+  exposeSpecialAlgorithms(std::complex<double>());
 
   exposeForAllMatrices(cholesky_exposer());
 }

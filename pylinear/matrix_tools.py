@@ -71,6 +71,13 @@ def linspace(x, y, n = 100):
 
 
 
+# Jacobi rotation -------------------------------------------------------------
+class tJacobiRotation:
+    def __init__(self, i, j, cos, sin):
+        self.I = i
+        self.J = j
+        self.Cos = Cos
+        self.Sin = Sin
 # some tools ------------------------------------------------------------------
 def delta(x,y):
     if x == y:
