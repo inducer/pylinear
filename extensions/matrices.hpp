@@ -879,23 +879,34 @@ void addScattered(MatrixType &mat,
   {
     for (unsigned int row = 0; row < row_count; ++row)
     {
-      unsigned dest_row = extract<unsigned>(row_indices[row]);
+      int dest_row = extract<int>(row_indices[row]);
+      if (dest_row == -1)
+	continue;
 
       for (unsigned col = 0; col < column_count; ++col)
-        mat.insert(dest_row,
-            extract<unsigned>(column_indices[col]),
-            little_mat(row, col));
+      {
+	int dest_col = extract<int>(column_indices[col]);
+	if (dest_col == -1)
+	  continue;
+        mat.insert(dest_row, dest_col, little_mat(row, col));
+      }
     }
   }
   else
   {
     for (unsigned int row = 0; row < row_count; ++row)
     {
-      unsigned dest_row = extract<unsigned>(row_indices[row]);
+      int dest_row = extract<int>(row_indices[row]);
+      if (dest_row == -1)
+	continue;
 
       for (unsigned col = 0; col < column_count; ++col)
-        mat(dest_row, extract<unsigned>(column_indices[col])) +=
-            little_mat(row, col);
+      {
+	int dest_col = extract<int>(column_indices[col]);
+	if (dest_col == -1)
+	  continue;
+        mat(dest_row, dest_col) += little_mat(row, col);
+      }
     }
   }
 }
@@ -920,10 +931,17 @@ inline void addScatteredSymmetric(MatrixType &mat,
     // FIXME: Until now, hermitian matrices can't count as coordinate matrices.
     for (unsigned int row = 0; row < index_count; ++row)
     {
-      unsigned dest_row = extract<unsigned>(indices[row]);
+      int dest_row = extract<int>(indices[row]);
 
+      if (dest_row == -1)
+	continue;
       for (unsigned col = 0; col <= row; ++col)
-        mat(dest_row, extract<unsigned>(indices[col])) += little_mat(row, col);
+      {
+	int dest_col = extract<int>(indices[col]);
+	if (dest_col == -1)
+	  continue;
+        mat(dest_row, dest_col) += little_mat(row, col);
+      }
     }
   }
   else
@@ -933,20 +951,34 @@ inline void addScatteredSymmetric(MatrixType &mat,
     {
       for (unsigned int row = 0; row < index_count; ++row)
       {
-        unsigned dest_row = extract<unsigned>(indices[row]);
+        int dest_row = extract<int>(indices[row]);
+	if (dest_row == -1)
+	  continue;
 
         for (unsigned col = 0; col < index_count; ++col)
-          mat.insert(dest_row, extract<unsigned>(indices[col]), little_mat(row, col));
+	{
+	  int dest_col = extract<int>(indices[col]);
+	  if (dest_col == -1)
+	    continue;
+          mat.insert(dest_row, dest_col, little_mat(row, col));
+	}
       }
     }
     else
     {
       for (unsigned int row = 0; row < index_count; ++row)
       {
-        unsigned dest_row = extract<unsigned>(indices[row]);
+        int dest_row = extract<int>(indices[row]);
+	if (dest_row == -1)
+	  continue;
 
         for (unsigned col = 0; col < index_count; ++col)
-          mat(dest_row, extract<unsigned>(indices[col])) += little_mat(row, col);
+	{
+	  int dest_col = extract<int>(indices[col]);
+	  if (dest_col == -1)
+	    continue;
+          mat(dest_row, dest_col) += little_mat(row, col);
+	}
       }
     }
   }
