@@ -1,0 +1,3 @@
+include algorithms/*.hpp
+include extensions/*.hpp
+include 3rdparty/arpack/*.h
