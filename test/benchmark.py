@@ -2,6 +2,10 @@ import pylinear.matrices as num
 import Numeric
 from stopwatch import *
 
+def fillMatrix(matrix):
+    for row in range(rows):
+        for col in range(columns):
+            result[row,col] = random.normalvariate(0,10)
 def creation(module, name):
   job = tJob("creation "+name)
   for i in range(1000*10):
