@@ -335,8 +335,7 @@ def testAll(typecode):
 
 
 
-inverse(num.Complex)
 
-#testAll(num.Float)
+testAll(num.Float)
 print "-------------------------------------"
-#testAll(num.Complex)
+testAll(num.Complex)
