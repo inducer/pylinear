@@ -4,10 +4,15 @@
 #include <cholesky.hpp>
 #include <umfpack.hpp>
 #include <arpack.hpp>
+
 #include "meta.hpp"
+#include "python_helpers.hpp"
+
 #include <boost/numeric/bindings/traits/ublas_matrix.hpp>
 #include <boost/numeric/bindings/traits/type.hpp>
 #include <boost/numeric/bindings/lapack/gesdd.hpp>
+#include <boost/numeric/bindings/lapack/syev.hpp>
+#include <boost/numeric/bindings/lapack/heev.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 /*
 #include <boost/numeric/bindings/atlas/clapack.hpp>
@@ -213,7 +218,8 @@ python::object luWrapper(const MatrixType &a)
       sign *= -1;
   }
   
-  python::object py_result = python::make_tuple(l.get(), u.get(), py_permut, sign);
+  python::object py_result = python::make_tuple(handle_from_new_ptr(l.get()), 
+  handle_from_new_ptr(u.get()), py_permut, sign);
   l.release();
   u.release();
 
@@ -243,7 +249,10 @@ python::object luWrapper(const MatrixType &a)
   for (unsigned i = 0; i < permut.size(); i++)
     py_permut.append(permut[i]);
   
-  python::object py_result = python::make_tuple(l.get(), u.get(), py_permut, result.get<3>());
+  python::object py_result = python::make_tuple(handle_from_new_ptr(l.get()),
+						handle_from_new_ptr(u.get()), 
+						py_permut, 
+						result.get<3>());
   l.release();
   u.release();
 
@@ -288,7 +297,8 @@ python::object luWrapper(const MatrixType &a)
       sign *= -1;
   }
   
-  python::object py_result = python::make_tuple(l.get(), u.get(), py_permut, sign);
+  python::object py_result = python::make_tuple(handle_from_new_ptr(l.get()), 
+  handle_from_new_ptr(u.get()), py_permut, sign);
   l.release();
   u.release();
 
@@ -317,7 +327,53 @@ static python::object svdWrapper(const ublas::matrix<ValueType> &a)
 
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::vector<ValueType> vec;
-  return python::make_tuple(new mat(u), new vec(s), new mat(vt));
+  return python::make_tuple(handle_from_new_ptr(new mat(u)),
+			    handle_from_new_ptr(new vec(s)), 
+			    handle_from_new_ptr(new mat(vt)));
+}
+
+
+
+
+// eigenvectors ---------------------------------------------------------------
+int _Heigenvectors_backend(char jobz, char uplo, 
+			   ublas::matrix<double, ublas::column_major> &a, 
+			   ublas::vector<double> &w) 
+{
+  return boost::numeric::bindings::lapack::syev(jobz, uplo, a, w, 
+						boost::numeric::bindings::lapack::optimal_workspace());
+}
+
+int _Heigenvectors_backend(char jobz, char uplo, 
+			   ublas::matrix<std::complex<double>, ublas::column_major> &a, 
+			   ublas::vector<double> &w) 
+{
+  return boost::numeric::bindings::lapack::heev(jobz, uplo, a, w, 
+						boost::numeric::bindings::lapack::optimal_workspace());
+}
+
+template <typename ValueType>
+static python::object HeigenvectorsWrapper(bool get_vectors, bool upper, 
+					   const ublas::matrix<ValueType> &a)
+{
+  typedef ublas::matrix<ValueType> mat;
+  typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
+  
+  fortran_mat a_copy(a);
+  ublas::vector<double> w(a.size1());
+  
+  int ierr = _Heigenvectors_backend(get_vectors ? 'V' : 'N',
+				   upper ? 'U' : 'L',
+				   a_copy, w);
+  if (ierr < 0)
+    throw std::runtime_error("invalid argument to gesdd");
+  else if (ierr > 0)
+    throw std::runtime_error("no convergence for given matrix");
+
+  typedef ublas::matrix<ValueType> mat;
+  typedef ublas::vector<ValueType> vec;
+  return python::make_tuple(handle_from_new_ptr(new mat(a_copy)), 
+			    handle_from_new_ptr(new vec(w)));
 }
 
 
@@ -329,6 +385,7 @@ void exposeSpecialAlgorithms(ValueType)
 {
   python::def("lu", luWrapper<ublas::matrix<ValueType> >);
   python::def("singular_value_decomposition", svdWrapper<ValueType>);
+  python::def("Heigenvectors", HeigenvectorsWrapper<ValueType>);
 }
 
 

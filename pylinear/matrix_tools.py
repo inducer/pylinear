@@ -232,9 +232,7 @@ def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
     and : matrix = Q * D * Q^H.
 
     For one matrix, this reduces to the diagonalize() function in this
-    module, but is currently considerably slower. This speed difference
-    could be minimized by using a faster diagonalization process for
-    the 3x3 helper matrix used within.
+    module. 
 
     Algorithm from:
 
@@ -246,6 +244,8 @@ def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
     J.-F. Cardoso, A. Souloumiac, Jacobi Angles for Simultaneous
     Diagonalization, also published by SIAM.
     """
+
+    mm = num.matrixmultiply
 
     rows, columns = matrices[0].shape
     tc = matrices[0].typecode()
@@ -272,42 +272,41 @@ def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
     while residual >= tolerance**2 * norm_before:
         for i in range(rows):
             for j in range(0,min(columns,i)):
-                if True:
-                    g = num.zeros((3,3), num.Float)
-                    for a in mymats:
-                        h = num.array([_realPart(a[i,i] - a[j,j]),
-                                       _realPart(a[i,j] + a[j,i]),
-                                       -_imaginaryPart(a[j,i] - a[i,j])])
-                        g += num.outerproduct(h, h)
+                g = num.zeros((3,3), num.Float)
+                for a in mymats:
+                    h = num.array([_realPart(a[i,i] - a[j,j]),
+                                   _realPart(a[i,j] + a[j,i]),
+                                   -_imaginaryPart(a[j,i] - a[i,j])])
+                    g += num.outerproduct(h, h)
 
-                    try:
-                        u, diag_mat = diagonalize(g, 1e-10, 100)
-                    except RuntimeError:
-                        # convergence failed, oh well. next one.
-                        continue
+                u, diag_vec = la.Heigenvectors(g)
 
-                    max_index = None
-                    for index in range(3):
-                        curval = abs(diag_mat[index, index])
-                        if max_index is None or curval > current_max:
-                            max_index = index
-                            current_max = curval
+                max_index = None
+                for index in range(3):
+                    curval = abs(diag_vec[index])
+                    if max_index is None or curval > current_max:
+                        max_index = index
+                        current_max = curval
 
-                    if max_index is None:
-                        continue
-                
-                    # eigenvector belonging to largest eigenvalue
-                    bev = u[:,max_index]
+                if max_index is None:
+                    continue
 
-                    r = norm2(bev)
-                    if (bev[0] + r)/r < 1e-7:
-                        continue
+                # eigenvector belonging to largest eigenvalue
+                bev = u[:,max_index]
 
-                    cos = math.sqrt((bev[0]+r)/(2*r))
-                    sin = bev[1] 
-                    if tc is not num.Float:
-                        sin -= 1j*bev[2]
-                    sin /= math.sqrt(2*r*(bev[0]+r))
+                if bev[0] < 0:
+                    bev = - bev
+
+                r = norm2(bev)
+                if (bev[0] + r)/r < 1e-7:
+                    print "BEV"
+                    continue
+
+                cos = math.sqrt((bev[0]+r)/(2*r))
+                sin = bev[1] 
+                if tc is not num.Float:
+                    sin -= 1j*bev[2]
+                sin /= math.sqrt(2*r*(bev[0]+r))
 
                 rot = makeJacobiRotation(i, j, cos, sin)
                 rot_h = rot.hermite()
@@ -384,9 +383,10 @@ def matrixExpByDiagonalization(a):
     h,w = a.shape
     assert h == w
 
-    q, d = diagonalize(a)
+    q, w = la.Heigenvectors(a)
+    d = num.zeros(a.shape, a.typecode())
     for i in range(h):
-        d[i,i] = cmath.exp(d[i,i])
+        d[i,i] = cmath.exp(w[i])
     mm = num.matrixmultiply
     return mm(q, mm(d, hermite(q)))
     

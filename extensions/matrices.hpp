@@ -153,7 +153,7 @@ struct python_matrix_value_iterator
     return this;
   }
 
-  python::object next()
+  python::handle<PyObject> next()
   {
     if (m_row_index >= m_matrix.size1())
     {
@@ -161,7 +161,7 @@ struct python_matrix_value_iterator
       throw python::error_already_set();
     }
 
-    return python::object(
+    return handle_from_new_ptr(
         new typename get_corresponding_vector_type<MatrixType>::type(
           ublas::row(m_matrix, m_row_index++)));
   }
@@ -823,9 +823,9 @@ struct realWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static python::object apply(const MatrixType &m)
+  inline static python::handle<PyObject> apply(const MatrixType &m)
   {
-    return python::object(new result_type(real(m)));
+    return handle_from_new_ptr(new result_type(real(m)));
   }
 };
 
@@ -840,9 +840,9 @@ struct imagWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static python::object apply(const MatrixType &m)
+  inline static python::handle<PyObject> apply(const MatrixType &m)
   {
-    return python::object(new result_type(imag(m)));
+    return handle_from_new_ptr(new result_type(imag(m)));
   }
 };
 

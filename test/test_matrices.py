@@ -363,6 +363,23 @@ class tTestMatrices(unittest.TestCase):
     def testMatrixExp(self):
         self.forAllTypecodes(self.doTestMatrixExp)
 
+    def doTestHeigenvectors(self, typecode):
+        size = 30
+
+        a = mtools.makeRandomSPDMatrix(size, typecode)
+        q, w = la.Heigenvectors(a)
+        w2 = la.Heigenvalues(a)
+
+        self.assert_(abs(sum(w) - sum(w2)) < 1e-12)
+
+        d = num.zeros(a.shape, a.typecode())
+        for i in range(size):
+            d[i,i] = w[i]
+        mm = num.matrixmultiply
+        self.assertSmall(a - mm(q, mm(d, num.hermite(q))))
+
+    def testHeigenvectors(self):
+        self.forAllTypecodes(self.doTestHeigenvectors)
 
 
 

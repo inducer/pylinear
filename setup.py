@@ -8,6 +8,7 @@ import os.path
 home = os.getenv("HOME")
 
 boost_path = "%s/work/boost" % home
+boost_ublas_bindings_path = "%s/work/boost-sandbox" % home
 library_dirs = ["%s/pool/lib" % home] 
 
 include_dirs = [boost_path, "algorithms"]
@@ -48,7 +49,7 @@ setup(name="PyLinear",
             "extensions/algorithms.cpp", 
           ],
           include_dirs = include_dirs + 
-          ["3rdparty/ublas_bindings", "3rdparty/arpack"],
+          [boost_ublas_bindings_path, "3rdparty/arpack"],
           library_dirs = library_dirs,
           libraries = libraries + ["umfpack", "amd", "arpack", "lapack"] + blas_libraries,
           extra_compile_args = extra_compile_args,

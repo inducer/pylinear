@@ -80,3 +80,17 @@ def determinant(mat):
 
 
 singular_value_decomposition = algo.singular_value_decomposition
+
+
+
+
+def Heigenvalues(mat, upper = True):
+    q, w = algo.Heigenvectors(False, upper, mat)
+    return w
+
+
+
+
+
+def Heigenvectors(mat, upper = True):
+    return algo.Heigenvectors(True, upper, mat)
