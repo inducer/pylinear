@@ -86,6 +86,17 @@ _TYPES = [
 
 
 
+
+# Tools -----------------------------------------------------------------------
+def _maxTypeCode(list):
+    if Complex in list:
+        return Complex
+    else:
+        return Float
+
+
+
+
 # class getter ----------------------------------------------------------------
 def _makeRightType(name_trunk, typecode):
     return globals()[name_trunk + _getTypeCodeName(typecode)]
@@ -210,6 +221,7 @@ def diagonal(mat, offset = 0):
 
     raise RuntimeError, "diagonal: not yet implemented"
 
+
  
 
 def take(mat, indices, axis = 0):
@@ -219,12 +231,20 @@ def take(mat, indices, axis = 0):
 
 
 def matrixmultiply(mat1, mat2):
-    if len(mat2.shape) == 1:
-        return mat1._internal_multiplyVector(mat2)
-    elif len(mat1.shape) == 1:
-        return mat2._internal_premultiplyVector(mat1)
-    else:
-        return mat1._internal_multiplyMatrix(mat2)
+    try:
+        if len(mat2.shape) == 1:
+            return mat1._internal_multiplyVector(mat2)
+        elif len(mat1.shape) == 1:
+            return mat2._internal_premultiplyVector(mat1)
+        else:
+            return mat1._internal_multiplyMatrix(mat2)
+    except:
+        if mat1.typecode() == mat2.typecode():
+            raise
+
+        mtc = _maxTypeCode([mat1.typecode(), mat2.typecode()])
+        return matrixmultiply(asarray(mat1, mtc), asarray(mat2, mtc))
+
 
 
 

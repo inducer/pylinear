@@ -546,9 +546,9 @@ struct sparse_pickle_suite : python::pickle_suite
     unsigned len = python::extract<unsigned>(entries.attr("__len__")());
     for (unsigned i = 0; i < len; i++)
     {
-      generic_ublas::set(m,
-			 getMinilist(python::extract<python::tuple>(entries[i][0])),
-			 python::extract<typename MatrixType::value_type>(entries[i][1]));
+      generic_ublas::insert(m,
+			    getMinilist(python::extract<python::tuple>(entries[i][0])),
+			    python::extract<typename MatrixType::value_type>(entries[i][1]));
     }
   }
 };
@@ -556,7 +556,7 @@ struct sparse_pickle_suite : python::pickle_suite
 
 
 
-  template <typename MatrixType>
+template <typename MatrixType>
 struct dense_pickle_suite : python::pickle_suite
 {
   static

@@ -9,4 +9,4 @@ a[3,2] = 9
 print a.__getstate__()
 a_pickled = pickle.dumps(a)
 other_a = pickle.loads(a_pickled)
-print other_a, a
+print other_a, a, type(other_a)

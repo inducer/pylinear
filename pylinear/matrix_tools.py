@@ -88,7 +88,13 @@ def sp(x,y):
 
 
 def norm2squared(x):
-    return num.innerproduct(num.conjugate(x),x)
+    val = num.innerproduct(num.conjugate(x),x)
+    try:
+      return val.real
+    except AttributeError:
+      # whoops. not complex
+      return val
+
 
 
 
@@ -96,7 +102,6 @@ def norm2squared(x):
 def norm2(x):
     scalar_product = num.innerproduct(num.conjugate(x),x)
     try:
-        assert abs(scalar_product.imag) < 1e-12
         return math.sqrt(scalar_product.real)
     except AttributeError:
         # whoops. not complex
