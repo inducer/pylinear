@@ -1,6 +1,7 @@
 import math, cmath, random, types
 import pylinear.matrices as num
 import pylinear.linear_algebra as la
+import pylinear.iteration as iteration
 
 
 
@@ -153,7 +154,7 @@ def printComplexMatrixInGrid(a):
 def _sign(x):
     return x / abs(x)
 
-def diagonalize(matrix, tolerance = 1e-10, max_iterations = None, compute_vectors = True):
+def diagonalize(matrix, compute_vectors = True, observer = iteration.makeObserver(rel_goal = 1e-10)):
     """This executes a simple sequence of Jacobi transform on the 
     given symmetric positive definite matrix. It returns a tuple 
     of matrices Q, D. Q is a unitary matrix that contains the
@@ -179,41 +180,39 @@ def diagonalize(matrix, tolerance = 1e-10, max_iterations = None, compute_vector
         q = num.identity(rows, tc)
     else:
         q = None
-    norm_before = off_diag_norm_squared(matrix)
     mymatrix = matrix.copy()
-    iterations = 0
 
     if rows == 1 and columns == 1:
         return  q, mymatrix
 
-    while off_diag_norm_squared(mymatrix) >= tolerance**2 * norm_before:
-        for i in range(rows):
-            for j in range(0,min(columns,i)):
-                if abs(mymatrix[i,j]) < tolerance ** 3:
-                    continue
+    observer.reset()
+    try:
+        while True:
+            observer.addDataPoint(math.sqrt(off_diag_norm_squared(mymatrix)))
+            for i in range(rows):
+                for j in range(0,min(columns,i)):
+                    if abs(mymatrix[i,j]) < 1e-10:
+                        continue
 
-                theta = (mymatrix[j,j] - mymatrix[i,i])/mymatrix[i,j]
-                t = _sign(theta)/(abs(theta)+math.sqrt(abs(theta)**2+1))
+                    theta = (mymatrix[j,j] - mymatrix[i,i])/mymatrix[i,j]
+                    t = _sign(theta)/(abs(theta)+math.sqrt(abs(theta)**2+1))
 
-                other_cos = 1 / math.sqrt(abs(t)**2 + 1)
-                other_sin = t * other_cos
+                    other_cos = 1 / math.sqrt(abs(t)**2 + 1)
+                    other_sin = t * other_cos
 
-                rot = makeJacobiRotation(i, j, other_cos, other_sin)
-                rot.hermite().applyFromLeft(mymatrix)
-                rot.applyFromRight(mymatrix)
+                    rot = makeJacobiRotation(i, j, other_cos, other_sin)
+                    rot.hermite().applyFromLeft(mymatrix)
+                    rot.applyFromRight(mymatrix)
 
-                if compute_vectors:
-                    rot.applyFromRight(q)
-
-        iterations += 1
-        if max_iterations and (iterations >= max_iterations):
-            raise RuntimeError, "Jacobi diagonalization failed to converge"
-    return q, mymatrix
-
-
+                    if compute_vectors:
+                        rot.applyFromRight(q)
+    except iteration.tIterationSuccessful:
+        return q, mymatrix
 
 
-def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
+
+
+def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-5, rel_goal = 1e-10)):
     """This executes the generalized Jacobi process from the research
     papers quoted below It returns a tuple Q, diagonal_matrices, 
     achieved_tolerance.
@@ -263,71 +262,64 @@ def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
     q = num.identity(rows, tc)
     norm_before = sum([off_diag_norm_squared(mat) for mat in matrices])
     mymats = [mat.copy() for mat in matrices]
-    residual = sum([off_diag_norm_squared(mat) for mat in mymats])
-    biggest_progress = 1.
-    iterations = 0
+    residual = math.sqrt(sum([off_diag_norm_squared(mat) for mat in mymats]))
 
-    print_all = False
+    observer.reset()
 
-    while residual >= tolerance**2 * norm_before:
-        for i in range(rows):
-            for j in range(0,min(columns,i)):
-                g = num.zeros((3,3), num.Float)
-                for a in mymats:
-                    h = num.array([_realPart(a[i,i] - a[j,j]),
-                                   _realPart(a[i,j] + a[j,i]),
-                                   -_imaginaryPart(a[j,i] - a[i,j])])
-                    g += num.outerproduct(h, h)
+    try:
+        while True:
+            observer.addDataPoint(residual)
+            for i in range(rows):
+                for j in range(0,min(columns,i)):
+                    g = num.zeros((3,3), num.Float)
+                    for a in mymats:
+                        h = num.array([_realPart(a[i,i] - a[j,j]),
+                                       _realPart(a[i,j] + a[j,i]),
+                                       -_imaginaryPart(a[j,i] - a[i,j])])
+                        g += num.outerproduct(h, h)
 
-                u, diag_vec = la.Heigenvectors(g)
+                    u, diag_vec = la.Heigenvectors(g)
 
-                max_index = None
-                for index in range(3):
-                    curval = abs(diag_vec[index])
-                    if max_index is None or curval > current_max:
-                        max_index = index
-                        current_max = curval
+                    max_index = None
+                    for index in range(3):
+                        curval = abs(diag_vec[index])
+                        if max_index is None or curval > current_max:
+                            max_index = index
+                            current_max = curval
 
-                if max_index is None:
-                    continue
+                    if max_index is None:
+                        continue
 
-                # eigenvector belonging to largest eigenvalue
-                bev = u[:,max_index]
+                    # eigenvector belonging to largest eigenvalue
+                    bev = u[:,max_index]
 
-                if bev[0] < 0:
-                    bev = - bev
+                    if bev[0] < 0:
+                        bev = - bev
 
-                r = norm2(bev)
-                if (bev[0] + r)/r < 1e-7:
-                    continue
+                    r = norm2(bev)
+                    if (bev[0] + r)/r < 1e-7:
+                        continue
 
-                cos = math.sqrt((bev[0]+r)/(2*r))
-                sin = bev[1] 
-                if tc is not num.Float:
-                    sin -= 1j*bev[2]
-                sin /= math.sqrt(2*r*(bev[0]+r))
+                    cos = math.sqrt((bev[0]+r)/(2*r))
+                    sin = bev[1] 
+                    if tc is not num.Float:
+                        sin -= 1j*bev[2]
+                    sin /= math.sqrt(2*r*(bev[0]+r))
 
-                rot = makeJacobiRotation(i, j, cos, sin)
-                rot_h = rot.hermite()
-                for mat in mymats:
-                    rot.applyFromLeft(mat)
-                    rot.hermite().applyFromRight(mat)
+                    rot = makeJacobiRotation(i, j, cos, sin)
+                    rot_h = rot.hermite()
+                    for mat in mymats:
+                        rot.applyFromLeft(mat)
+                        rot.hermite().applyFromRight(mat)
 
-                rot_h.applyFromRight(q)
+                    rot_h.applyFromRight(q)
 
-        last_residual = residual
-        residual = sum([off_diag_norm_squared(mat) for mat in mymats])
-        progress = max(1, last_residual / residual)
-        biggest_progress = max(progress, biggest_progress)
-        if (progress - 1)/(biggest_progress-1) < 1e-5:
-            # Progress has stopped, quit.
-            return q, mymats, math.sqrt(residual/norm_before)
+            residual = math.sqrt(sum([off_diag_norm_squared(mat) for mat in mymats]))
 
-        iterations += 1
-        if max_iterations and (iterations >= max_iterations):
-            break
-
-    return q, mymats, math.sqrt(residual/norm_before)
+    except iteration.tIterationStalled:
+        return q, mymats, math.sqrt(residual/norm_before)
+    except iteration.tIterationSuccessful:
+        return q, mymats, math.sqrt(residual/norm_before)
 
 
 

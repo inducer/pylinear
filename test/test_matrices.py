@@ -3,6 +3,7 @@ import pylinear.matrices as num
 import pylinear.algorithms as algo
 import pylinear.matrix_tools as mtools
 import pylinear.linear_algebra as la
+import pylinear.iteration as iteration
 from test_tools import *
 import unittest
 
@@ -304,7 +305,7 @@ class tTestMatrices(unittest.TestCase):
 
         a = mtools.makeRandomSPDMatrix(size, typecode)
         before = math.sqrt(off_diag_norm_squared(a))
-        q, aprime = mtools.diagonalize(a, 1e-10)
+        q, aprime = mtools.diagonalize(a, iteration.makeObserver(rel_goal = 1e-10))
         after = math.sqrt(off_diag_norm_squared(aprime))
 
         mm = num.matrixmultiply
@@ -334,7 +335,8 @@ class tTestMatrices(unittest.TestCase):
 
         a = mtools.makeRandomSPDMatrix(size, typecode)
         before = math.sqrt(off_diag_norm_squared(a))
-        q, mats_post, achieved = mtools.codiagonalize([a], 1e-10)
+        q, mats_post, achieved = mtools.codiagonalize(
+            [a], iteration.makeObserver(stall_thresh = 1e-5, rel_goal = 1e-10))
         aprime = mats_post[0]
         after = math.sqrt(off_diag_norm_squared(aprime))
 
