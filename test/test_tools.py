@@ -1,6 +1,9 @@
 import math
 import cmath
 import pylinear.matrices as num
+#import Numeric as num
+#import numarray as num
+import stopwatch
 import random
 
 
@@ -26,6 +29,9 @@ def delta(x,y):
     return 1
   else:
     return 0
+
+def hermite(x):
+  return num.transpose(num.conjugate(x))
 
   
 
@@ -73,7 +79,6 @@ def makeRandomONB(size, typecode):
 
   for i in range(size):
     for j in range(size):
-      print i,j,":",sp(vectors[i],vectors[j])
       assert abs(delta(i,j) - sp(vectors[i], vectors[j])) < 1e-12
   return vectors
 
@@ -82,16 +87,23 @@ def makeRandomONB(size, typecode):
 
 
 def makeRandomOrthogonalMatrix(size, typecode):
-  mat = num.zeros((size,size), typecode)
+  job = stopwatch.tJob( "random vec" )
   vectors = []
   for i in range(size):
-    v = mat[:,i]
+    v = num.zeros((size,), typecode)
     writeRandomVector(v)
     vectors.append(v)
+  job.done()
 
+  job = stopwatch.tJob( "ortho" )
   orth_vectors = orthogonalize(vectors)
+  job.done()
+
+  job = stopwatch.tJob( "reinsert" )
+  mat = num.zeros((size,size), typecode)
   for i in range(size):
     mat[:,i] = orth_vectors[i]
+  job.done()
 
   return mat
 
@@ -105,13 +117,12 @@ def makeRandomSPDMatrix(size, typecode):
     eigenmat[i,i] = abs(eigenvalues[i])
 
   orthomat = makeRandomOrthogonalMatrix(size, typecode)
-  print num.matrixmultiply(num.hermite(orthomat), orthomat)
-  return num.matrixmultiply(num.hermite(orthomat), num.matrixmultiply(eigenmat,orthomat))
+  return num.matrixmultiply(hermite(orthomat), num.matrixmultiply(eigenmat,orthomat))
 
 
 
 
-def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
+def makeRandomMatrix(size, typecode):
   result = num.zeros((size, size), typecode)
   elements = size ** 2 / 10
 
@@ -131,7 +142,11 @@ def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
 
   
 def _test():
-  print makeRandomSPDMatrix(100, num.Complex64)
+  size = 100
+  job = stopwatch.tJob( "make spd" )
+  A = makeRandomSPDMatrix(size, num.Complex64)
+  job.done()
+  #print A
 
 
 
