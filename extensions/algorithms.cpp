@@ -1,5 +1,7 @@
 #include <boost/python.hpp>
 #include <cg.h>
+#include <lu.h>
+#include <cholesky.h>
 #include <umfpack.h>
 #include <arpack.h>
 #include "meta.h"
@@ -166,6 +168,52 @@ public:
   {
     m_pyclass
       .def(python::init<const MatrixType &>());
+  }
+};
+
+
+
+
+
+// cholesky_exposer -----------------------------------------------------------
+struct cholesky_exposer
+{
+public:
+  template <typename MatrixType>
+  void expose(const std::string &python_mattype, MatrixType) const
+  {
+    python::def("cholesky", cholesky::cholesky<MatrixType, 
+        typename strip_symmetric_wrappers<MatrixType>::type>,
+        python::return_value_policy<python::manage_new_object>());
+  }
+};
+
+
+
+
+
+// lu_exposer -----------------------------------------------------------------
+template <typename MatrixType>
+python::object luWrapper(const MatrixType &a)
+{
+  typedef 
+    typename strip_symmetric_wrappers<MatrixType>::type
+    result_type;
+  std::pair<result_type *, result_type *> result = 
+    lu::lu<MatrixType, result_type, result_type>(a);
+  return python::make_tuple(result.first, result.second);
+}
+
+
+
+
+struct lu_exposer
+{
+public:
+  template <typename MatrixType>
+  void expose(const std::string &python_mattype, MatrixType) const
+  {
+    python::def("lu", luWrapper<MatrixType>);
   }
 };
 
@@ -380,4 +428,7 @@ BOOST_PYTHON_MODULE(algorithms_internal)
 
   exposeArpack("Float64", double());
   exposeArpack("Complex64", std::complex<double>());
+
+  exposeForAllMatrices(cholesky_exposer());
+  exposeForAllMatrices(lu_exposer());
 }

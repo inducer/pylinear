@@ -152,4 +152,20 @@ struct get_corresponding_vector_type
 
 
 
+// strip_symmetric_wrappers 
+template <typename MatrixType>
+struct strip_symmetric_wrappers
+{ typedef MatrixType type; };
+
+template <typename MatrixType>
+struct strip_symmetric_wrappers<managed_symmetric_adaptor<MatrixType> >
+{ typedef MatrixType type; };
+
+template <typename MatrixType>
+struct strip_symmetric_wrappers<managed_hermitian_adaptor<MatrixType> >
+{ typedef MatrixType type; };
+
+
+
+
 #endif

@@ -22,4 +22,4 @@ UBLAS: managed_XXX_adaptor
 UBLAS: doc bug: h/s_adaptors don't have expression constructors
 UBLAS: traits cannot be included by itself (?)
 UBLAS: matrix_proxy cannot be included by itself
-
+UBLAS: casts needed in cholesky

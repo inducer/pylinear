@@ -116,8 +116,23 @@ def makeRandomSPDMatrix(size, typecode):
 
 
 
-def makeRandomMatrix(size, typecode):
+def makeFullRandomMatrix(size, typecode):
   result = num.zeros((size, size), typecode)
+
+  for row in range(size):
+    for col in range(size):
+      value = random.normalvariate(0,10)
+      if typecode == num.Complex64:
+        value += 1j*random.normalvariate(0,10)
+
+      result[row,col] = value
+  return result
+
+
+
+
+def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
+  result = num.zeros((size, size), typecode, matrix_type)
   elements = size ** 2 / 10
 
   for i in range(elements):

@@ -1,5 +1,7 @@
+import sys
 import pylinear.matrices as num
 import pylinear.algorithms as algo
+import pylinear.linear_algebra as la
 from test_tools import *
 
 def elementary():
@@ -157,12 +159,58 @@ def arpack_shift_invert(typecode):
       num.matrixmultiply(Mcomplex, vector))
     print
 
+def sumAbsoluteValues(matrix):
+  my_sum = 0
+  for i in matrix:
+    my_sum += abs(i)
+  return my_sum
+
+def cholesky(typecode):
+  size = 100
+  A = makeRandomSPDMatrix(size, typecode)
+  L = algo.cholesky(A)
+  resid = num.matrixmultiply(L,hermite(L))-A
+  print "cholesky residual:", sumAbsoluteValues(resid)
+
+def lu(typecode):
+  size = 100
+  A = makeFullRandomMatrix(size, typecode)
+  L,U = algo.lu(A)
+  print "lu residual:", sumAbsoluteValues(num.matrixmultiply(L,U)-A)
+
+def sparse(typecode):
+  def countElements(mat):
+    count = 0
+    for i in mat.indices():
+      count += 1
+    return count
+
+  size = 100
+  A1 = makeRandomMatrix(100, typecode, num.SparseBuildMatrix)
+  A2 = num.asarray(A1, typecode, num.SparseExecuteMatrix)
+  print "sparse:", countElements(A1), countElements(A2)
+
+def inverse(typecode):
+  size = 100
+  A = makeFullRandomMatrix(size, typecode)
+  Ainv = la.inverse(A)
+  Id = num.identity(size, typecode)
+
+  print "inverse residual 1:", sumAbsoluteValues(num.matrixmultiply(Ainv,A)-Id)
+  print "inverse residual 2:", sumAbsoluteValues(num.matrixmultiply(A,Ainv)-Id)
+
+def determinant(typecode):
+  size = 10
+  A = makeFullRandomMatrix(size, typecode)
+  detA = la.determinant(A)
+  A2 = num.matrixmultiply(A, A)
+  detA2 = la.determinant(A2)
+
+  print "determinant:", abs((detA**2-detA2) / detA2)
 
 
 
-  
 
-print "-------------------------------------"
 elementary()
 print "-------------------------------------"
 cg()
@@ -175,7 +223,15 @@ print "-------------------------------------"
 arpack_generalized(num.Complex)
 print "-------------------------------------"
 arpack_shift_invert(num.Float)
-  
-
+print "-------------------------------------"
+cholesky(num.Complex)
+print "-------------------------------------"
+lu(num.Complex)
+print "-------------------------------------"
+sparse(num.Complex)
+print "-------------------------------------"
+inverse(num.Complex)
+print "-------------------------------------"
+determinant(num.Complex)
 
 

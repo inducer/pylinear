@@ -26,7 +26,7 @@ def makeIdentityMatrixOperator(n, typecode):
 
 def makeCGMatrixOperator(matrix_op, max_it, tol = 1e-12, precon_op = None):
   if precon_op is None:
-    w,h = matrix_op.shape
+    h,w = matrix_op.shape
     precon_op = makeIdentityMatrixOperator(w, matrix_op.typecode())
 
   my_class = _lookupClass("CGMatrixOperator", matrix_op.typecode())

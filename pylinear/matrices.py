@@ -165,10 +165,12 @@ def array(data, typecode = None):
 
 
 
-def asarray(data, typecode):
+def asarray(data, typecode, matrix_type = None):
   if data.typecode() == typecode:
     return data
-  mat_class = _getMatrixClass(len(data.shape), typecode, _getMatrixType(data))
+  if matrix_type is None:
+    matrix_type = _getMatrixType(data)
+  mat_class = _getMatrixClass(len(data.shape), typecode, matrix_type)
   return mat_class(data)
   
 
@@ -199,26 +201,17 @@ def identity(n, typecode, matrix_type = DenseMatrix):
 
 
 # other functions -------------------------------------------------------------
-class DenseMatrix:
-  def name(): return "DenseMatrix"
-  name = staticmethod(name)
-class SparseBuildMatrix:
-  def name(): return "SparseBuildMatrix"
-  name = staticmethod(name)
-class SparseExecuteMatrix:
-  def name(): return "SparseExecuteMatrix"
-  name = staticmethod(name)
-class SparseSymmetricExecuteMatrix:
-  def name(): return "SparseSymmetricExecuteMatrix"
-  name = staticmethod(name)
-class SparseHermitianExecuteMatrix:
-  def name(): return "SparseHermitianExecuteMatrix"
-  name = staticmethod(name)
-class SparseSymmetricBuildMatrix:
-  def name(): return "SparseSymmetricBuildMatrix"
-  name = staticmethod(name)
-class SparseHermitianBuildMatrix:
-  def name(): return "SparseHermitianBuildMatrix"
-  name = staticmethod(name)
+def diagonal(mat, offset = 0):
+  raise RuntimeError, "diagonal: not yet implemented"
+  h,w = mat.shape
+  if offset >= min(h,w):
+    raise ValueError, "diagonal: invalid offset"
+  if h>w:
+    diag_length = 0
+    pass
+  else:
+    pass
 
+
+ 
 
