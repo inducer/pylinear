@@ -306,11 +306,51 @@ def ceil(m): return m._ufunc_ceil()
 def arg(m): return m._ufunc_arg()
 def absolute(m): return m._ufunc_absolute()
 
-def add(ma, mb): return ma._ufunc_add(mb)
-def subtract(ma, mb): return ma._ufunc_subtract(mb)
-def multiply(ma, mb): return ma._ufunc_multiply(mb)
-def divide(ma, mb): return ma._ufunc_divide(mb)
-def divide_safe(ma, mb): return ma._ufunc_divide_safe(mb)
-def power(ma, mb): return ma._ufunc_power(mb)
-def maximum(ma, mb): return ma._ufunc_maximum(mb)
-def minimum(ma, mb): return ma._ufunc_minimum(mb)
+def add(ma, mb): 
+    try:
+        return ma._ufunc_add(mb)
+    except (AttributeError, TypeError):
+        return mb._ufunc_add(ma)
+
+def subtract(ma, mb): 
+    try:
+        return ma._ufunc_subtract(mb)
+    except (AttributeError, TypeError):
+        return mb._reverse_ufunc_subtract(ma)
+
+def multiply(ma, mb): 
+    try:
+        return ma._ufunc_multiply(mb)
+    except (AttributeError, TypeError):
+        return mb._ufunc_multiply(ma)
+
+def divide(ma, mb): 
+    try:
+        return ma._ufunc_divide(mb)
+    except (AttributeError, TypeError):
+        return mb._reverse_ufunc_divide(ma)
+
+def divide_safe(ma, mb): 
+    try:
+        return ma._ufunc_divide_safe(mb)
+    except (AttributeError, TypeError):
+        return mb._reverse_ufunc_divide_safe(ma)
+
+def power(ma, mb): 
+    try:
+        return ma._ufunc_power(mb)
+    except (AttributeError, TypeError):
+        return mb._reverse_ufunc_power(ma)
+
+def maximum(ma, mb): 
+    try:
+        return ma._ufunc_maximum(mb)
+    except (AttributeError, TypeError):
+        return mb._ufunc_maximum(ma)
+
+def minimum(ma, mb): 
+    try:
+        return ma._ufunc_minimum(mb)
+    except (AttributeError, TypeError):
+        return mb._ufunc_maximum(ma)
+

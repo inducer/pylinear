@@ -72,13 +72,137 @@ def linspace(x, y, n = 100):
 
 
 # Jacobi rotation -------------------------------------------------------------
-class tJacobiRotation:
-    def __init__(self, i, j, cos, sin):
+def _conjugate(value):
+    try:
+        return value.conjugate()
+    except AttributeError:
+        return value
+
+
+  
+
+class tRotationShapeMatrix:
+    def __init__(self, i, j, ii, ij, ji, jj):
         self.I = i
         self.J = j
-        self.Cos = Cos
-        self.Sin = Sin
+        self.II = ii
+        self.IJ = ij
+        self.JI = ji
+        self.JJ = jj
+
+    def hermite():
+        return tRotationShapeMatrix(_conjugate(self.II), _conjugate(self.JI),
+                                    _conjugate(self.IJ), _conjugate(self.JJ))
+
+    def applyFromLeft(self, mat):
+        row_i = mat[self.I]
+        row_j = mat[self.J]
+
+        mat[self.I] = row_i * self.II + row_j * self.IJ
+        mat[self.J] = row_j * self.JJ + row_i * self.JI
+
+    def applyFromRight(self, mat):
+        col_i = mat[:,self.I]
+        col_j = mat[:,self.J]
+
+        mat[:,self.I] = col_i * self.II + col_j * self.JI
+        mat[:,self.J] = col_j * self.JJ + col_i * self.IJ
+
+
+
+def makeJacobiRotation(cos, sin):
+    return tRotationShapeMatrix(cos, _conjugate(sin),
+                                -sin, _conjugate(cos))
+        
+
+
+
+def codiagonalize(matrices, tolerance = 1e-10):
+    # From A. Bunse-Gerstner, R. Byers, V. Mehrmann:
+    # Numerical methods for simultaneous diagonalization
+    # SIAM J. of Matrix Analysis and Applications, Vol. 14, No. 4, 927-949
+    # (1993)
+
+    h,w = matrices[0].shape
+    tc = matrices[0].typecode()
+    for mat in matrices[1:]:
+        assert mat.shape == (h,w)
+        assert mat.typecode() == tc
+    assert h == w
+    n = h
+
+    q = num.identity(n, tc)
+
+    def off_diag_norm_squared(a):
+        result = 0
+        for i,j in a.indices():
+            if i != j:
+                result += abs(a[i,j])**2
+        return result
+
+    frobsum = sum([frobeniusNorm(mat) for mat in matrices])
+
+    mymats = [mat.copy() for mat in matrices]
+
+    while sum([off_diag_norm_squared(mat) for mat in mymats]) \
+          < tolerance * frobsum:
+
+        for i in range(n):
+            for j in range(i+1,n):
+                rot = makeJacobiRotation(i, j, cos, sin)
+                rot.applyFromRight(q)
+                for mat in mymats:
+                    rot.hermite().applyFromLeft(mat)
+                    rot.applyFromRight(mat)
+    return q, mymats
+
+
+
+
+
 # some tools ------------------------------------------------------------------
+def frobeniusNormSquared(a):
+    result = 0
+    for i,j in a.indices():
+        result += abs(a[i,j])**2
+    return result
+
+
+
+
+def frobeniusNorm(a):
+    return math.sqrt(frobeniusNormSquared(a))
+
+
+
+
+def matrixExp(a, eps = 1e-15):
+    h,w = a.shape
+    assert h == w
+    a_frob = frobeniusNorm(a)
+    
+    last_result = num.identity(h, a.typecode())
+    result = last_result.copy()
+
+    current_power_of_a = a
+
+    factorial = 1
+    n = 1
+
+    while True:
+        result += current_power_of_a * (1./factorial)
+
+        if frobeniusNorm(result - last_result)/a_frob < eps:
+            return result
+
+        n += 1
+        last_result = result.copy()
+        factorial *= n
+        current_power_of_a = num.matrixmultiply(current_power_of_a, a)
+    
+        
+    
+
 def delta(x,y):
     if x == y:
         return 1

@@ -1277,6 +1277,11 @@ namespace ufuncs
           for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
             new_mat->insert(it2.index1(), it2.index2(), f(*it2, n2));
       }
+      else
+      {
+	PyErr_SetString(PyExc_TypeError, "unidentified second operand to matrix ufunc");
+	throw python::error_already_set();
+      }
 
       return new_mat.release();
     }
@@ -1286,7 +1291,7 @@ namespace ufuncs
       return applyBackend(Function(), m1, obj);
     }
 
-    static MatrixType *applyReversed(python::object obj, const MatrixType &m2)
+    static MatrixType *applyReversed(const MatrixType &m2, python::object obj)
     {
       return applyBackend(reverse_binary_function<Function>(), m2, obj);
     }
@@ -1341,6 +1346,11 @@ namespace ufuncs
         for (it_t it = m1.begin(); it != m1.end(); ++it) 
           new_mat->insert(it.index(), f(*it, n2));
       }
+      else
+      {
+	PyErr_SetString(PyExc_TypeError, "unidentified second operand to matrix ufunc");
+	throw python::error_already_set();
+      }
 
       return new_mat.release();
     }
@@ -1350,7 +1360,7 @@ namespace ufuncs
       return applyBackend(Function(), m1, obj);
     }
 
-    static MatrixType *applyReversed(python::object obj, const MatrixType &m2)
+    static MatrixType *applyReversed(const MatrixType &m2, python::object obj)
     {
       return applyBackend(reverse_binary_function<Function>(), m2, obj);
     }
@@ -1398,16 +1408,21 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 #define MAKE_BINARY_UFUNC(NAME, f) \
   pyc.def("_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
       f<value_type> >::apply, \
-      python::return_value_policy<python::manage_new_object>()); \
-  pyc.def("_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
+      python::return_value_policy<python::manage_new_object>());
+#define MAKE_REVERSE_BINARY_UFUNC(NAME, f) \
+  pyc.def("_reverse_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
       f<value_type> >::applyReversed, \
       python::return_value_policy<python::manage_new_object>());
   MAKE_BINARY_UFUNC("add", std::plus);
   MAKE_BINARY_UFUNC("subtract", std::minus);
+  MAKE_REVERSE_BINARY_UFUNC("subtract", std::minus);
   MAKE_BINARY_UFUNC("multiply", std::multiplies);
   MAKE_BINARY_UFUNC("divide", std::divides);
+  MAKE_REVERSE_BINARY_UFUNC("divide", std::divides);
   MAKE_BINARY_UFUNC("divide_safe", std::divides); // FIXME: bogus
+  MAKE_REVERSE_BINARY_UFUNC("divide_safe", std::divides); // FIXME: bogus
   MAKE_BINARY_UFUNC("power", ufuncs::power);
+  MAKE_REVERSE_BINARY_UFUNC("power", ufuncs::power);
   MAKE_BINARY_UFUNC("maximum", ufuncs::maximum);
   MAKE_BINARY_UFUNC("minimum", ufuncs::minimum);
 #undef MAKE_BINARY_UFUNC

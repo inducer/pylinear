@@ -6,6 +6,7 @@
 #include <arpack.hpp>
 #include "meta.hpp"
 #include <boost/numeric/bindings/traits/ublas_matrix.hpp>
+#include <boost/numeric/bindings/traits/type.hpp>
 #include <boost/numeric/bindings/lapack/gesdd.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 /*
@@ -298,32 +299,38 @@ python::object luWrapper(const MatrixType &a)
 
 
 
+// svd ------------------------------------------------------------------------
+template <typename ValueType>
+static python::object svdWrapper(const ublas::matrix<ValueType> &a)
+{
+  typedef ublas::matrix<ValueType> mat;
+  typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
+  
+  fortran_mat a_copy(a), u(a.size1(), a.size1()), vt(a.size2(), a.size2());
+  ublas::vector<double> s(std::min(a.size1(), a.size2()));
+  
+  int ierr = boost::numeric::bindings::lapack::gesdd(a_copy, s, u, vt);
+  if (ierr < 0)
+    throw std::runtime_error("invalid argument to gesdd");
+  else if (ierr > 0)
+    throw std::runtime_error("no convergence for given matrix");
+
+  typedef ublas::matrix<ValueType> mat;
+  typedef ublas::vector<ValueType> vec;
+  return python::make_tuple(new mat(u), new vec(s), new mat(vt));
+}
+
+
+
+
+// ----------------------------------------------------------------------------
 template <typename ValueType>
 void exposeSpecialAlgorithms(ValueType)
 {
   python::def("lu", luWrapper<ublas::matrix<ValueType> >);
-  python::def("singular_value_decomposition", luWrapper<ublas::matrix<ValueType> >);
+  python::def("singular_value_decomposition", svdWrapper<ValueType>);
 }
 
-
-
-
-
-// svd ------------------------------------------------------------------------
-template <typename ValueType>
-static python::object svd(const ublas::matrix<ValueType> &A)
-{
-  ublas::matrix<ValueType> U, Vt;
-  ublas::vector<ValueType> s;
-  
-  int ierr = boost::numeric::bindings::lapack::gesdd(A, s, U, Vt);
-  if (ierr < 0)
-    throw runtime_error("invalid argument to gesdd");
-  else if (ierr > 0)
-    throw runtime_error("no convergence for given matrix");
-
-  return python::make_tuple(U, s, Vt);
-}
 
 
 

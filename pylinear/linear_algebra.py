@@ -79,4 +79,4 @@ def determinant(mat):
 
 
 
-
+singular_value_decomposition = algo.singular_value_decomposition

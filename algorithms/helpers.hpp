@@ -179,7 +179,7 @@ inline T absolute_value(const T &x)
 template <typename T2>
 inline T2 absolute_value(const std::complex<T2> &x)
 {
-  return norm(x);
+  return sqrt(norm(x));
 }
 
 
