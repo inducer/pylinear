@@ -39,16 +39,14 @@ namespace umfpack
     umfpack_matrix_operator(const MatrixType &src)
     : m_matrix(src)
     { 
+      if (src.size1() != src.size2())
+        throw std::runtime_error("umfpack: matrix must be quadratic");
       umf::factor(m_matrix, m_numeric);
     }
 
-    unsigned size1() const
+    unsigned size() const
     {
       return m_matrix.size1();
-    }
-    unsigned size2() const
-    {
-      return m_matrix.size2();
     }
 
     void apply(const vector_type &before, vector_type &after) const

@@ -10,7 +10,7 @@ home = os.getenv("HOME")
 boost_path = "%s/work/boost" % home
 library_dirs = ["%s/pool/lib" % home] 
 
-include_dirs = [boost_path]
+include_dirs = [boost_path, "algorithms"]
 libraries = ["boost_python"]
 extra_compile_args = ["-fmessage-length=0"]
 
@@ -44,9 +44,9 @@ setup(name="PyLinear",
             "extensions/algorithms.cpp", 
           ],
           include_dirs = include_dirs + 
-          ["algorithms", "3rdparty/ublas_bindings", "3rdparty/arpack"],
+          ["3rdparty/ublas_bindings", "3rdparty/arpack"],
           library_dirs = library_dirs,
-          libraries = libraries + ["umfpack", "amd"],
+          libraries = libraries + ["umfpack", "amd", "arpack", "lapack", "f77blas", "atlas", "g2c"],
           extra_compile_args = extra_compile_args,
           ),
         ]

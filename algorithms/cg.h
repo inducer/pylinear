@@ -103,13 +103,9 @@ namespace cg
       : super(maxit, tol), m_matrix(mat), m_preconditioner(precon)
       { }
 
-    unsigned size1() const
+    unsigned size() const
     {
-      return m_matrix.size1();
-    }
-    unsigned size2() const
-    {
-      return m_matrix.size2();
+      return m_matrix.size();
     }
 
     void apply(const vector_type &before, vector_type &after) const

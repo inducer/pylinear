@@ -20,8 +20,11 @@ class matrix_operator
 
     virtual ~matrix_operator() { }
 
-    virtual unsigned size1() const = 0;
-    virtual unsigned size2() const = 0;
+    virtual unsigned size() const = 0;
+
+    unsigned size1() const { return size(); }
+    unsigned size2() const { return size(); }
+
     virtual void apply(const vector_type &before, vector_type &after) const = 0;
 
     const matrix_operator &operator()() const
@@ -111,15 +114,14 @@ class ublas_matrix_operator : public matrix_operator<typename MatrixType::value_
     
     ublas_matrix_operator(const MatrixType &m)
     : m_matrix(m)
-    { }
+    { 
+      if (m.size1() != m.size2())
+        throw std::runtime_error("ublas_matrix_operator: matrix must be quadratic");
+    }
     
-    unsigned size1() const
+    unsigned size() const
     {
       return m_matrix.size1();
-    }
-    unsigned size2() const
-    {
-      return m_matrix.size2();
     }
 
     void apply(const vector_type &before, vector_type &after) const
@@ -149,11 +151,7 @@ class identity_matrix_operator : public matrix_operator<ValueType>
       : m_size(size)
       { }
 
-    unsigned size1() const
-    {
-      return m_size;
-    }
-    unsigned size2() const
+    unsigned size() const
     {
       return m_size;
     }

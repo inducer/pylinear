@@ -11,12 +11,15 @@
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/io.hpp>
 
+#include <helpers.h>
+
 
 
 using boost::python::class_;
 using boost::python::enum_;
 using boost::python::self;
 using boost::python::def;
+using helpers::decomplexify;
 
 
 
@@ -337,7 +340,7 @@ inline void setShape(MatrixType &m, const python::tuple &new_shape)
 template <typename ValueType>
 inline void setShape(ublas::vector<ValueType> &m, const python::tuple &new_shape)
 { 
-  m.resize(extractOneTuple(new_shape, typename MatrixType::size_type()));
+  m.resize(extractOneTuple(new_shape, ublas::vector<ValueType>::size_type()));
 }
 
 
@@ -524,7 +527,7 @@ static void translateSlice(PyObject *slice_or_constant, slice_info &si, int my_l
 
 
 template <typename MatrixType>
-inline python::object getElement(MatrixType &m, PyObject *index)
+static python::object getElement(const MatrixType &m, PyObject *index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
@@ -576,7 +579,7 @@ inline python::object getElement(MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-inline python::object getElement(ublas::vector<ValueType> &m, PyObject *index)
+static python::object getElement(const ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
   translateSlice(index, si, m.size());
@@ -585,14 +588,14 @@ inline python::object getElement(ublas::vector<ValueType> &m, PyObject *index)
     return python::object(m(si.m_start));
   else
     return python::object(
-        new MatrixType(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
+        new ublas::vector<ValueType>(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
 }
 
 
 
 
 template <typename MatrixType>
-inline void setElement(MatrixType &m, PyObject *obj, python::object &new_value)
+static void setElement(MatrixType &m, PyObject *index, python::object &new_value)
 { 
   python::extract<typename MatrixType::value_type> new_scalar(new_value);
   python::extract<MatrixType> new_matrix(new_value);
@@ -678,13 +681,13 @@ inline void setElement(MatrixType &m, PyObject *obj, python::object &new_value)
 
 
 template <typename ValueType>
-inline void setElement(ublas::vector<ValueType> &m, python::object &index, python::object &new_value)
+static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &new_value)
 { 
-  python::extract<typename MatrixType::value_type> new_scalar(new_value);
-  python::extract<MatrixType> new_matrix(new_value);
+  python::extract<typename ublas::vector<ValueType>::value_type> new_scalar(new_value);
+  python::extract<ublas::vector<ValueType> > new_matrix(new_value);
 
   slice_info si;
-  translateSlice(index.ptr(), si, m.size());
+  translateSlice(index, si, m.size());
 
   if (si.m_sliceLength == 1 && new_scalar.check())
     m(si.m_start) = new_scalar();
@@ -698,7 +701,7 @@ inline void setElement(ublas::vector<ValueType> &m, python::object &index, pytho
 
 // specialty constructors -----------------------------------------------------
 template <typename MatrixType>
-MatrixType *getIdentityMatrix(unsigned n)
+static MatrixType *getIdentityMatrix(unsigned n)
 {
   return new MatrixType(
       ublas::identity_matrix<typename MatrixType::value_type>(n));
@@ -708,7 +711,7 @@ MatrixType *getIdentityMatrix(unsigned n)
 
 
 template <typename MatrixType>
-MatrixType *getFilledMatrix(
+static MatrixType *getFilledMatrix(
     typename MatrixType::size_type size1, 
     typename MatrixType::size_type size2, 
     const typename MatrixType::value_type &value)
@@ -727,7 +730,7 @@ MatrixType *getFilledMatrix(
 
 
 template <typename MatrixType>
-MatrixType *getFilledVector(
+static MatrixType *getFilledVector(
     typename MatrixType::size_type size1, 
     const typename MatrixType::value_type &value)
 {
@@ -776,7 +779,7 @@ MatrixType scalarDivideAssignOp(MatrixType &m1, const Scalar &s) { return m1 /= 
 
 // wrapper for stuff that is common to vectors and matrices -------------------
 template <typename PythonClass, typename WrappedClass>
-void exposeUfuncs(PythonClass &pyc, WrappedClass)
+static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 {
   def("conjugate", conjugateWrapper<WrappedClass>::apply,
       python::return_value_policy<python::manage_new_object>());
@@ -806,7 +809,7 @@ void exposeUfuncs(PythonClass &pyc, WrappedClass)
 
 
 template <typename PythonClass, typename WrappedClass>
-void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
+static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
   pyc
@@ -814,8 +817,13 @@ void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("copy", copyNew<WrappedClass>, 
         python::return_value_policy<python::manage_new_object>())
 
-    .def("__getitem__", (void (*)(const WrappedClass &, PyObject *)) getElement)
-    .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object)) setElement)
+    .add_property("shape", 
+        (python::object (*)(const WrappedClass &)) getShape, 
+        (void (*)(WrappedClass &, const python::tuple &)) setShape)
+    .def("swap", &WrappedClass::swap)
+
+    .def("__getitem__", (python::object (*)(const WrappedClass &, PyObject *)) getElement)
+    .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
     // stringification
     .def("__str__", &stringify<WrappedClass>)
@@ -857,7 +865,7 @@ void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 
 
 template <typename PythonClass, typename WrappedClass>
-void exposeIterator(PythonClass &pyc, const std::string &python_typename, WrappedClass)
+static void exposeIterator(PythonClass &pyc, const std::string &python_typename, WrappedClass)
 {
   typedef 
     python_matrix_iterator<WrappedClass, value_iterator_result_generator<WrappedClass> >
@@ -896,7 +904,7 @@ void exposeIterator(PythonClass &pyc, const std::string &python_typename, Wrappe
 
 // vector wrapper -------------------------------------------------------------
 template <typename PythonClass, typename WrappedClass>
-void exposeVectorConcept(PythonClass &pyclass, WrappedClass)
+static void exposeVectorConcept(PythonClass &pyclass, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
 
@@ -911,16 +919,44 @@ void exposeVectorConcept(PythonClass &pyclass, WrappedClass)
 
 
 
+template <typename PythonClass, typename ValueType>
+static void exposeVectorConvertersForValueType(PythonClass &pyclass, ValueType)
+{
+  pyclass
+    .def(python::init<const ublas::vector<ValueType> &>())
+    ;
+}
+
+
+
+
+template <typename PythonClass, typename T>
+static void exposeVectorConverters(PythonClass &pyclass, T)
+{
+  exposeVectorConvertersForValueType(pyclass, T());
+}
+
+
+
+
+template <typename PythonClass, typename T>
+static void exposeVectorConverters(PythonClass &pyclass, std::complex<T>)
+{
+  exposeVectorConvertersForValueType(pyclass, T());
+  exposeVectorConvertersForValueType(pyclass, std::complex<T>());
+}
+
+
+
+
 template <typename WrappedClass>
-void exposeVectorType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
+static void exposeVectorType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
   class_<WrappedClass> pyclass(total_typename.c_str());
 
   pyclass
     .def(python::init<typename WrappedClass::size_type>())
-    .add_property("shape", getShape<WrappedClass>::apply, setShape<WrappedClass>::apply)
-    .def("swap", &WrappedClass::swap)
     .def("getFilledMatrix", &getFilledVector<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
     .staticmethod("getFilledMatrix")
@@ -928,6 +964,7 @@ void exposeVectorType(WrappedClass, const std::string &python_typename, const st
 
   exposeVectorConcept(pyclass, WrappedClass());
   exposeIterator(pyclass, total_typename, WrappedClass());
+  exposeVectorConverters(pyclass, typename WrappedClass::value_type());
 }
 
 
@@ -935,7 +972,7 @@ void exposeVectorType(WrappedClass, const std::string &python_typename, const st
 
 // matrix wrapper -------------------------------------------------------------
 template <typename PythonClass, typename WrappedClass>
-void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
+static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
 
@@ -959,7 +996,7 @@ void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 
 
 template <typename PythonClass, typename WrappedClass, typename ValueType>
-void exposeMatrixConvertersForValueType(PythonClass &pyclass, WrappedClass, ValueType)
+static void exposeMatrixConvertersForValueType(PythonClass &pyclass, WrappedClass, ValueType)
 {
   pyclass
     .def(python::init<const ublas::matrix<ValueType> &>())
@@ -971,55 +1008,44 @@ void exposeMatrixConvertersForValueType(PythonClass &pyclass, WrappedClass, Valu
 
 
 
-template <typename PythonClass, typename WrappedClass, 
-  typename _ValueType = typename WrappedClass::value_type>
-struct exposeMatrixConverters { };
-
-template <typename PythonClass, typename WrappedClass>
-struct exposeMatrixConverters<PythonClass, WrappedClass, std::complex<double> >
+template <typename PythonClass, typename WrappedClass, typename T>
+static void exposeMatrixConverters(PythonClass &pyclass, WrappedClass, T)
 {
-  static void apply(PythonClass &pyclass, WrappedClass)
-  {
-    exposeMatrixConvertersForValueType(pyclass, WrappedClass(), double());
-    exposeMatrixConvertersForValueType(pyclass, WrappedClass(), std::complex<double>());
-
-    pyclass
-      .def(python::init<
-          const managed_symmetric_adaptor<ublas::compressed_matrix<double> > &>())
-      .def(python::init<
-          const managed_hermitian_adaptor<ublas::compressed_matrix<std::complex<double> > > &>())
-      .def(python::init<
-          const managed_symmetric_adaptor<ublas::coordinate_matrix<double> > &>())
-      .def(python::init<
-          const managed_hermitian_adaptor<ublas::coordinate_matrix<std::complex<double> > > &>())
-      ;
-  }
-};
+  exposeMatrixConvertersForValueType(pyclass, WrappedClass(), double());
+  pyclass
+    .def(python::init<
+        const managed_symmetric_adaptor<ublas::compressed_matrix<double> > &>())
+    .def(python::init<
+        const managed_symmetric_adaptor<ublas::coordinate_matrix<double> > &>())
+    ;
+}
 
 
 
 
-template <typename PythonClass, typename WrappedClass>
-struct exposeMatrixConverters<PythonClass, WrappedClass, double>
+template <typename PythonClass, typename WrappedClass, typename T>
+static void exposeMatrixConverters(PythonClass &pyclass, WrappedClass, std::complex<T>)
 {
-  static void apply(PythonClass &pyclass, WrappedClass)
-  {
-    exposeMatrixConvertersForValueType(pyclass, WrappedClass(), double());
+  exposeMatrixConvertersForValueType(pyclass, WrappedClass(), double());
+  exposeMatrixConvertersForValueType(pyclass, WrappedClass(), std::complex<double>());
 
-    pyclass
-      .def(python::init<
-          const managed_symmetric_adaptor<ublas::compressed_matrix<double> > &>())
-      .def(python::init<
-          const managed_symmetric_adaptor<ublas::coordinate_matrix<double> > &>())
-      ;
-  }
-};
+  pyclass
+    .def(python::init<
+        const managed_symmetric_adaptor<ublas::compressed_matrix<double> > &>())
+    .def(python::init<
+        const managed_hermitian_adaptor<ublas::compressed_matrix<std::complex<double> > > &>())
+    .def(python::init<
+        const managed_symmetric_adaptor<ublas::coordinate_matrix<double> > &>())
+    .def(python::init<
+        const managed_hermitian_adaptor<ublas::coordinate_matrix<std::complex<double> > > &>())
+    ;
+}
 
 
 
 
 template <typename WrappedClass>
-void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
+static void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
   class_<WrappedClass> pyclass(total_typename.c_str());
@@ -1027,8 +1053,6 @@ void exposeMatrixType(WrappedClass, const std::string &python_typename, const st
   pyclass
     .def(python::init<typename WrappedClass::size_type, 
         typename WrappedClass::size_type>())
-    .add_property("shape", getShape<WrappedClass>::apply, setShape<WrappedClass>::apply)
-    .def("swap", &WrappedClass::swap)
 
     // special constructors
     .def("getIdentityMatrix", &getIdentityMatrix<WrappedClass>,
@@ -1041,7 +1065,7 @@ void exposeMatrixType(WrappedClass, const std::string &python_typename, const st
 
   exposeMatrixConcept(pyclass, WrappedClass());
   exposeIterator(pyclass, total_typename, WrappedClass());
-  exposeMatrixConverters<class_<WrappedClass>, WrappedClass>::apply(pyclass, WrappedClass());
+  exposeMatrixConverters(pyclass, WrappedClass(), typename WrappedClass::value_type());
 }
 
 

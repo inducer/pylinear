@@ -57,10 +57,33 @@ def umfpack():
 
   print norm2(b - num.matrixmultiply(A, x))
 
+def arpack():
+  size = 20
+  A = makeRandomMatrix(size, num.Float64)
+  Aop = algo.makeMatrixOperator(A)
+  Iop = algo.makeIdentityMatrixOperator(size, num.Float64)
+  #M = makeRandomSPDMatrix(size, num.Complex64)
+  #Mop = algo.makeMatrixOperator(M)
+
+  results = algo.runArpack(Aop, Iop, algo.REGULAR_NON_GENERALIZED,
+    0, 2, 10, algo.LARGEST_MAGNITUDE, 1e-8, True, 1000)
+
+  Acomplex = num.MatrixComplex64(A)
+  for value,vector in zip(results.RitzValues, results.RitzVectors):
+    print "eigenvalue:", value
+    print "eigenvector:", vector
+    print "residual:", norm2(num.matrixmultiply(Acomplex,vector) - value * vector)
+    print
+
+
+
+
+  
 
 #elementary()
 #cg()
-umfpack()
+#umfpack()
+arpack()
   
 
 

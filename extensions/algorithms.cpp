@@ -20,28 +20,25 @@ static python::object getShape(const MatrixType &m)
 template <typename ValueType>
 class matrix_operator_wrapper : public matrix_operator<ValueType>
 {
+    PyObject *m_self;
+
   public:
     typedef 
       typename matrix_operator<ValueType>::vector_type
       vector_type;
 
     matrix_operator_wrapper(PyObject *self, const matrix_operator<ValueType> &)
+    : m_self(self)
     { 
-      // straight no-op.
     }
 
-    unsigned size1() const
+    unsigned size() const
     {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
+      return python::call_method<unsigned>(m_self, "size");
     }
-    unsigned size2() const
-    {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
-    }
-
     void apply(const vector_type &before, vector_type &after) const
     {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
+      return python::call_method<void>(m_self, "apply", before, after);
     }
 };
 
@@ -51,28 +48,25 @@ class matrix_operator_wrapper : public matrix_operator<ValueType>
 template <typename ValueType>
 class algorithm_matrix_operator_wrapper : public algorithm_matrix_operator<ValueType>
 {
+    PyObject *m_self;
+
   public:
     typedef 
       typename matrix_operator<ValueType>::vector_type
       vector_type;
 
     algorithm_matrix_operator_wrapper(PyObject *self, const algorithm_matrix_operator<ValueType> &)
+    : m_self(self)
     { 
-      // straight no-op.
     }
 
-    unsigned size1() const
+    unsigned size() const
     {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
+      return python::call_method<unsigned>(m_self, "size");
     }
-    unsigned size2() const
-    {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
-    }
-
     void apply(const vector_type &before, vector_type &after) const
     {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
+      return python::call_method<void>(m_self, "apply", before, after);
     }
 };
 
@@ -82,28 +76,25 @@ class algorithm_matrix_operator_wrapper : public algorithm_matrix_operator<Value
 template <typename ValueType>
 class iterative_solver_matrix_operator_wrapper : public iterative_solver_matrix_operator<ValueType>
 {
+    PyObject *m_self;
+
   public:
     typedef 
       typename matrix_operator<ValueType>::vector_type
       vector_type;
 
     iterative_solver_matrix_operator_wrapper(PyObject *self, const iterative_solver_matrix_operator<ValueType> &)
+    : m_self(self)
     { 
-      // straight no-op.
     }
 
-    unsigned size1() const
+    unsigned size() const
     {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
+      return python::call_method<unsigned>(m_self, "size");
     }
-    unsigned size2() const
-    {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
-    }
-
     void apply(const vector_type &before, vector_type &after) const
     {
-      throw std::runtime_error("you can't implement matrix_operator in Python yet. Sorry." );
+      return python::call_method<void>(m_self, "apply", before, after);
     }
 };
 
@@ -112,7 +103,7 @@ class iterative_solver_matrix_operator_wrapper : public iterative_solver_matrix_
 
 // ublas_matrix_operator ------------------------------------------------------
 template <typename MatrixType>
-ublas_matrix_operator<MatrixType> *makeMatrixOperator(const MatrixType &mat)
+static ublas_matrix_operator<MatrixType> *makeMatrixOperator(const MatrixType &mat)
 {
   return new ublas_matrix_operator<MatrixType>(mat);
 }
@@ -172,7 +163,7 @@ public:
 
 // generic instantiation infrastructure ---------------------------------------
 template <typename Exposer, typename ValueType>
-void exposeForAllSimpleTypes(const std::string &python_eltname, const Exposer &exposer, ValueType)
+static void exposeForAllSimpleTypes(const std::string &python_eltname, const Exposer &exposer, ValueType)
 {
   exposer.expose("Matrix" + python_eltname, ublas::matrix<ValueType>());
   exposer.expose("SparseExecuteMatrix" + python_eltname, ublas::compressed_matrix<ValueType>());
@@ -183,7 +174,7 @@ void exposeForAllSimpleTypes(const std::string &python_eltname, const Exposer &e
 
 
 template <typename Exposer>
-void exposeForAllMatrices(const Exposer &exposer, double)
+static void exposeForAllMatrices(const Exposer &exposer, double)
 {
   exposeForAllSimpleTypes("Float64", exposer, double());
 
@@ -197,7 +188,7 @@ void exposeForAllMatrices(const Exposer &exposer, double)
 
 
 template <typename Exposer>
-void exposeForAllMatrices(const Exposer &exposer, std::complex<double>)
+static void exposeForAllMatrices(const Exposer &exposer, std::complex<double>)
 {
   exposeForAllSimpleTypes("Complex64", exposer, std::complex<double>());
 
@@ -211,7 +202,7 @@ void exposeForAllMatrices(const Exposer &exposer, std::complex<double>)
 
 
 template <typename Exposer>
-void exposeForAllMatrices(const Exposer &exposer)
+static void exposeForAllMatrices(const Exposer &exposer)
 {
   exposeForAllMatrices(exposer, double());
   exposeForAllMatrices(exposer, std::complex<double>());
@@ -220,9 +211,9 @@ void exposeForAllMatrices(const Exposer &exposer)
 
 
 
-// main -----------------------------------------------------------------------
+// matrix operators -----------------------------------------------------------
 template <typename ValueType>
-void exposeMatrixOperators(const std::string &python_eltname, ValueType)
+static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
 {
   {
     typedef matrix_operator<ValueType> wrapped_type;
@@ -295,10 +286,76 @@ void exposeMatrixOperators(const std::string &python_eltname, ValueType)
 
 
 
+// arpack ---------------------------------------------------------------------
+template <typename ResultsType>
+static typename ResultsType::value_container::iterator beginRitzValues(ResultsType &res)
+{
+  return res.m_ritz_values.begin();
+}
+
+template <typename ResultsType>
+static typename ResultsType::value_container::iterator endRitzValues(ResultsType &res)
+{
+  return res.m_ritz_values.end();
+}
+
+template <typename ResultsType>
+static typename ResultsType::vector_container::iterator beginRitzVectors(ResultsType &res)
+{
+  return res.m_ritz_vectors.begin();
+}
+
+template <typename ResultsType>
+static typename ResultsType::vector_container::iterator endRitzVectors(ResultsType &res)
+{
+  return res.m_ritz_vectors.end();
+}
+
+template <typename ValueType>
+static void exposeArpack(const std::string &python_valuetypename, ValueType)
+{
+  using namespace boost::python;
+
+  typedef typename arpack::results<ValueType> results_type;
+
+  class_<results_type>
+    (("ArpackResults"+python_valuetypename).c_str())
+    .add_property("RitzValues", 
+        range(beginRitzValues<results_type>, endRitzValues<results_type>))
+    .add_property("RitzVectors", 
+        range(beginRitzVectors<results_type>, endRitzVectors<results_type>))
+    ;
+
+  def("runArpack", arpack::doReverseCommunication<ValueType>,
+      return_value_policy<manage_new_object>());
+}
+
+
+
+
+// main -----------------------------------------------------------------------
 BOOST_PYTHON_MODULE(algorithms_internal)
 {
   exposeMatrixOperators("Float64", double());
   exposeMatrixOperators("Complex64", std::complex<double>());
 
   exposeForAllMatrices(ublas_matrix_operator_exposer());
+
+  python::enum_<arpack::which_eigenvalues>("arpack_which_eigenvalues")
+    .value("SMALLEST_MAGNITUDE", arpack::SMALLEST_MAGNITUDE)
+    .value("LARGEST_MAGNITUDE", arpack::LARGEST_MAGNITUDE)
+    .value("SMALLEST_REAL_PART", arpack::SMALLEST_REAL_PART)
+    .value("LARGEST_REAL_PART", arpack::LARGEST_REAL_PART)
+    .value("SMALLEST_IMAGINARY_PART", arpack::SMALLEST_IMAGINARY_PART)
+    .value("LARGEST_IMAGINARY_PART", arpack::LARGEST_IMAGINARY_PART)
+    .export_values();
+
+  python::enum_<arpack::arpack_mode>("arpack_mode")
+    .value("REGULAR_NON_GENERALIZED", arpack::REGULAR_NON_GENERALIZED)
+    .value("REGULAR_GENERALIZED", arpack::REGULAR_GENERALIZED)
+    .value("SHIFT_AND_INVERT_GENERALIZED", arpack::SHIFT_AND_INVERT_GENERALIZED)
+    .export_values();
+
+  exposeArpack("Float64", double());
+  exposeArpack("Complex64", std::complex<double>());
 }

@@ -181,7 +181,7 @@ namespace arpack
 #define DEFINE_COMPLEX_NAUPD(BASETYPE, LETTER) \
   DECLARE_NAUPD(std::complex<BASETYPE>, BASETYPE) \
   { \
-    F77NAME(LETTER##naupd)(ido, bmat, n, which, nev, tol, resid, ncv, V, ldv, iparam, ipntr, workd, workl, \
+    ARPACK_F77NAME(LETTER##naupd)(ido, bmat, n, which, nev, tol, resid, ncv, V, ldv, iparam, ipntr, workd, workl, \
         lworkl, rwork, info); \
   }
 
@@ -201,10 +201,10 @@ namespace arpack
   { \
     BASETYPE d_real[*nev+1]; \
     BASETYPE d_imag[*nev+1]; \
-    BASETYPE sigma_real = std::real(sigma[i]); \
-    BASETYPE sigma_imag = std::imag(sigma[i]); \
+    BASETYPE sigma_real = std::real(*sigma); \
+    BASETYPE sigma_imag = std::imag(*sigma); \
     ARPACK_F77NAME(LETTER##neupd)(rvec, HowMny, select, d_real, d_imag, Z, ldz,  \
-        sigma_real, sigma_imag, workev, bmat, n, which, nev, \
+        &sigma_real, &sigma_imag, workev, bmat, n, which, nev, \
         tol, resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, \
         info); \
     for (int i = 0; i < *nev+1; i++) \
