@@ -326,6 +326,15 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
 
 
 # some tools ------------------------------------------------------------------
+def entrySum(a):
+    result = 0
+    for i,j in a.indices():
+        result += a[i,j]
+    return result
+
+
+
+
 def frobeniusNormSquared(a):
     result = 0
     for i,j in a.indices():
@@ -511,6 +520,26 @@ def makeRandomOrthogonalMatrix(size, typecode):
 
 
   
+
+def makeRandomSkewHermitianMatrix(size, typecode):
+    a = num.zeros((size, size), typecode)
+    # fill diagonal
+    if typecode is num.Complex:
+        for i in range(size):
+            a[i,i] = 1j*random.normalvariate(0,10)
+
+    # fill rest
+    for i in range(size):
+        for j in range(i):
+            value = random.normalvariate(0,10)
+            if typecode is num.Complex:
+                value += 1j*random.normalvariate(0,10)
+            a[i,j] = value
+            a[j,i] = -_conjugate(value)
+    return a
+
+
+
 
 def makeRandomSPDMatrix(size, typecode):
     eigenvalues = makeRandomVector(size, typecode)
