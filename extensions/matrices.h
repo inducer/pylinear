@@ -315,7 +315,7 @@ inline SupportedElementTypes typecode(const MatrixType &)
 
 
 template <typename MatrixType>
-inline MatrixType *copyNew(MatrixType &m)
+inline MatrixType *copyNew(const MatrixType &m)
 {
   return new MatrixType(m);
 }
@@ -333,7 +333,7 @@ struct prodMatMatWrapper
     typename ublas::matrix<result_value_type> 
     result_type;
 
-  inline static result_type *apply(Op1 &op1, Op2 &op2)
+  inline static result_type *apply(const Op1 &op1, const Op2 &op2)
   {
     return new result_type(prod(op1, op2));
   }
@@ -352,7 +352,7 @@ struct prodMatVecWrapper
     typename ublas::vector<result_value_type> 
     result_type;
 
-  inline static result_type *apply(Op1 &op1, Op2 &op2)
+  inline static result_type *apply(const Op1 &op1, const Op2 &op2)
   {
     return new result_type(prod(op1, op2));
   }
@@ -368,7 +368,7 @@ struct inner_prodWrapper
     typename value_type_promotion::bigger_type<typename Op1::value_type, typename Op2::value_type>::type
     result_type;
 
-  inline static result_type apply(Op1 &op1, Op2 &op2)
+  inline static result_type apply(const Op1 &op1, const Op2 &op2)
   {
     return inner_prod(op1, op2);
   }
@@ -429,7 +429,7 @@ struct realWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static result_type *apply(MatrixType &m)
+  inline static result_type *apply(const MatrixType &m)
   {
     return new result_type(real(m));
   }
@@ -447,7 +447,7 @@ struct imagWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static result_type *apply(MatrixType &m)
+  inline static result_type *apply(const MatrixType &m)
   {
     return new result_type(imag(m));
   }
