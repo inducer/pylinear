@@ -7,7 +7,7 @@ import os.path
 
 home = os.getenv("HOME")
 
-boost_path = "%s/work/boost" % home
+boost_path = "%s/src/boost" % home
 library_dirs = ["%s/pool/lib" % home] 
 
 include_dirs = [boost_path, "algorithms"]

@@ -6,9 +6,9 @@
 #include <arpack.h>
 #include "meta.h"
 #include <boost/numeric/bindings/traits/ublas_matrix.hpp>
-#include <boost/numeric/bindings/atlas/clapack.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 /*
+#include <boost/numeric/bindings/atlas/clapack.hpp>
 #include <boost/numeric/ublas/lu.hpp>
 */
 

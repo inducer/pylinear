@@ -4,11 +4,19 @@
 
 
 #include <complex>
+#include "managed_adaptors.h"
+#include "generic_iterator.h"
+#include <boost/numeric/ublas/vector.hpp>
 
 
 
 
 namespace helpers {
+namespace ublas = boost::numeric::ublas;
+
+
+
+
 // decomplexify ---------------------------------------------------------------
 template <typename T>
 struct decomplexify
@@ -40,6 +48,35 @@ inline bool isComplex(const std::complex<T2> &)
 {
   return true;
 }
+
+
+
+
+// isHermitian ----------------------------------------------------------------
+template <typename MatrixType>
+inline bool isHermitian(const MatrixType &)
+{
+  return false;
+}
+
+
+
+
+template <typename T>
+inline bool isHermitian(const managed_symmetric_adaptor<T> &)
+{
+  return true;
+}
+
+
+
+
+template <typename T>
+inline bool isHermitian(const managed_hermitian_adaptor<T> &)
+{
+  return true;
+}
+
 
 
 
@@ -96,6 +133,21 @@ template <typename T2>
 inline T2 absolute_value(const std::complex<T2> &x)
 {
   return norm(x);
+}
+
+
+
+
+// fill_matrix ----------------------------------------------------------------
+template <typename MatrixType>
+void fill_matrix(MatrixType &me, 
+    const typename MatrixType::value_type &value)
+{
+  generic_iterator::matrix_iterator<MatrixType>
+    first = generic_iterator::begin(me), last = generic_iterator::end(me);
+  
+  while (first != last)
+    *first = value;
 }
 
 

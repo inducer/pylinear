@@ -377,14 +377,13 @@ static python::object getElement(const ublas::vector<ValueType> &m, PyObject *in
 template <typename MatrixType>
 static void setElement(MatrixType &m, PyObject *index, python::object &new_value)
 { 
-  python::extract<typename MatrixType::value_type> new_scalar(new_value);
-  python::extract<const MatrixType &> new_matrix(new_value);
-
   typedef 
     typename get_corresponding_vector_type<MatrixType>::type
     vector_type;
 
+  python::extract<typename MatrixType::value_type> new_scalar(new_value);
   python::extract<vector_type> new_vector(new_value);
+  python::extract<const MatrixType &> new_matrix(new_value);
 
   if (PyTuple_Check(index))
   {
@@ -396,27 +395,50 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
     translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
     translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
-    if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1 && new_scalar.check())
+    if (new_scalar.check())
     {
-      m(si1.m_start, si2.m_start) = new_scalar();
+      // do a scalar broadcast update
+      if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1)
+        m(si1.m_start, si2.m_start) = new_scalar();
+      else
+      {
+        ublas::matrix_slice<MatrixType> my_slice(m,
+              ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
+              ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength));
+        helpers::fill_matrix(my_slice, new_scalar());
+      }
     }
-    else if (si1.m_sliceLength == 1 && new_vector.check())
+    else if (new_vector.check())
     {
       vector_type new_vec = new_vector();
 
-      if (new_vec.size() != m.size2())
-        throw std::out_of_range("submatrix is wrong size for assignment");
+      if (si1.m_sliceLength == 1)
+      {
+        if (new_vec.size() != m.size2())
+          throw std::out_of_range("submatrix is wrong size for assignment");
 
-      row(m,si1.m_start) = new_vec;
-    }
-    else if (si2.m_sliceLength == 1 && new_vector.check())
-    {
-      vector_type new_vec = new_vector();
+        row(m,si1.m_start) = new_vec;
+      }
+      else if (si2.m_sliceLength == 1)
+      {
+        if (new_vec.size() != m.size1())
+          throw std::out_of_range("submatrix is wrong size for assignment");
 
-      if (new_vec.size() != m.size1())
-        throw std::out_of_range("submatrix is wrong size for assignment");
+        column(m,si2.m_start) = new_vec;
+      }
+      else
+      {
+        // broadcast vector across matrix
+        ublas::matrix_slice<MatrixType> my_slice(m,
+              ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
+              ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength));
 
-      column(m,si2.m_start) = new_vec;
+        if (new_vec.size() != my_slice.size1())
+          throw std::out_of_range("submatrix is wrong size for assignment");
+
+        for (unsigned i = 0; i < my_slice.size2(); i++)
+          column(my_slice, i) = new_vec;
+      }
     }
     else
     {
@@ -434,14 +456,34 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
     slice_info si;
     translateIndex(index, si, m.size1());
 
-    if (si.m_sliceLength == 1 && new_vector.check())
+    if (new_scalar.check())
+    {
+      // broadcast a scalar
+      ublas::matrix_slice<MatrixType> my_slice(m,
+          ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
+          ublas::slice(0, 1, m.size2()));
+      helpers::fill_matrix(my_slice, new_scalar());
+    }
+    else if (new_vector.check())
     {
       vector_type new_vec = new_vector();
 
-      if (new_vec.size() != m.size2())
-        throw std::out_of_range("submatrix is wrong size for assignment");
+      if (si.m_sliceLength == 1)
+      {
+        if (new_vec.size() != m.size2())
+          throw std::out_of_range("submatrix is wrong size for assignment");
 
-      row(m,si.m_start) = new_vec;
+        row(m,si.m_start) = new_vec;
+      }
+      else
+      {
+        // broadcast vector across matrix
+        if (new_vec.size() != m.size2())
+          throw std::out_of_range("submatrix is wrong size for assignment");
+
+        for (int i = si.m_start; i < si.m_end; i += si.m_step)
+          row(m, i) = new_vec;
+      }
     }
     else
     {
@@ -469,8 +511,18 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
   slice_info si;
   translateIndex(index, si, m.size());
 
-  if (si.m_sliceLength == 1 && new_scalar.check())
-    m(si.m_start) = new_scalar();
+  if (new_scalar.check())
+  {
+    if (si.m_sliceLength == 1)
+      m(si.m_start) = new_scalar();
+    else
+    {
+      // broadcast a scalar
+      ublas::vector_slice<ublas::vector<ValueType> > my_slice(m,
+          ublas::slice(si.m_start, si.m_step, si.m_sliceLength));
+      helpers::fill_matrix(my_slice, new_scalar());
+    }
+  }
   else
     project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength)) = 
       new_matrix();
@@ -497,12 +549,7 @@ static MatrixType *getFilledMatrix(
     const typename MatrixType::value_type &value)
 {
   std::auto_ptr<MatrixType> mat(new MatrixType(size1, size2));
-  
-  // cannot use iterators here since sparse types are initially "empty"
-  for (unsigned i = 0; i < mat->size1(); i++)
-    for (unsigned j = 0; j < mat->size1(); j++)
-      (*mat)(i,j) = value;
-
+  helpers::fill_matrix(*mat, value);
   return mat.release();
 }
 
@@ -515,11 +562,7 @@ static MatrixType *getFilledVector(
     const typename MatrixType::value_type &value)
 {
   std::auto_ptr<MatrixType> mat(new MatrixType(size1));
-
-  // cannot use iterators here since sparse types are initially "empty"
-  for (unsigned i = 0; i < mat->size(); i++)
-    (*mat)(i) = value;
-
+  helpers::fill_matrix(*mat, value);
   return mat.release();
 }
 
@@ -537,10 +580,10 @@ template <typename MatrixType>
 MatrixType minusOp(const MatrixType &m1, const MatrixType &m2) { return m1-m2; }
 
 template <typename MatrixType>
-MatrixType plusAssignOp(MatrixType &m1, const MatrixType &m2) { return m1 += m2; }
+MatrixType *plusAssignOp(MatrixType &m1, const MatrixType &m2) { m1 += m2; return &m1; }
 
 template <typename MatrixType>
-MatrixType minusAssignOp(MatrixType &m1, const MatrixType &m2) { return m1 -= m2; }
+MatrixType *minusAssignOp(MatrixType &m1, const MatrixType &m2) { m1 -= m2; return &m1; }
 
 template <typename MatrixType, typename Scalar>
 MatrixType scalarTimesOp(const MatrixType &m1, const Scalar &s) { return m1 * s; }
@@ -549,10 +592,10 @@ template <typename MatrixType, typename Scalar>
 MatrixType scalarDivideOp(const MatrixType &m1, const Scalar &s) { return m1 / s; }
 
 template <typename MatrixType, typename Scalar>
-MatrixType scalarTimesAssignOp(MatrixType &m1, const Scalar &s) { return m1 *= s; }
+MatrixType *scalarTimesAssignOp(MatrixType &m1, const Scalar &s) { m1 *= s; return &m1; }
 
 template <typename MatrixType, typename Scalar>
-MatrixType scalarDivideAssignOp(MatrixType &m1, const Scalar &s) { return m1 /= s; }
+MatrixType *scalarDivideAssignOp(MatrixType &m1, const Scalar &s) { m1 /= s; return &m1; }
 
 
 
@@ -712,6 +755,44 @@ inline std::string stringify(const T &obj)
   std::stringstream stream;
   stream << obj;
   return stream.rdbuf()->str();
+}
+
+
+
+
+
+template <typename MatrixType>
+inline void addScattered(MatrixType &mat, 
+    python::object row_indices, 
+    python::object column_indices,
+    const ublas::matrix<typename MatrixType::value_type> &little_mat)
+{
+  using namespace boost::python;
+
+  unsigned row_count = extract<unsigned>(row_indices.attr("__len__")());
+  unsigned column_count = extract<unsigned>(row_indices.attr("__len__")());
+
+  if (row_count != little_mat.size1() || column_count != little_mat.size2())
+    throw std::runtime_error("addScattered: sizes don't match");
+
+  if (helpers::isHermitian(mat))
+  {
+    for (unsigned int row = 0; row < row_count; row++)
+      for (unsigned col = 0; col <= row; col++)
+        mat.insert(
+            extract<unsigned>(row_indices[row]),
+            extract<unsigned>(column_indices[col]),
+            little_mat(row, col));
+  }
+  else
+  {
+    for (unsigned int row = 0; row < row_count; row++)
+      for (unsigned col = 0; col < column_count; col++)
+        mat.insert(
+            extract<unsigned>(row_indices[row]),
+            extract<unsigned>(column_indices[col]),
+            little_mat(row, col));
+  }
 }
 
 
@@ -1167,8 +1248,8 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     // matrix - matrix
     .def("__add__", plusOp<WrappedClass>)
     .def("__sub__", minusOp<WrappedClass>)
-    .def("__iadd__", plusAssignOp<WrappedClass>)
-    .def("__isub__", minusAssignOp<WrappedClass>)
+    .def("__iadd__", plusAssignOp<WrappedClass>, python::return_self<>())
+    .def("__isub__", minusAssignOp<WrappedClass>, python::return_self<>())
 
     // scalar - matrix
 
@@ -1184,11 +1265,11 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__div__", scalarDivideOp<WrappedClass, double>)
     .def("__div__", scalarDivideOp<WrappedClass, value_type>)
 
-    .def("__imul__", scalarTimesAssignOp<WrappedClass, double>)
-    .def("__imul__", scalarTimesAssignOp<WrappedClass, value_type>)
+    .def("__imul__", scalarTimesAssignOp<WrappedClass, double>, python::return_self<>())
+    .def("__imul__", scalarTimesAssignOp<WrappedClass, value_type>, python::return_self<>())
 
-    .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>)
-    .def("__idiv__", scalarDivideAssignOp<WrappedClass, value_type>)
+    .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>, python::return_self<>())
+    .def("__idiv__", scalarDivideAssignOp<WrappedClass, value_type>, python::return_self<>())
     ;
 
   exposeUfuncs(pyc, WrappedClass());
@@ -1323,6 +1404,9 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
       python::return_value_policy<python::manage_new_object>());
   def("hermite", hermiteMatrix<WrappedClass>,
       python::return_value_policy<python::manage_new_object>());
+
+  pyclass.
+    def("addScattered", addScattered<WrappedClass>);
 }
 
 

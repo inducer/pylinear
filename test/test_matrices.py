@@ -26,6 +26,45 @@ def elementary():
   print sum(vec)
   print num.matrixmultiply(mat, mat)
 
+def addScattered(typecode):
+  a = num.zeros((10,10), typecode)
+  vec = num.array([3., 5.])
+  b = num.outerproduct(vec, num.array([2., 4.]))
+  a.addScattered([5,7], [1,3], b)
+  print a
+
+def broadcast(typecode):
+  size = 10
+  a = makeFullRandomMatrix(size, typecode)
+
+  def assertZero(matrix):
+    for i in matrix:
+      for j in i:
+        assert j == 0
+
+  def scalar_broadcast(a):
+    a[3:7, 5:9] = 0
+    assertZero(a[3:7, 5:9])
+
+  def scalar_broadcast2(a):
+    a[3:7] = 0
+    assertZero(a[3:7])
+
+  def vec_broadcast(a):
+    v = num.zeros((size,), typecode)
+    a[3:7] = v
+    assertZero(a[3:7])
+
+  def vec_broadcast2(a):
+    v = num.zeros((size,), typecode)
+    a[:,2:4] = v
+    assertZero(a[:, 2:4])
+    
+  scalar_broadcast(a.copy())
+  scalar_broadcast2(a.copy())
+  vec_broadcast(a.copy())
+  vec_broadcast2(a.copy())
+
 def ufunc():
   vec = num.array([3., 5.])
   a = num.outerproduct(vec, num.array([2., 4.]))
@@ -240,6 +279,8 @@ def determinant(typecode):
 def testAll(typecode):
   elementary()
   print "-------------------------------------"
+  addScattered(typecode)
+  print "-------------------------------------"
   ufunc()
   print "-------------------------------------"
   cg(typecode)
@@ -266,5 +307,6 @@ def testAll(typecode):
 
 
 
-testAll(num.Float)
-testAll(num.Complex)
+broadcast(num.Float)
+#testAll(num.Float)
+#testAll(num.Complex)
