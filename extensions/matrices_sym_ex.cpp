@@ -3,7 +3,7 @@
 
 
 
-void pylinear_matrices_part4()
+void pylinear_expose_sym_ex()
 {
   exposeMatrixType(managed_symmetric_adaptor<
       ublas::compressed_matrix<double, ublas::column_major> >(), 

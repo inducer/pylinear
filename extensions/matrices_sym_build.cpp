@@ -3,7 +3,7 @@
 
 
 
-void pylinear_matrices_part5()
+void pylinear_expose_sym_build()
 {
   exposeMatrixType(managed_symmetric_adaptor<
       ublas::coordinate_matrix<double> >(), 
