@@ -99,7 +99,8 @@ class tLastChangeLessThan(tIterationObserver):
     def addDataPoint(self, residual):
         if self.LastResidual is not None:
             stalled = False
-            if abs(self.LastResidual - residual)/self.LastResidual < self.Tolerance:
+            if (self.LastResidual - residual)/self.LastResidual < self.Tolerance:
+                # (condition includes the case of LastResidual < residual)
                 stalled = True
 
             if stalled:
