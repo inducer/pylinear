@@ -211,3 +211,8 @@ def diagonal(mat, offset = 0):
 
  
 
+def take(mat, indices, axis = 0):
+  return array([mat[i] for i in indices], mat.typecode())
+  
+  
+

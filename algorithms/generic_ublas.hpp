@@ -117,7 +117,9 @@ namespace generic_ublas {
 
     matrix_iterator(MatrixType &mat, detail::begin_tag)
     : m_it1(mat.begin1()), m_it2(m_it1.begin())
-    { }
+    { 
+      validate();
+    }
 
     matrix_iterator(MatrixType &mat, detail::end_tag)
     : m_it1(mat.end1()), m_it2(m_it1.begin())
@@ -131,14 +133,20 @@ namespace generic_ublas {
   private:
     friend class boost::iterator_core_access;
 
-    void increment() 
+    void validate()
     {
-      m_it2++;
-      if (m_it2 == m_it1.end())
+      // this makes sure that the iterator points to an existing element
+      while (m_it1 != m_it1().end1() && m_it2 == m_it1.end())
       {
         m_it1++;
         m_it2 = m_it1.begin();
       }
+    }
+
+    void increment() 
+    {
+      m_it2++;
+      validate();
     }
 
     bool equal(matrix_iterator const& other) const

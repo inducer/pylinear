@@ -249,6 +249,8 @@ def sparse(typecode):
   def countElements(mat):
     count = 0
     for i in mat.indices():
+      print i
+      raw_input()
       count += 1
     return count
 
