@@ -214,7 +214,7 @@ def diagonalize(matrix, compute_vectors = True, observer = iteration.makeObserve
 
 def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-5, rel_goal = 1e-10)):
     """This executes the generalized Jacobi process from the research
-    papers quoted below It returns a tuple Q, diagonal_matrices, 
+    papers quoted below. It returns a tuple Q, diagonal_matrices, 
     achieved_tolerance.
 
     Q is a unitary matrix that contains the eigenvectors of the given 
@@ -232,6 +232,9 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
 
     For one matrix, this reduces to the diagonalize() function in this
     module. 
+
+    The matrices list is not modified, nor are any of its constituent
+    matrices.
 
     Algorithm from:
 
@@ -587,27 +590,27 @@ def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
 
 
 # matrix type tests -----------------------------------------------------------
-def isHermitian(mat, threshold = 1e-13):
-    return frobeniusNorm(num.hermite(mat) - mat) < threshold
+def hermiticityError(mat):
+    return frobeniusNorm(num.hermite(mat) - mat)
 
-def isSkewHermitian(mat, threshold = 1e-13):
-    return frobeniusNorm(num.hermite(mat) + mat) < threshold
+def skewHermiticityError(mat):
+    return frobeniusNorm(num.hermite(mat) + mat)
 
-def isSymmetric(mat, threshold = 1e-13):
-    return frobeniusNorm(num.transpose(mat) - mat) < threshold
+def symmetricityError(mat):
+    return frobeniusNorm(num.transpose(mat) - mat)
 
-def isSkewSymmetric(mat, threshold = 1e-13):
-    return frobeniusNorm(num.transpose(mat) + mat) < threshold
+def skewSymmetricityError(mat):
+    return frobeniusNorm(num.transpose(mat) + mat)
 
-def isUnitary(mat, threshold = 1e-13):
+def unitarietyError(mat):
     mm = num.matrixmultiply
-    return isIdentity(mm(num.hermite(mat), mat), threshold)
+    return identityError(mm(num.hermite(mat), mat))
 
-def isOrthogonal(mat, threshold = 1e-13):
+def orthogonalityError(mat):
     mm = num.matrixmultiply
-    return isIdentity(mm(num.transpose(mat), mat), threshold)
+    return identityError(mm(num.transpose(mat), mat))
 
-def isIdentity(mat, threshold = 1e-13):
+def identityError(mat):
     id = num.identity(mat.shape[0], mat.typecode())
-    return frobeniusNorm(mat - id) < threshold
+    return frobeniusNorm(mat - id)
 
