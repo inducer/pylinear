@@ -88,9 +88,13 @@ def Heigenvalues(mat, upper = True):
     q, w = algo.Heigenvectors(False, upper, mat)
     return w
 
-
-
-
-
 def Heigenvectors(mat, upper = True):
     return algo.Heigenvectors(True, upper, mat)
+
+def eigenvalues(mat):
+    w, vl, vr = algo.eigenvectors(False, False, mat)
+    return w
+
+def eigenvectors(mat):
+    w, vl, vr = algo.eigenvectors(False, True, mat)
+    return vr, w

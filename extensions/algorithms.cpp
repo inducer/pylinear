@@ -13,6 +13,7 @@
 #include <boost/numeric/bindings/lapack/gesdd.hpp>
 #include <boost/numeric/bindings/lapack/syev.hpp>
 #include <boost/numeric/bindings/lapack/heev.hpp>
+#include <boost/numeric/bindings/lapack/geev.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 /*
 #include <boost/numeric/bindings/atlas/clapack.hpp>
@@ -336,20 +337,28 @@ static python::object svdWrapper(const ublas::matrix<ValueType> &a)
 
 
 // eigenvectors ---------------------------------------------------------------
-int _Heigenvectors_backend(char jobz, char uplo, 
+void _Heigenvectors_backend(char jobz, char uplo, 
 			   ublas::matrix<double, ublas::column_major> &a, 
 			   ublas::vector<double> &w) 
 {
-  return boost::numeric::bindings::lapack::syev(jobz, uplo, a, w, 
+  int ierr = boost::numeric::bindings::lapack::syev(jobz, uplo, a, w, 
 						boost::numeric::bindings::lapack::optimal_workspace());
+  if (ierr < 0)
+    throw std::runtime_error("invalid argument to syev");
+  else if (ierr > 0)
+    throw std::runtime_error("no convergence for given matrix");
 }
 
-int _Heigenvectors_backend(char jobz, char uplo, 
-			   ublas::matrix<std::complex<double>, ublas::column_major> &a, 
-			   ublas::vector<double> &w) 
+void _Heigenvectors_backend(char jobz, char uplo, 
+			    ublas::matrix<std::complex<double>, ublas::column_major> &a, 
+			    ublas::vector<double> &w) 
 {
-  return boost::numeric::bindings::lapack::heev(jobz, uplo, a, w, 
-						boost::numeric::bindings::lapack::optimal_workspace());
+  int ierr = boost::numeric::bindings::lapack::heev(jobz, uplo, a, w, 
+						    boost::numeric::bindings::lapack::optimal_workspace());
+  if (ierr < 0)
+    throw std::runtime_error("invalid argument to heev");
+  else if (ierr > 0)
+    throw std::runtime_error("no convergence for given matrix");
 }
 
 template <typename ValueType>
@@ -358,22 +367,76 @@ static python::object HeigenvectorsWrapper(bool get_vectors, bool upper,
 {
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
+  typedef ublas::vector<double> vec;
   
   fortran_mat a_copy(a);
-  ublas::vector<double> w(a.size1());
+  std::auto_ptr<vec> w(new vec(a.size1()));
   
-  int ierr = _Heigenvectors_backend(get_vectors ? 'V' : 'N',
-				   upper ? 'U' : 'L',
-				   a_copy, w);
+  _Heigenvectors_backend(get_vectors ? 'V' : 'N',
+			 upper ? 'U' : 'L',
+			 a_copy, *w);
+
+  typedef ublas::matrix<ValueType> mat;
+  return python::make_tuple(handle_from_new_ptr(new mat(a_copy)), 
+			    handle_from_new_ptr(w.release()));
+}
+
+
+
+
+template <typename ValueType>
+static python::object eigenvectorsWrapper(unsigned get_left_vectors, 
+					  unsigned get_right_vectors,
+					  const ublas::matrix<ValueType> &a)
+{
+  typedef ublas::matrix<ValueType> mat;
+  typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
+  typedef ublas::vector<typename helpers::complexify<ValueType>::type > eval_vec;
+  typedef ublas::matrix<typename helpers::complexify<ValueType>::type, ublas::column_major> evec_mat;
+  
+  int const n = a.size1();
+  fortran_mat a_copy(a);
+  std::auto_ptr<eval_vec> w(new eval_vec(a.size1()));
+
+  std::auto_ptr<evec_mat> vl, vr;
+  if (get_left_vectors)
+    vl = std::auto_ptr<evec_mat>(new evec_mat(n, n));
+  if (get_right_vectors)
+    vr = std::auto_ptr<evec_mat>(new evec_mat(n, n));
+
+  int ierr = boost::numeric::bindings::lapack::geev(a_copy, *w, vl.get(), vr.get(),
+						    boost::numeric::bindings::lapack::optimal_workspace());
+
   if (ierr < 0)
-    throw std::runtime_error("invalid argument to gesdd");
+    throw std::runtime_error("invalid argument to geev");
   else if (ierr > 0)
     throw std::runtime_error("no convergence for given matrix");
 
-  typedef ublas::matrix<ValueType> mat;
+  typedef ublas::matrix<typename helpers::complexify<ValueType>::type> cmat;
   typedef ublas::vector<ValueType> vec;
-  return python::make_tuple(handle_from_new_ptr(new mat(a_copy)), 
-			    handle_from_new_ptr(new vec(w)));
+
+  if (get_left_vectors)
+  {
+    if (get_right_vectors)
+      return python::make_tuple(handle_from_new_ptr(w.release()),
+				handle_from_new_ptr(new cmat(*vl)),
+				handle_from_new_ptr(new cmat(*vr)));
+    else
+      return python::make_tuple(handle_from_new_ptr(w.release()),
+				handle_from_new_ptr(new cmat(*vl)),
+				python::object());
+  }
+  else
+  {
+    if (get_right_vectors)
+      return python::make_tuple(handle_from_new_ptr(w.release()),
+				python::object(),
+				handle_from_new_ptr(new cmat(*vr)));
+    else
+      return python::make_tuple(handle_from_new_ptr(w.release()),
+				python::object(),
+				python::object());
+  }
 }
 
 
@@ -386,6 +449,7 @@ void exposeSpecialAlgorithms(ValueType)
   python::def("lu", luWrapper<ublas::matrix<ValueType> >);
   python::def("singular_value_decomposition", svdWrapper<ValueType>);
   python::def("Heigenvectors", HeigenvectorsWrapper<ValueType>);
+  python::def("eigenvectors", eigenvectorsWrapper<ValueType>);
 }
 
 
@@ -568,3 +632,17 @@ BOOST_PYTHON_MODULE(_algorithms)
 
   exposeForAllMatrices(cholesky_exposer());
 }
+
+
+
+
+// EMACS-FORMAT-TAG
+//
+// Local Variables:
+// mode: C++
+// eval: (c-set-style "stroustrup")
+// eval: (c-set-offset 'access-label -2)
+// eval: (c-set-offset 'inclass '++)
+// c-basic-offset: 2
+// tab-width: 8
+// End:

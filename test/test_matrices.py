@@ -227,7 +227,7 @@ class tTestMatrices(unittest.TestCase):
         self.forAllTypecodes(self.doTestSolve)
 
     def doTestLU(self, typecode):
-        size = 300
+        size = 100
         A = makeFullRandomMatrix(size, typecode)
         L,U,permut,sign = algo.lu(A)
         permut_mat = makePermutationMatrix(permut, typecode)
@@ -293,7 +293,7 @@ class tTestMatrices(unittest.TestCase):
         self.forAllTypecodes(self.doTestSVD)
 
     def doTestJacobi(self, typecode):
-        size = 20
+        size = 10
         
         def off_diag_norm_squared(a):
             result = 0
@@ -353,18 +353,22 @@ class tTestMatrices(unittest.TestCase):
         self.forAllTypecodes(self.doTestCodiagonalization)
 
     def doTestMatrixExp(self, typecode):
-        a = mtools.makeRandomSPDMatrix(4, num.Complex)
+        a = mtools.makeRandomSPDMatrix(20, num.Complex)
         e_a1 = mtools.matrixExp(a)
         e_a2 = mtools.matrixExpByDiagonalization(a)
+        e_a3 = mtools.matrixExpBySymmetricDiagonalization(a)
         self.assert_(mtools.frobeniusNorm(e_a1-e_a2)
                      / mtools.frobeniusNorm(e_a1)
                      / mtools.frobeniusNorm(e_a2) <= 1e-15)
+        self.assert_(mtools.frobeniusNorm(e_a1-e_a3)
+                     / mtools.frobeniusNorm(e_a1)
+                     / mtools.frobeniusNorm(e_a3) <= 1e-15)
 
     def testMatrixExp(self):
         self.forAllTypecodes(self.doTestMatrixExp)
 
     def doTestHeigenvectors(self, typecode):
-        size = 30
+        size = 100
 
         a = mtools.makeRandomSPDMatrix(size, typecode)
         q, w = la.Heigenvectors(a)
@@ -381,6 +385,23 @@ class tTestMatrices(unittest.TestCase):
     def testHeigenvectors(self):
         self.forAllTypecodes(self.doTestHeigenvectors)
 
+    def doTestEigenvectors(self, typecode):
+        size = 100
+
+        a = mtools.makeFullRandomMatrix(size, typecode)
+        evecs, evals = la.eigenvectors(a)
+        evals2 = la.eigenvalues(a)
+
+        self.assert_(abs(sum(evals) - sum(evals2)) < 1e-12)
+
+        d = num.zeros(a.shape, num.Complex)
+        for i in range(size):
+            d[i,i] = evals[i]
+        mm = num.matrixmultiply
+        self.assertSmall(mm(a, evecs) - mm(evecs, d))
+
+    def testEigenvectors(self):
+        self.forAllTypecodes(self.doTestEigenvectors)
 
 
 if __name__ == '__main__':

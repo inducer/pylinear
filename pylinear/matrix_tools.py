@@ -299,7 +299,6 @@ def codiagonalize(matrices, tolerance = 1e-5, max_iterations = None):
 
                 r = norm2(bev)
                 if (bev[0] + r)/r < 1e-7:
-                    print "BEV"
                     continue
 
                 cos = math.sqrt((bev[0]+r)/(2*r))
@@ -378,7 +377,7 @@ def matrixExp(a, eps = 1e-15):
         
     
 
-def matrixExpByDiagonalization(a):
+def matrixExpBySymmetricDiagonalization(a):
     # a has to be symmetric
     h,w = a.shape
     assert h == w
@@ -392,6 +391,21 @@ def matrixExpByDiagonalization(a):
     
         
     
+
+def matrixExpByDiagonalization(a):
+    h,w = a.shape
+    assert h == w
+
+    v, w = la.eigenvectors(a)
+    e_d = num.zeros(a.shape, a.typecode())
+    v_t = num.transpose(v)
+    for i in range(h):
+        e_d[i,i] = cmath.exp(w[i])
+    mm = num.matrixmultiply
+    return num.transpose(la.solve_linear_equations(v_t, mm(e_d, v_t)))
+
+
+
 
 def delta(x,y):
     if x == y:

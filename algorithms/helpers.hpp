@@ -33,6 +33,22 @@ struct decomplexify<std::complex<ELT> >
 
 
 
+// complexify -----------------------------------------------------------------
+template <typename T>
+struct complexify
+{
+  typedef std::complex<T> type;
+};
+
+template <typename ELT>
+struct complexify<std::complex<ELT> >
+{
+  typedef std::complex<ELT> type;
+};
+
+
+
+
 // isComplex ------------------------------------------------------------------
 template <typename T>
 inline bool isComplex(const T &)
