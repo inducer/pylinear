@@ -11,6 +11,7 @@
 #include <boost/numeric/ublas/vector_proxy.hpp>
 #include <boost/numeric/ublas/triangular.hpp>
 #include <boost/numeric/ublas/io.hpp>
+#include <boost/numeric/ublas/operation.hpp>
 
 #include <helpers.hpp>
 
@@ -581,6 +582,42 @@ inline MatrixType *copyNew(const MatrixType &m)
 
 
 
+template <typename MatrixType>
+ublas::vector<typename MatrixType::value_type> *
+multiplyVector(const MatrixType &mat, 
+	       const ublas::vector<typename MatrixType::value_type> &vec)
+{
+  ublas::vector<typename MatrixType::value_type> *result = new
+    ublas::vector<typename MatrixType::value_type>(mat.size1());
+  ublas::axpy_prod(mat, vec, *result);
+  return result;
+}
+
+
+
+
+template <typename MatrixType>
+ublas::vector<typename MatrixType::value_type> *
+premultiplyVector(const MatrixType &mat, 
+		  const ublas::vector<typename MatrixType::value_type> &vec)
+{
+  return new ublas::vector<typename MatrixType::value_type>(prod(vec,mat));
+}
+
+
+
+
+template <typename MatrixType>
+MatrixType *multiplyMatrix(const MatrixType &mat1, 
+			   const MatrixType &mat2)
+{
+  return new MatrixType(prod(mat1,mat2));
+}
+
+
+
+
+/*
 template <typename Op1, typename Op2>
 struct prodMatMatWrapper
 {
@@ -591,7 +628,7 @@ struct prodMatMatWrapper
     typename ublas::matrix<result_value_type> 
     result_type;
 
-  inline static result_type *apply(const Op1 &op1, const Op2 &op2)
+  static result_type *apply(const Op1 &op1, const Op2 &op2)
   {
     return new result_type(prod(op1, op2));
   }
@@ -610,11 +647,12 @@ struct prodMatVecWrapper
     typename ublas::vector<result_value_type> 
     result_type;
 
-  inline static result_type *apply(const Op1 &op1, const Op2 &op2)
+  static result_type *apply(const Op1 &op1, const Op2 &op2)
   {
     return new result_type(prod(op1, op2));
   }
 };
+*/
 
 
 
@@ -626,7 +664,7 @@ struct inner_prodWrapper
     typename value_type_promotion::bigger_type<typename Op1::value_type, typename Op2::value_type>::type
     result_type;
 
-  inline static result_type apply(const Op1 &op1, const Op2 &op2)
+  static result_type apply(const Op1 &op1, const Op2 &op2)
   {
     return inner_prod(op1, op2);
   }
@@ -1288,25 +1326,24 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__isub__", minusAssignOp<WrappedClass>, python::return_self<>())
 
     // scalar - matrix
-
-    // this is redundant for doubles, but that's faster to compile than yet
-    // another partial specialization. Boost.Python doesn't mind
-    // double definitions. FIXME: Performance hit?
     .def("__mul__", scalarTimesOp<WrappedClass, double>)
-    .def("__mul__", scalarTimesOp<WrappedClass, value_type>)
-
     .def("__rmul__", scalarTimesOp<WrappedClass, double>)
-    .def("__rmul__", scalarTimesOp<WrappedClass, value_type>)
-
     .def("__div__", scalarDivideOp<WrappedClass, double>)
-    .def("__div__", scalarDivideOp<WrappedClass, value_type>)
-
     .def("__imul__", scalarTimesAssignOp<WrappedClass, double>, python::return_self<>())
-    .def("__imul__", scalarTimesAssignOp<WrappedClass, value_type>, python::return_self<>())
-
     .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>, python::return_self<>())
-    .def("__idiv__", scalarDivideAssignOp<WrappedClass, value_type>, python::return_self<>())
     ;
+
+  if (helpers::isComplex(value_type()))
+  {
+    // scalar-matrix for complex types
+    pyc
+      .def("__mul__", scalarTimesOp<WrappedClass, value_type>)
+      .def("__rmul__", scalarTimesOp<WrappedClass, value_type>)
+      .def("__div__", scalarDivideOp<WrappedClass, value_type>)
+      .def("__imul__", scalarTimesAssignOp<WrappedClass, value_type>, python::return_self<>())
+      .def("__idiv__", scalarDivideAssignOp<WrappedClass, value_type>, python::return_self<>())
+      ;
+  }
 
   exposeUfuncs(pyc, WrappedClass());
 }
@@ -1429,19 +1466,20 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
   exposeElementWiseBehavior(pyclass, WrappedClass());
 
   // products
-  def("matrixmultiply", prodMatMatWrapper<WrappedClass, WrappedClass>::apply,
-      python::return_value_policy<python::manage_new_object>());
-  def("matrixmultiply", prodMatVecWrapper<WrappedClass, ublas::vector<value_type> >::apply,
-      python::return_value_policy<python::manage_new_object>());
-  def("matrixmultiply", prodMatVecWrapper<ublas::vector<value_type>, WrappedClass>::apply,
-      python::return_value_policy<python::manage_new_object>());
-
-  def("transpose", transposeMatrix<WrappedClass>,
-      python::return_value_policy<python::manage_new_object>());
-  def("hermite", hermiteMatrix<WrappedClass>,
-      python::return_value_policy<python::manage_new_object>());
 
   pyclass
+    .def("transpose", transposeMatrix<WrappedClass>,
+	 python::return_value_policy<python::manage_new_object>())
+    .def("hermite", hermiteMatrix<WrappedClass>,
+	 python::return_value_policy<python::manage_new_object>())
+
+    .def("multiplyVector", multiplyVector<WrappedClass>,
+        python::return_value_policy<python::manage_new_object>())
+    .def("premultiplyVector", premultiplyVector<WrappedClass>,
+        python::return_value_policy<python::manage_new_object>())
+    .def("multiplyMatrix", multiplyMatrix<WrappedClass>,
+        python::return_value_policy<python::manage_new_object>())
+
     .def("addScattered", addScattered<WrappedClass>)
     .def("addScatteredSymmetric", addScatteredSymmetric<WrappedClass>)
     .def("solveLower", solveLower<WrappedClass>,

@@ -1,7 +1,7 @@
 TODO:
 --------------------------------------------------------------------------
 product (?)
-take, put
+put
 concatenate?
 more ufuncs
   - with their different methods?
@@ -12,6 +12,8 @@ UMFPACK crash with *really* singular matrix
 save time in arpack:
   avoid copies for multiplication
   make it possible to take advantage of difference IDO=+/- 1
+
+Convert ufuncs to methods to save time.
 
 QUESTIONS:
 BPL: non-compiling derivation example

@@ -216,3 +216,23 @@ def take(mat, indices, axis = 0):
   
   
 
+
+def matrixmultiply(mat1, mat2):
+  if len(mat2.shape) == 1:
+    return mat1.multiplyVector(mat2)
+  elif len(mat1.shape) == 1:
+    return mat2.premultiplyVector(mat1)
+  else:
+    return mat1.multiplyMatrix(mat2)
+
+
+
+
+def transpose(mat):
+  return mat.transpose()
+
+
+
+
+def hermite(mat):
+  return mat.hermite()
