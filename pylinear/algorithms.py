@@ -70,6 +70,9 @@ def addMatrixOperators(op1, op2):
 
 
 def applyMatrixOperator(mat_op, vec):
+    if mat_op.typecode() is num.Float and vec.typecode() is num.Complex:
+        return num.asarray(applyMatrixOperator(mat_op, vec.real), num.Complex) \
+               + 1j * num.asarray(applyMatrixOperator(mat_op, vec.imaginary), num.Complex)
     h, w = mat_op.shape
     temp = num.zeros((h,), vec.typecode())
     mat_op.apply(vec, temp)
