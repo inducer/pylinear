@@ -503,6 +503,92 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
 
 
 
+// pickling -------------------------------------------------------------------
+template <typename MatrixType>
+static
+python::tuple
+getInitArgs(const MatrixType &m)
+{
+  return getPythonShapeTuple(generic_ublas::getShape(m));
+}
+
+
+
+
+template <typename MatrixType>
+static
+python::object
+getStateSparse(MatrixType &m)
+{
+  generic_ublas::matrix_iterator<MatrixType>
+    first = generic_ublas::begin(m),
+    last = generic_ublas::end(m);
+  
+  python::list result;
+  while (first != last)
+  {
+    result.append(python::make_tuple(getPythonIndexTuple(first.index()),
+		  *first));
+    first++;
+  }
+
+  return result;
+}
+
+
+
+
+template <typename MatrixType>
+static 
+void
+setStateSparse(MatrixType &m, python::list entries)
+{
+  unsigned len = python::extract<unsigned>(entries.attr("__len__"));
+  for (unsigned i = 0; i < len; i++)
+  {
+    generic_ublas::set(m,
+		       getMinilist(python::extract<python::tuple>(entries[i][0])),
+		       python::extract<typename MatrixType::value_type>(entries[i][1]));
+  }
+}
+
+
+
+
+template <typename MatrixType>
+static 
+python::object
+getStateDense(MatrixType &m)
+{
+  generic_ublas::matrix_iterator<MatrixType>
+    first = generic_ublas::begin(m),
+    last = generic_ublas::end(m);
+  
+  python::list result;
+  while (first != last)
+    result.append(*first++);
+  
+  return result;
+}
+
+
+
+
+template <typename MatrixType>
+static void
+setStateDense(MatrixType &m, python::list entries)
+{
+  generic_ublas::matrix_iterator<MatrixType> 
+    first = generic_ublas::begin(m);
+  
+  unsigned len = python::extract<unsigned>(entries.attr("__len__"));
+  for (unsigned i = 0; i < len; i++)
+    *first++ = python::extract<typename MatrixType::value_type>(entries[i]);
+}
+
+
+
+
 // specialty constructors -----------------------------------------------------
 template <typename MatrixType>
 static MatrixType *getIdentityMatrix(unsigned n)
@@ -1346,6 +1432,17 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
   }
 
   exposeUfuncs(pyc, WrappedClass());
+
+  // pickling
+  pyc.def("__getinitargs__", getInitArgs<WrappedClass>);
+  if (helpers::isSparse(WrappedClass()))
+    pyc
+      .def("__getstate__", getStateSparse<WrappedClass>)
+      .def("__setstate__", setStateSparse<WrappedClass>);
+  else
+    pyc
+      .def("__getstate__", getStateDense<WrappedClass>)
+      .def("__setstate__", setStateDense<WrappedClass>);
 }
 
 

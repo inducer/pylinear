@@ -52,6 +52,34 @@ inline bool isComplex(const std::complex<T2> &)
 
 
 
+// isSparse -------------------------------------------------------------------
+template <typename T>
+inline bool isSparse(const T &)
+{
+  return true;
+}
+
+
+
+
+template <typename T2>
+inline bool isSparse(const ublas::matrix<T2> &)
+{
+  return false;
+}
+
+
+
+
+template <typename T2>
+inline bool isSparse(const ublas::vector<T2> &)
+{
+  return false;
+}
+
+
+
+
 // isHermitian ----------------------------------------------------------------
 template <typename MatrixType>
 inline bool isHermitian(const MatrixType &)
