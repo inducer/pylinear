@@ -1,0 +1,20 @@
+TODO:
+--------------------------------------------------------------------------
+symmetric, hermitean types
+
+Optional stuff:
+--------------------------------------------------------------------------
+product
+take, put
+concatenate?
+more ufuncs
+  - math binary ufuncs (+,-,*,%,/,**)
+  - with their different methods?
+  - comparison ufuncs (convert to what if not bool?)
+explicit type coercion
+from/to numeric conversion
+
+QUESTIONS:
+BPL: why can't you specify call policies for attributes in Boost.Python?
+UBLAS: unify indexing, provide multidimensional arrays
+
