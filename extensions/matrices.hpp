@@ -605,16 +605,6 @@ struct dense_pickle_suite : python::pickle_suite
 
 // specialty constructors -----------------------------------------------------
 template <typename MatrixType>
-static MatrixType *getIdentityMatrix(unsigned n)
-{
-  return new MatrixType(
-      ublas::identity_matrix<typename MatrixType::value_type>(n));
-}
-
-
-
-
-template <typename MatrixType>
 static MatrixType *getFilledMatrix(
     typename MatrixType::size_type size1, 
     typename MatrixType::size_type size2, 
@@ -1631,11 +1621,8 @@ static void exposeMatrixType(WrappedClass, const std::string &python_typename, c
         typename WrappedClass::size_type>())
 
     // special constructors
-    .def("getIdentityMatrix", &getIdentityMatrix<WrappedClass>,
-        python::return_value_policy<python::manage_new_object>())
     .def("getFilledMatrix", &getFilledMatrix<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
-    .staticmethod("getIdentityMatrix")
     .staticmethod("getFilledMatrix")
     ;
 

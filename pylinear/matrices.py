@@ -190,8 +190,10 @@ def ones(shape, typecode, matrix_type = DenseMatrix):
   return _getFilledMatrix(shape, typecode, matrix_type, 1)
 
 def identity(n, typecode, matrix_type = DenseMatrix):
-  matrix_class = _getMatrixClass(2, typecode, matrix_type)
-  return matrix_class.getIdentityMatrix(n)
+  result = zeros((n,n), typecode, matrix_type)
+  for i in range(n):
+    result[i,i] = 1
+  return result
 
 
 
