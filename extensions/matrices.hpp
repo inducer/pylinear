@@ -6,12 +6,13 @@
 #include <boost/python.hpp>
 
 #include "meta.hpp"
+#include "python_helpers.hpp"
 
 #include <boost/numeric/ublas/matrix_proxy.hpp>
 #include <boost/numeric/ublas/vector_proxy.hpp>
-#include <boost/numeric/ublas/triangular.hpp>
 #include <boost/numeric/ublas/io.hpp>
 #include <boost/numeric/ublas/operation.hpp>
+#include <boost/numeric/ublas/triangular.hpp>
 
 #include <helpers.hpp>
 
@@ -255,12 +256,12 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
 
 
 template <typename MatrixType>
-static python::object getElement(const MatrixType &m, PyObject *index)
+static python::handle<PyObject> getElement(const MatrixType &m, PyObject *index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
     vector_t;
-
+  
   if (PyTuple_Check(index))
   {
     // we have a tuple
@@ -272,14 +273,14 @@ static python::object getElement(const MatrixType &m, PyObject *index)
     translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
     if (!si1.m_was_slice && !si2.m_was_slice)
-      return python::object(m(si1.m_start, si2.m_start));
+      return handle_from_object(m(si1.m_start, si2.m_start));
     else if (!si1.m_was_slice)
-      return python::object(new vector_t(row(m,si1.m_start)));
+      return handle_from_new_ptr(new vector_t(row(m,si1.m_start)));
     else if (!si2.m_was_slice)
-      return python::object(new vector_t(column(m,si2.m_start)));
+      return handle_from_new_ptr(new vector_t(column(m,si2.m_start)));
     else
     {
-      return python::object(
+      return handle_from_new_ptr(
           new MatrixType(project(m,
               ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
               ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength))));
@@ -291,11 +292,9 @@ static python::object getElement(const MatrixType &m, PyObject *index)
     translateIndex(index, si, m.size1());
 
     if (!si.m_was_slice)
-      return python::object(
-          new vector_t(
-            row(m, si.m_start)));
+      return handle_from_new_ptr(new vector_t(row(m, si.m_start)));
     else
-      return python::object(
+      return handle_from_new_ptr(
           new MatrixType(project(m,
               ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
               ublas::slice(0, 1, m.size2())
@@ -307,16 +306,16 @@ static python::object getElement(const MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-static python::object getElement(const ublas::vector<ValueType> &m, PyObject *index)
+static python::handle<PyObject> getElement(const ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
   translateIndex(index, si, m.size());
 
   if (!si.m_was_slice)
-    return python::object(m(si.m_start));
+    return handle_from_object(m(si.m_start));
   else
-    return python::object(
-        new ublas::vector<ValueType>(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
+    return handle_from_new_ptr(
+      new ublas::vector<ValueType>(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
 }
 
 
@@ -403,7 +402,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
           row(my_slice, i) = new_vec;
       }
     }
-    else
+    else if (new_matrix.check())
     {
       // no broadcast
       const MatrixType &new_mat = new_matrix();
@@ -413,6 +412,11 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       project(m,
           ublas::slice(si1.m_start, si1.m_step, si1.m_sliceLength),
           ublas::slice(si2.m_start, si2.m_step, si2.m_sliceLength)) = new_mat;
+    }
+    else
+    {
+      PyErr_SetString(PyExc_ValueError, "Unknown type in element or slice assignment");
+      throw python::error_already_set();
     }
   }
   else
@@ -458,7 +462,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
           row(m, i) = new_vec;
       }
     }
-    else
+    else if (new_matrix.check())
     {
       const MatrixType &new_mat = new_matrix();
 
@@ -468,6 +472,11 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       project(m,
           ublas::slice(si.m_start, si.m_step, si.m_sliceLength),
           ublas::slice(0, 1, m.size2())) = new_mat();
+    }
+    else
+    {
+      PyErr_SetString(PyExc_ValueError, "Unknown type in element or slice assignment");
+      throw python::error_already_set();
     }
   }
 }
@@ -479,7 +488,7 @@ template <typename ValueType>
 static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &new_value)
 { 
   python::extract<typename ublas::vector<ValueType>::value_type> new_scalar(new_value);
-  python::extract<const ublas::vector<ValueType> &> new_matrix(new_value);
+  python::extract<const ublas::vector<ValueType> &> new_vector(new_value);
 
   slice_info si;
   translateIndex(index, si, m.size());
@@ -496,9 +505,14 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
       helpers::fill_matrix(my_slice, new_scalar());
     }
   }
-  else
+  else if (new_vector.check())
     project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength)) = 
-      new_matrix();
+      new_vector();
+  else
+  {
+    PyErr_SetString(PyExc_ValueError, "Unknown type in element or slice assignment");
+    throw python::error_already_set();
+  }
 }
 
 
@@ -1447,7 +1461,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__len__", (unsigned (*)(const WrappedClass &)) getLength)
     .def("swap", &WrappedClass::swap)
 
-    .def("__getitem__", (python::object (*)(const WrappedClass &, PyObject *)) getElement)
+    .def("__getitem__", (python::handle<PyObject> (*)(const WrappedClass &, PyObject *)) getElement)
     .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
     // stringification
@@ -1690,3 +1704,15 @@ static void exposeMatrixType(WrappedClass, const std::string &python_typename, c
 
 
 } // private namespace
+
+
+// EMACS-FORMAT-TAG
+//
+// Local Variables:
+// mode: C++
+// eval: (c-set-style "stroustrup")
+// eval: (c-set-offset 'access-label -2)
+// eval: (c-set-offset 'inclass '++)
+// c-basic-offset: 2
+// tab-width: 8
+// End:

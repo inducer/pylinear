@@ -128,6 +128,7 @@ class tRotationShapeMatrix:
 
 
 
+
 def makeJacobiRotation(i, j, cos, sin):
     return tRotationShapeMatrix(i,j,
                                 cos, _conjugate(sin),
@@ -181,6 +182,9 @@ def diagonalize(matrix, tolerance = 1e-10, max_iterations = None, compute_vector
     norm_before = off_diag_norm_squared(matrix)
     mymatrix = matrix.copy()
     iterations = 0
+
+    if rows == 1 and columns == 1:
+        return  q, mymatrix
 
     while off_diag_norm_squared(mymatrix) >= tolerance**2 * norm_before:
         for i in range(rows):
@@ -350,6 +354,7 @@ def frobeniusNorm(a):
 def matrixExp(a, eps = 1e-15):
     h,w = a.shape
     assert h == w
+
     a_frob = frobeniusNorm(a)
     
     last_result = num.identity(h, a.typecode())

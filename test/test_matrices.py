@@ -72,7 +72,6 @@ class tTestMatrices(unittest.TestCase):
         vec = num.array([3., 5.])
         b = num.asarray(num.outerproduct(vec, num.array([2., 4.])), typecode)
         a.addScattered([5,7], [1,3], b)
-        #print a
 
     def testAddScattered(self):
         self.forAllTypecodes(self.doTestAddScattered)
@@ -139,7 +138,7 @@ class tTestMatrices(unittest.TestCase):
     def testCG(self):
         self.forAllTypecodes(self.doTestCG)
 
-    def umfpack(typecode):
+    def doTestUmfpack(self, typecode):
         size = 100
         A = num.asarray(makeRandomMatrix(size, typecode), typecode, num.SparseExecuteMatrix)
 
@@ -150,6 +149,9 @@ class tTestMatrices(unittest.TestCase):
         umf_op.apply(b, x)
 
         self.assert_(norm2(b - num.matrixmultiply(A, x)) < 1e-10)
+
+    def testUmfpack(self):
+        self.forAllTypecodes(self.doTestUmfpack)
 
     def doTestArpackGeneralized(self, typecode):
         size = 100

@@ -137,10 +137,11 @@ def array(data, typecode = None):
 
     def getBiggestType(data, prev_biggest_type = Float64):
         try:
-            for i in data[0]:
+            data[0][0]
+            for i in data:
                 prev_biggest_type = getBiggestType(i, prev_biggest_type)
-                return prev_biggest_type
-        except:
+            return prev_biggest_type
+        except TypeError, e:
             for i in data:
                 if type(i) is types.ComplexType:
                     prev_biggest_type = Complex
