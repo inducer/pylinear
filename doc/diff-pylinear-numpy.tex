@@ -1,0 +1,20 @@
+\chapter{Differences to previous implementations}
+\label{cha:diff-pylinear-numpy}
+
+\begin{quote}
+   This chapter outlines the differences between PyLinear and the packages
+   Numerical Python and numarray.
+\end{quote}
+
+Unlike NumPy, PyLinear does \emph{not} allow more than two or less
+than one index dimension, i.e. it only suports objects with one and
+two indices, also known as vectors and matrices. In fact, even vectors
+and matrices are different types internally, while NumPy glosses over
+these differences and makes them all a single \emph{array type}. This
+makes sense since NumPy's focus is on array-shaped data, such as
+images and measurements, while PyLinear's focus is on linear algebra.
+
+\begin{itemize}
+  \item Ufunc methods are not supported.
+  \item Slices copy, do not return views.
+\end{itemize}

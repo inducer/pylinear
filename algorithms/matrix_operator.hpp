@@ -25,7 +25,7 @@ class matrix_operator
     virtual unsigned size1() const = 0;
     virtual unsigned size2() const = 0;
 
-    /** Before using apply, after must have the correct size.
+    /** Before using apply, before and after must have the correct size.
      */
     virtual void apply(const vector_type &before, vector_type &after) const
     {
@@ -54,6 +54,7 @@ class algorithm_matrix_operator : public matrix_operator<ValueType>
     algorithm_matrix_operator()
       : m_lastIterationCount(0), m_debugLevel(0)
       { }
+
     unsigned getDebugLevel() const
     {
       return m_debugLevel;
@@ -394,3 +395,17 @@ boost::numeric::ublas::vector<ValueType> prod(
 
 
 #endif
+
+
+
+
+// EMACS-FORMAT-TAG
+//
+// Local Variables:
+// mode: C++
+// eval: (c-set-style "stroustrup")
+// eval: (c-set-offset 'access-label -2)
+// eval: (c-set-offset 'inclass '++)
+// c-basic-offset: 2
+// tab-width: 8
+// End:

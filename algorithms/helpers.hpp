@@ -68,63 +68,6 @@ inline bool isComplex(const std::complex<T2> &)
 
 
 
-// isSparse -------------------------------------------------------------------
-template <typename T>
-inline bool isSparse(const T &)
-{
-  return true;
-}
-
-
-
-
-template <typename T2>
-inline bool isSparse(const ublas::matrix<T2> &)
-{
-  return false;
-}
-
-
-
-
-template <typename T2>
-inline bool isSparse(const ublas::vector<T2> &)
-{
-  return false;
-}
-
-
-
-
-// isHermitian ----------------------------------------------------------------
-template <typename MatrixType>
-inline bool isHermitian(const MatrixType &)
-{
-  return false;
-}
-
-
-
-
-template <typename T>
-inline bool isHermitian(const managed_symmetric_adaptor<T> &)
-{
-  return true;
-}
-
-
-
-
-template <typename T>
-inline bool isHermitian(const managed_hermitian_adaptor<T> &)
-{
-  return true;
-}
-
-
-
-
-
 // isCoordinateMatrix ---------------------------------------------------------
 template <typename MatrixType>
 inline bool isCoordinateMatrix(const MatrixType &)
@@ -196,6 +139,25 @@ template <typename T2>
 inline T2 absolute_value(const std::complex<T2> &x)
 {
   return sqrt(norm(x));
+}
+
+
+
+
+// absolute_value_squared -----------------------------------------------------
+template <typename T>
+inline T absolute_value_squared(const T &x)
+{
+  return fabs(x)*fabs(x);
+}
+
+
+
+
+template <typename T2>
+inline T2 absolute_value_squared(const std::complex<T2> &x)
+{
+  return norm(x);
 }
 
 

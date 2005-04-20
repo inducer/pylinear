@@ -26,30 +26,6 @@ using generic_ublas::is_vector;
 
 
 
-// typecode support -----------------------------------------------------------
-enum SupportedElementTypes {
-  Float64,
-  Complex64,
-};
-
-
-
-
-inline SupportedElementTypes getTypeCode(double) { return Float64; }
-inline SupportedElementTypes getTypeCode(std::complex<double>) { return Complex64; }
-
-
-
-
-template <typename MatrixType>
-inline SupportedElementTypes typecode(const MatrixType &)
-{ 
-  return getTypeCode(typename MatrixType::value_type());
-}
-
-
-
-
 // metaprogramming helpers ----------------------------------------------------
 namespace value_type_promotion
 {

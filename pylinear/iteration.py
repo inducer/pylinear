@@ -3,59 +3,59 @@ import os
 
 
 
-class tIterationSuccessful(Exception):
+class IterationSuccessful(Exception):
     def __init__(self, value):
         Exception.__init__(self, value)
 
-class tIterationStalled(Exception):
+class IterationStalled(Exception):
     def __init__(self, value):
         Exception.__init__(self, value)
 
-class tIterationStopped(Exception):
+class IterationStopped(Exception):
     def __init__(self, value):
         Exception.__init__(self, value)
 
-class tIterationCountExceeded(Exception):
+class IterationCountExceeded(Exception):
     def __init__(self, value):
         Exception.__init__(self, value)
 
 
 
 
-class tIterationObserver:
+class IterationObserver:
     def __init__(self):
         pass
 
     def reset(self):
         pass
 
-    def addDataPoint(self, residual):
+    def add_data_point(self, residual):
         pass
 
 
 
 
-class tRelativeGoalDetector(tIterationObserver):
+class RelativeGoalDetector(IterationObserver):
     def __init__(self, tolerance):
-        tIterationObserver.__init__(self)
+        IterationObserver.__init__(self)
         self.Tolerance = tolerance
 
     def reset(self):
         self.FirstResidual = None
 
-    def addDataPoint(self, residual):
+    def add_data_point(self, residual):
         if self.FirstResidual is None:
             self.FirstResidual = residual
         else:
             if residual < self.Tolerance * self.FirstResidual:
-                raise tIterationSuccessful, "Iteration successful."
+                raise IterationSuccessful, "Iteration successful."
 
 
 
 
-class tIterationStallDetector(tIterationObserver):
+class IterationStallDetector(IterationObserver):
     def __init__(self, tolerance, max_stalls = 1):
-        tIterationObserver.__init__(self)
+        IterationObserver.__init__(self)
         self.Tolerance = tolerance
         self.MaxStalls = max_stalls
 
@@ -64,7 +64,7 @@ class tIterationStallDetector(tIterationObserver):
         self.LastResidual = None
         self.Stalls = 0
 
-    def addDataPoint(self, residual):
+    def add_data_point(self, residual):
         if self.LastResidual is not None:
             progress = max(1, self.LastResidual / residual)
             self.BiggestProgress = max(progress, self.BiggestProgress)
@@ -78,7 +78,7 @@ class tIterationStallDetector(tIterationObserver):
             if stalled:
                 self.Stalls += 1
                 if self.Stalls >= self.MaxStalls:
-                    raise tIterationStalled, "No progress is being made."
+                    raise IterationStalled, "No progress is being made."
             else:
                 self.Stalls = 0
         self.LastResidual = residual
@@ -86,9 +86,9 @@ class tIterationStallDetector(tIterationObserver):
 
 
 
-class tLastChangeLessThan(tIterationObserver):
+class LastChangeLessThan(IterationObserver):
     def __init__(self, tolerance, max_stalls = 1):
-        tIterationObserver.__init__(self)
+        IterationObserver.__init__(self)
         self.Tolerance = tolerance
         self.MaxStalls = max_stalls
 
@@ -96,7 +96,7 @@ class tLastChangeLessThan(tIterationObserver):
         self.LastResidual = None
         self.Stalls = 0
 
-    def addDataPoint(self, residual):
+    def add_data_point(self, residual):
         if self.LastResidual is not None:
             stalled = False
             if (self.LastResidual - residual)/self.LastResidual < self.Tolerance:
@@ -106,7 +106,7 @@ class tLastChangeLessThan(tIterationObserver):
             if stalled:
                 self.Stalls += 1
                 if self.Stalls >= self.MaxStalls:
-                    raise tIterationStalled, "No progress is being made."
+                    raise IterationStalled, "No progress is being made."
             else:
                 self.Stalls = 0
         self.LastResidual = residual
@@ -114,67 +114,67 @@ class tLastChangeLessThan(tIterationObserver):
 
 
 
-class tInteractiveStopper(tIterationObserver):
-    def addDataPoint(self, residual):
+class InteractiveStopper(IterationObserver):
+    def add_data_point(self, residual):
         filename = "STOP-ITERATION-%d" % os.getpid() 
         try:
             file(filename, "r")
             os.unlink(filename)
-            raise tIterationStopped, "Stop requested by user."
+            raise IterationStopped, "Stop requested by user."
         except IOError:
             pass
 
 
 
 
-class tMaxIterationCountChecker(tIterationObserver):
+class MaxIterationCountChecker(IterationObserver):
     def __init__(self, max_iterations):
-        tIterationObserver.__init__(self)
+        IterationObserver.__init__(self)
         self.MaxIterations = max_iterations
         self.IterationNumber = 0
 
-    def addDataPoint(self, residual):
+    def add_data_point(self, residual):
         self.IterationNumber += 1
         if self.IterationNumber >= self.MaxIterations:
-            raise tIterationCountExceeded("Maximum number of iterations reached.")
+            raise IterationCountExceeded("Maximum number of iterations reached.")
         
   
 
-class tCombinedObserver(tIterationObserver):
+class CombinedObserver(IterationObserver):
     def __init__(self, observers = []):
-        tIterationObserver.__init__(self)
+        IterationObserver.__init__(self)
         self.Observers = observers[:]
 
     def reset(self):
         for obs in self.Observers:
             obs.reset()
 
-    def addDataPoint(self, residual):
+    def add_data_point(self, residual):
         for obs in self.Observers:
-            obs.addDataPoint(residual)
+            obs.add_data_point(residual)
 
 
 
 
-def makeObserver(max_it = None, 
+def make_observer(max_it = None, 
                  stall_thresh = None, max_stalls = 1, 
                  min_change = None, max_unchanged = 1, 
                  rel_goal = None):
     """Only ever refer to the arguments of this routine by keyword, since
     argument order is not guaranteed to be stable.
     """
-    observers = [tInteractiveStopper()]
+    observers = [InteractiveStopper()]
 
     if max_it is not None:
-        observers.append(tMaxIterationCountChecker(max_it))
+        observers.append(MaxIterationCountChecker(max_it))
 
     if stall_thresh is not None:
-        observers.append(tIterationStallDetector(stall_thresh, max_stalls))
+        observers.append(IterationStallDetector(stall_thresh, max_stalls))
 
     if rel_goal is not None:
-        observers.append(tRelativeGoalDetector(rel_goal))
+        observers.append(RelativeGoalDetector(rel_goal))
 
     if min_change is not None:
-        observers.append(tLastChangeLessThan(min_change, max_unchanged))
+        observers.append(LastChangeLessThan(min_change, max_unchanged))
 
-    return tCombinedObserver(observers)
+    return CombinedObserver(observers)

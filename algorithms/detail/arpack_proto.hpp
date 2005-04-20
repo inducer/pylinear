@@ -22,6 +22,7 @@
 
 
 
+#include <boost/scoped_array.hpp>  	
 #include <complex>
 
 
@@ -37,17 +38,6 @@ typedef int logical;
 
 extern "C"
 {
-
-// debug "common" statement.
-
-  struct { 
-    integer logfil, ndigit, mgetv0;
-    integer msaupd, msaup2, msaitr, mseigt, msapps, msgets, mseupd;
-    integer mnaupd, mnaup2, mnaitr, mneigt, mnapps, mngets, mneupd;
-    integer mcaupd, mcaup2, mcaitr, mceigt, mcapps, mcgets, mceupd;
-  } ARPACK_F77NAME(debug);
-
-
 // double precision symmetric routines.
 
   void ARPACK_F77NAME(dsaupd)(integer *ido, char *bmat, integer *n, char *which,
@@ -161,8 +151,8 @@ extern "C"
 
 
 
-namespace arpack
-{
+namespace boost { namespace numeric { namespace bindings {  namespace arpack { namespace detail {
+
 #define DECLARE_NAUPD(TYPE, BASETYPE) \
   inline void naupd(integer *ido, char *bmat, integer *n, char *which, \
                        /*5*/integer *nev, BASETYPE *tol, TYPE *resid, \
@@ -199,15 +189,21 @@ namespace arpack
 #define DEFINE_REAL_NEUPD(BASETYPE, LETTER) \
   DECLARE_NEUPD(BASETYPE, BASETYPE) \
   { \
-    BASETYPE d_real[*nev+1]; \
-    BASETYPE d_imag[*nev+1]; \
+    int nev_copy = *nev; /* BEWARE: neupd changes nev! */ \
+    boost::scoped_array<BASETYPE> d_real(new BASETYPE[nev_copy + 1]); \
+    boost::scoped_array<BASETYPE> d_imag(new BASETYPE[nev_copy + 1]); \
+    for (int i = 0; i < nev_copy+1; i++) /* This silences valgrind. */ \
+    { \
+      d_real[i] = 0; \
+      d_imag[i] = 0; \
+    } \
     BASETYPE sigma_real = std::real(*sigma); \
     BASETYPE sigma_imag = std::imag(*sigma); \
-    ARPACK_F77NAME(LETTER##neupd)(rvec, HowMny, select, d_real, d_imag, Z, ldz,  \
+    ARPACK_F77NAME(LETTER##neupd)(rvec, HowMny, select, d_real.get(), d_imag.get(), Z, ldz,  \
         &sigma_real, &sigma_imag, workev, bmat, n, which, nev, \
         tol, resid, ncv, V, ldv, iparam, ipntr, workd, workl, lworkl, \
         info); \
-    for (int i = 0; i < *nev+1; i++) \
+    for (int i = 0; i < nev_copy+1; i++) \
       d[i] = std::complex<BASETYPE>(d_real[i], d_imag[i]); \
   }
 #define DEFINE_COMPLEX_NEUPD(BASETYPE, LETTER) \
@@ -227,7 +223,8 @@ namespace arpack
   DEFINE_REAL_NEUPD(double, d);
   DEFINE_COMPLEX_NEUPD(float, c);
   DEFINE_COMPLEX_NEUPD(double, z);
-}
+
+}}}}}
 
 
 

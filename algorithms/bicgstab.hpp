@@ -45,7 +45,7 @@ namespace bicgstab
     // typed up from Figure 2.10 of 
     // Templates for the Solution of Linear Systems: 
     // Building Blocks for Iterative Methods
-    // (Barrett, R., M. Berry, T. F. Chan, et al.)
+    // (R. Barrett, M. Berry, T. F. Chan, et al.)
 
     unsigned iterations = 0;
 
@@ -167,6 +167,7 @@ namespace bicgstab
     {
       super::apply(before, after);
 
+      after.clear();
       solveBiCGSTAB(m_matrix, 
 		    m_preconditioner, 
 		    after, 

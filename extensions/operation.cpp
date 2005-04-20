@@ -21,6 +21,8 @@
 #include <boost/numeric/ublas/lu.hpp>
 */
 
+namespace arpack = boost::numeric::bindings::arpack;
+
 
 
 
@@ -36,95 +38,25 @@ inline python::object getShape(const MatrixType &m)
 
 // wrappers -------------------------------------------------------------------
 template <typename ValueType>
-class matrix_operator_wrapper : public matrix_operator<ValueType>
+struct matrix_operator_wrapper : public matrix_operator<ValueType>, 
+python::wrapper<matrix_operator<ValueType> >
 {
-    PyObject *m_self;
-
-  public:
     typedef 
       typename matrix_operator<ValueType>::vector_type
       vector_type;
 
-    matrix_operator_wrapper(PyObject *self, const matrix_operator<ValueType> &)
-    : m_self(self)
-    { 
-    }
-
     unsigned size1() const
     {
-      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[0]);
+      return this->get_override("size1")();
     }
     unsigned size2() const
     {
-      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[1]);
+      return this->get_override("size2")();
     }
     void apply(const vector_type &before, vector_type &after) const
     {
-      return python::call_method<void>(m_self, "apply", before, after);
-    }
-};
-
-
-
-
-template <typename ValueType>
-class algorithm_matrix_operator_wrapper : public algorithm_matrix_operator<ValueType>
-{
-    PyObject *m_self;
-
-  public:
-    typedef 
-      typename matrix_operator<ValueType>::vector_type
-      vector_type;
-
-    algorithm_matrix_operator_wrapper(PyObject *self, const algorithm_matrix_operator<ValueType> &)
-    : m_self(self)
-    { 
-    }
-
-    unsigned size1() const
-    {
-      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[0]);
-    }
-    unsigned size2() const
-    {
-      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[1]);
-    }
-    void apply(const vector_type &before, vector_type &after) const
-    {
-      return python::call_method<void>(m_self, "apply", before, after);
-    }
-};
-
-
-
-
-template <typename ValueType>
-class iterative_solver_matrix_operator_wrapper : public iterative_solver_matrix_operator<ValueType>
-{
-    PyObject *m_self;
-
-  public:
-    typedef 
-      typename matrix_operator<ValueType>::vector_type
-      vector_type;
-
-    iterative_solver_matrix_operator_wrapper(PyObject *self, const iterative_solver_matrix_operator<ValueType> &)
-    : m_self(self)
-    { 
-    }
-
-    unsigned size1() const
-    {
-      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[0]);
-    }
-    unsigned size2() const
-    {
-      return python::extract<unsigned>(python::call_method<python::tuple>(m_self, "shape")[1]);
-    }
-    void apply(const vector_type &before, vector_type &after) const
-    {
-      return python::call_method<void>(m_self, "apply", before, after);
+      this->get_override("apply")(boost::cref(before), 
+                                  boost::ref(after));
     }
 };
 
@@ -219,8 +151,8 @@ python::object luWrapper(const MatrixType &a)
       sign *= -1;
   }
   
-  python::object py_result = python::make_tuple(handle_from_new_ptr(l.get()), 
-  handle_from_new_ptr(u.get()), py_permut, sign);
+  python::object py_result = python::make_tuple(python::object(l.get()), 
+  python::object(u.get()), py_permut, sign);
   l.release();
   u.release();
 
@@ -248,14 +180,10 @@ python::object luWrapper(const MatrixType &a)
   for (unsigned i = 0; i < permut.size(); i++)
     py_permut.append(permut[i]);
   
-  python::object py_result = python::make_tuple(handle_from_new_ptr(l.get()),
-						handle_from_new_ptr(u.get()), 
-						py_permut, 
-						result.get<3>());
-  l.release();
-  u.release();
-
-  return py_result;
+  return python::make_tuple(python::object(l.release()),
+                            python::object(u.release()), 
+                            py_permut, 
+                            result.get<3>());
 }
 
 
@@ -296,8 +224,8 @@ python::object luWrapper(const MatrixType &a)
       sign *= -1;
   }
   
-  python::object py_result = python::make_tuple(handle_from_new_ptr(l.get()), 
-  handle_from_new_ptr(u.get()), py_permut, sign);
+  python::object py_result = python::make_tuple(python::object(l.get()), 
+  python::object(u.get()), py_permut, sign);
   l.release();
   u.release();
 
@@ -326,9 +254,9 @@ static python::object svdWrapper(const ublas::matrix<ValueType> &a)
 
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::vector<ValueType> vec;
-  return python::make_tuple(handle_from_new_ptr(new mat(u)),
-			    handle_from_new_ptr(new vec(s)), 
-			    handle_from_new_ptr(new mat(vt)));
+  return python::make_tuple(python::object(new mat(u)),
+			    python::object(new vec(s)), 
+			    python::object(new mat(vt)));
 }
 
 
@@ -375,8 +303,8 @@ static python::object HeigenvectorsWrapper(bool get_vectors, bool upper,
 			 a_copy, *w);
 
   typedef ublas::matrix<ValueType> mat;
-  return python::make_tuple(handle_from_new_ptr(new mat(a_copy)), 
-			    handle_from_new_ptr(w.release()));
+  return python::make_tuple(python::object(new mat(a_copy)), 
+			    python::object(w.release()));
 }
 
 
@@ -416,22 +344,22 @@ static python::object eigenvectorsWrapper(unsigned get_left_vectors,
   if (get_left_vectors)
   {
     if (get_right_vectors)
-      return python::make_tuple(handle_from_new_ptr(w.release()),
-				handle_from_new_ptr(new cmat(*vl)),
-				handle_from_new_ptr(new cmat(*vr)));
+      return python::make_tuple(python::object(w.release()),
+				python::object(new cmat(*vl)),
+				python::object(new cmat(*vr)));
     else
-      return python::make_tuple(handle_from_new_ptr(w.release()),
-				handle_from_new_ptr(new cmat(*vl)),
+      return python::make_tuple(python::object(w.release()),
+				python::object(new cmat(*vl)),
 				python::object());
   }
   else
   {
     if (get_right_vectors)
-      return python::make_tuple(handle_from_new_ptr(w.release()),
+      return python::make_tuple(python::object(w.release()),
 				python::object(),
-				handle_from_new_ptr(new cmat(*vr)));
+				python::object(new cmat(*vr)));
     else
-      return python::make_tuple(handle_from_new_ptr(w.release()),
+      return python::make_tuple(python::object(w.release()),
 				python::object(),
 				python::object());
   }
@@ -460,10 +388,11 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
 {
   {
     typedef matrix_operator<ValueType> wrapped_type;
-    python::class_<wrapped_type, matrix_operator_wrapper<ValueType>, noncopyable >
-      (("MatrixOperator"+python_eltname).c_str(), python::no_init)
+    python::class_<matrix_operator_wrapper<ValueType>, noncopyable >
+      (("MatrixOperator"+python_eltname).c_str())
       .add_property("shape", &getShape<wrapped_type>)
-      .def("typecode", &typecode<wrapped_type>)
+      .def("size1", python::pure_virtual(&wrapped_type::size1))
+      .def("size2", python::pure_virtual(&wrapped_type::size2))
       .def("apply", &wrapped_type::apply)
       ;
   }
@@ -471,8 +400,8 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
   {
     typedef algorithm_matrix_operator<ValueType> wrapped_type;
     python::class_<wrapped_type, 
-    python::bases<matrix_operator<ValueType> >,
-    algorithm_matrix_operator_wrapper<ValueType>, noncopyable >
+      python::bases<matrix_operator<ValueType> >,
+      noncopyable>
       (("AlgorithmMatrixOperator"+python_eltname).c_str(), python::no_init)
       .add_property("debug_level", &wrapped_type::getDebugLevel, &wrapped_type::setDebugLevel)
       .add_property("last_iteration_count", &wrapped_type::getLastIterationCount)
@@ -481,9 +410,10 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
 
   {
     typedef iterative_solver_matrix_operator<ValueType> wrapped_type;
+
     python::class_<wrapped_type, 
-    python::bases<algorithm_matrix_operator<ValueType> >,
-    iterative_solver_matrix_operator_wrapper<ValueType>, noncopyable >
+      python::bases<algorithm_matrix_operator<ValueType> >,
+      noncopyable >
       (("IterativeSolverMatrixOperator"+python_eltname).c_str(), python::no_init)
       .add_property("max_iterations", &wrapped_type::getMaxIterations, &wrapped_type::setMaxIterations)
       .add_property("tolerance", &wrapped_type::getTolerance, &wrapped_type::setTolerance)
@@ -589,30 +519,63 @@ static typename ResultsType::vector_container::iterator endRitzVectors(ResultsTy
   return res.m_ritz_vectors.end();
 }
 
+template <typename ValueType, typename RealType>
+arpack::results<ublas::vector<std::complex<RealType> > > *wrapArpack(
+      const matrix_operator<ValueType> &op, 
+      const matrix_operator<ValueType> *m,
+      arpack::arpack_mode mode,
+      std::complex<RealType> spectral_shift,
+      int number_of_eigenvalues,
+      int number_of_arnoldi_vectors,
+      arpack::which_eigenvalues which_e,
+      RealType tolerance,
+      int max_iterations
+      )
+{
+  typedef arpack::results<ublas::vector<std::complex<RealType> > > results_type;
+  std::auto_ptr<results_type> results(new results_type());
+  try
+  {
+    arpack::performReverseCommunication(
+      op, m, mode, spectral_shift, 
+      number_of_eigenvalues, number_of_arnoldi_vectors,
+      *results, ublas::vector<ValueType>(),
+      which_e, tolerance, max_iterations);
+  }
+  catch (std::exception &ex)
+  {
+    std::cerr << ex.what() << std::endl;
+    throw;
+  }
+  return results.release();
+}
+
+
+
+
 template <typename ValueType>
 static void exposeArpack(const std::string &python_valuetypename, ValueType)
 {
-  using namespace boost::python;
+  typedef typename arpack::results<ublas::vector<ValueType> > results_type;
+  typedef typename ublas::type_traits<ValueType>::real_type real_type;
 
-  typedef typename arpack::results<ValueType> results_type;
-
-  class_<results_type>
+  python::class_<results_type>
     (("ArpackResults"+python_valuetypename).c_str())
     .add_property("RitzValues", 
-        range(beginRitzValues<results_type>, endRitzValues<results_type>))
+        python::range(beginRitzValues<results_type>, endRitzValues<results_type>))
     .add_property("RitzVectors", 
-        range(beginRitzVectors<results_type>, endRitzVectors<results_type>))
+        python::range(beginRitzVectors<results_type>, endRitzVectors<results_type>))
     ;
 
-  def("runArpack", arpack::doReverseCommunication<ValueType>,
-      return_value_policy<manage_new_object>());
+  python::def("runArpack", wrapArpack<ValueType, real_type>,
+              python::return_value_policy<python::manage_new_object>());
 }
 
 
 
 
 // main -----------------------------------------------------------------------
-BOOST_PYTHON_MODULE(_algorithms)
+BOOST_PYTHON_MODULE(_operation)
 {
   exposeMatrixOperators("Float64", double());
   exposeMatrixOperators("Complex64", std::complex<double>());

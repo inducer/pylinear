@@ -634,6 +634,33 @@ struct dense_pickle_suite : python::pickle_suite
 
 
 
+template <typename PythonClass, typename WrappedClass>
+static void exposePickling(PythonClass &pyc, WrappedClass)
+{
+  pyc.def_pickle(sparse_pickle_suite<WrappedClass>());
+}
+
+
+
+
+template <typename PythonClass, typename V>
+static void exposePickling(PythonClass &pyc, ublas::matrix<V>)
+{
+  pyc.def_pickle(dense_pickle_suite<ublas::matrix<V> >());
+}
+
+
+
+
+template <typename PythonClass, typename V>
+static void exposePickling(PythonClass &pyc, ublas::vector<V>)
+{
+  pyc.def_pickle(dense_pickle_suite<ublas::vector<V> >());
+}
+
+
+
+
 // specialty constructors -----------------------------------------------------
 template <typename MatrixType>
 static MatrixType *getFilledMatrix(
@@ -667,22 +694,10 @@ template <typename MatrixType>
 MatrixType negateOp(const MatrixType &m) { return -m; }
 
 template <typename MatrixType>
-MatrixType plusOp(const MatrixType &m1, const MatrixType &m2) { return m1+m2; }
-
-template <typename MatrixType>
-MatrixType minusOp(const MatrixType &m1, const MatrixType &m2) { return m1-m2; }
-
-template <typename MatrixType>
 MatrixType *plusAssignOp(MatrixType &m1, const MatrixType &m2) { m1 += m2; return &m1; }
 
 template <typename MatrixType>
 MatrixType *minusAssignOp(MatrixType &m1, const MatrixType &m2) { m1 -= m2; return &m1; }
-
-template <typename MatrixType, typename Scalar>
-MatrixType scalarTimesOp(const MatrixType &m1, const Scalar &s) { return m1 * s; }
-
-template <typename MatrixType, typename Scalar>
-MatrixType scalarDivideOp(const MatrixType &m1, const Scalar &s) { return m1 / s; }
 
 template <typename MatrixType, typename Scalar>
 MatrixType *scalarTimesAssignOp(MatrixType &m1, const Scalar &s) { m1 *= s; return &m1; }
@@ -698,37 +713,6 @@ template <typename MatrixType>
 inline MatrixType *copyNew(const MatrixType &m)
 {
   return new MatrixType(m);
-}
-
-
-
-
-template <typename MatrixType>
-static MatrixType *multiplyInPlaceByScalar(MatrixType &mat,
-                                           const typename MatrixType::value_type &scalar)
-{
-  return &(mat *= scalar);
-}
-
-
-
-
-template <typename MatrixType>
-static MatrixType *multiplyInPlaceByMatrix(MatrixType &mat,
-                                           const MatrixType &mat2)
-{
-  mat = prod(mat, mat2);
-  return &mat;
-}
-
-
-
-
-template <typename MatrixType>
-static MatrixType *divideInPlaceByScalar(MatrixType &mat,
-                                           const typename MatrixType::value_type &scalar)
-{
-  return &(mat /= scalar);
 }
 
 
@@ -818,20 +802,8 @@ struct conjugateWrapper
 
 
 
-template <typename T>
-inline std::string stringify(const T &obj)
-{
-  std::stringstream stream;
-  stream << obj;
-  return stream.rdbuf()->str();
-}
-
-
-
-
-
 template <typename MatrixType>
-void addScattered(MatrixType &mat, 
+void addScatteredBackend(MatrixType &mat, 
     python::object row_indices, 
     python::object column_indices,
     const ublas::matrix<typename MatrixType::value_type> &little_mat)
@@ -844,39 +816,52 @@ void addScattered(MatrixType &mat,
   if (row_count != little_mat.size1() || column_count != little_mat.size2())
     throw std::runtime_error("addScattered: sizes don't match");
 
-  // FIXME: HACK
-  if (helpers::isCoordinateMatrix(mat))
+  for (unsigned int row = 0; row < row_count; ++row)
   {
-    for (unsigned int row = 0; row < row_count; ++row)
-    {
-      int dest_row = extract<int>(row_indices[row]);
-      if (dest_row < 0)
-	continue;
+    int dest_row = extract<int>(row_indices[row]);
+    if (dest_row < 0)
+      continue;
 
-      for (unsigned col = 0; col < column_count; ++col)
-      {
-	int dest_col = extract<int>(column_indices[col]);
-	if (dest_col < 0)
-	  continue;
-        mat.insert_element(dest_row, dest_col, little_mat(row, col));
-      }
+    for (unsigned col = 0; col < column_count; ++col)
+    {
+      int dest_col = extract<int>(column_indices[col]);
+      if (dest_col < 0)
+        continue;
+      mat(dest_row, dest_col) += little_mat(row, col);
     }
   }
-  else
-  {
-    for (unsigned int row = 0; row < row_count; ++row)
-    {
-      int dest_row = extract<int>(row_indices[row]);
-      if (dest_row < 0)
-	continue;
+}
 
-      for (unsigned col = 0; col < column_count; ++col)
-      {
-	int dest_col = extract<int>(column_indices[col]);
-	if (dest_col < 0)
-	  continue;
-        mat(dest_row, dest_col) += little_mat(row, col);
-      }
+
+
+
+template <typename V>
+void addScatteredBackend(ublas::coordinate_matrix<V> &mat, 
+    python::object row_indices, 
+    python::object column_indices,
+    const ublas::matrix<V> &little_mat)
+{
+  using namespace boost::python;
+
+  unsigned row_count = extract<unsigned>(row_indices.attr("__len__")());
+  unsigned column_count = extract<unsigned>(column_indices.attr("__len__")());
+
+  if (row_count != little_mat.size1() || column_count != little_mat.size2())
+    throw std::runtime_error("addScattered: sizes don't match");
+
+  // FIXME: HACK
+  for (unsigned int row = 0; row < row_count; ++row)
+  {
+    int dest_row = extract<int>(row_indices[row]);
+    if (dest_row < 0)
+      continue;
+
+    for (unsigned col = 0; col < column_count; ++col)
+    {
+      int dest_col = extract<int>(column_indices[col]);
+      if (dest_col < 0)
+        continue;
+      mat.append_element(dest_row, dest_col, little_mat(row, col));
     }
   }
 }
@@ -885,52 +870,13 @@ void addScattered(MatrixType &mat,
 
 
 template <typename MatrixType>
-inline void addScatteredSymmetric(MatrixType &mat, 
-    python::object indices, 
+void addScattered(MatrixType &mat, 
+    python::object row_indices, 
+    python::object column_indices,
     const ublas::matrix<typename MatrixType::value_type> &little_mat)
 {
-  using namespace boost::python;
-
-  unsigned index_count = extract<unsigned>(indices.attr("__len__")());
-
-  if (index_count != little_mat.size1() || index_count != little_mat.size2())
-    throw std::runtime_error("addScatteredSymmetric: sizes don't match");
-
-  // FIXME: hack
-  if (helpers::isCoordinateMatrix(mat))
-  {
-    for (unsigned int row = 0; row < index_count; ++row)
-    {
-      int dest_row = extract<int>(indices[row]);
-      if (dest_row < 0)
-        continue;
-
-      for (unsigned col = 0; col < index_count; ++col)
-      {
-        int dest_col = extract<int>(indices[col]);
-        if (dest_col < 0)
-          continue;
-        mat.insert_element(dest_row, dest_col, little_mat(row, col));
-      }
-    }
-  }
-  else
-  {
-    for (unsigned int row = 0; row < index_count; ++row)
-    {
-      int dest_row = extract<int>(indices[row]);
-      if (dest_row < 0)
-        continue;
-
-      for (unsigned col = 0; col < index_count; ++col)
-      {
-        int dest_col = extract<int>(indices[col]);
-        if (dest_col < 0)
-          continue;
-        mat(dest_row, dest_col) += little_mat(row, col);
-      }
-    }
-  }
+  // FIXME: HACK to accomodate for append_element non-availability
+  addScatteredBackend(mat, row_indices, column_indices, little_mat);
 }
 
 
@@ -1151,177 +1097,252 @@ namespace ufuncs
         const typename Function::second_argument_type &a2, 
         const typename Function::first_argument_type &a1)
     {
-      Function f;
-      return f(a1, a2);
+      return Function()(a1, a2);
     }
   };
 
 
 
 
-  template <typename MatrixType, typename Function, typename _is_vector = typename is_vector<MatrixType>::type>
-  struct binary_ufunc_applicator
+  template <typename Function, typename MatrixType>
+  static PyObject *applyBackend(Function f, const MatrixType &m1, python::object obj)
   {
-    template <typename RealFunction>
-    static MatrixType *applyBackend(RealFunction f, const MatrixType &m1, python::object obj)
+    typedef 
+      typename MatrixType::value_type
+      value_type;
+    typedef 
+      ublas::vector<value_type>
+      vector_type;
+    typedef 
+      typename decomplexify<value_type>::type
+      nc_value_type;
+    typedef 
+      typename MatrixType::const_iterator1 
+      it1_t;
+    typedef 
+      typename MatrixType::const_iterator2 
+      it2_t;
+
+    python::extract<const MatrixType &> m2_extractor(obj);
+    python::extract<const vector_type &> v2_extractor(obj);
+    python::extract<value_type> s2_extractor(obj);
+    python::extract<nc_value_type> n2_extractor(obj);
+
+    std::auto_ptr<MatrixType> new_mat(new MatrixType(m1.size1(), m1.size2()));
+
+    if (m2_extractor.check())
     {
-      typedef 
-        typename MatrixType::value_type
-        value_type;
-      typedef 
-        ublas::vector<value_type>
-        vector_type;
-      typedef 
-        typename decomplexify<value_type>::type
-        nc_value_type;
-      typedef 
-        typename MatrixType::const_iterator1 
-        it1_t;
-      typedef 
-        typename MatrixType::const_iterator2 
-        it2_t;
+      const MatrixType &m2 = m2_extractor();
 
-      python::extract<const MatrixType &> m2_extractor(obj);
-      python::extract<const vector_type &> v2_extractor(obj);
-      python::extract<value_type> s2_extractor(obj);
-      python::extract<nc_value_type> n2_extractor(obj);
+      if (m1.size1() != m2.size1() || m1.size2() != m2.size2())
+        throw std::runtime_error("cannot apply binary ufunc to arrays of different sizes");
 
-      std::auto_ptr<MatrixType> new_mat(new MatrixType(m1.size1(), m1.size2()));
+      for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
+        for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
+          new_mat->insert_element(it2.index1(), it2.index2(), 
+                          f(*it2, m2(it2.index1(), it2.index2())));
+    }
+    else if (v2_extractor.check())
+    {
+      const vector_type &v2 = v2_extractor();
 
-      if (m2_extractor.check())
-      {
-        const MatrixType &m2 = m2_extractor();
+      if (m1.size2() != v2.size())
+        throw std::runtime_error("cannot apply binary ufunc to arrays of different sizes");
 
-        if (m1.size1() != m2.size1() || m1.size2() != m2.size2())
-          throw std::runtime_error("cannot apply binary ufunc to arrays of different sizes");
+      for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
+        for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
+          new_mat->insert_element(it2.index1(), it2.index2(), 
+                          f(*it2, v2(it2.index2())));
+    }
+    else if (s2_extractor.check())
+    {
+      value_type s2 = s2_extractor();
 
-        for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
-          for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert_element(it2.index1(), it2.index2(), 
-                            f(*it2, m2(it2.index1(), it2.index2())));
-      }
-      else if (v2_extractor.check())
-      {
-        const vector_type &v2 = v2_extractor();
+      for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
+        for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
+          new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, s2));
+    }
+    else if (n2_extractor.check())
+    {
+      value_type n2 = n2_extractor();
 
-        if (m1.size2() != v2.size())
-          throw std::runtime_error("cannot apply binary ufunc to arrays of different sizes");
-
-        for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
-          for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert_element(it2.index1(), it2.index2(), 
-                            f(*it2, v2(it2.index2())));
-      }
-      else if (s2_extractor.check())
-      {
-        value_type s2 = s2_extractor();
-
-        for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
-          for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, s2));
-      }
-      else if (n2_extractor.check())
-      {
-        value_type n2 = n2_extractor();
-
-        for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
-          for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
-            new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, n2));
-      }
-      else
-      {
-	PyErr_SetString(PyExc_TypeError, "unidentified second operand to matrix ufunc");
-	throw python::error_already_set();
-      }
-
-      return new_mat.release();
+      for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
+        for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
+          new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, n2));
+    }
+    else
+    {
+      Py_INCREF(Py_NotImplemented);
+      return Py_NotImplemented;
     }
 
-    static MatrixType *apply(const MatrixType &m1, python::object obj)
-    {
-      return applyBackend(Function(), m1, obj);
-    }
+    return pyobject_from_new_ptr(new_mat.release());
+  }
 
-    static MatrixType *applyReversed(const MatrixType &m2, python::object obj)
-    {
-      return applyBackend(reverse_binary_function<Function>(), m2, obj);
-    }
-  };
-
-
-
-
-  template <typename MatrixType, typename Function>
-  struct binary_ufunc_applicator<MatrixType, Function, mpl::true_>
+  template <typename RealFunction, typename V>
+  static PyObject *applyBackend(RealFunction f, const ublas::vector<V> &m1, python::object obj)
   {
-    template <typename RealFunction>
-    static MatrixType *applyBackend(RealFunction f, const MatrixType &m1, python::object obj)
+    typedef 
+      typename ublas::vector<V>
+      vector_type;
+    typedef 
+      typename vector_type::value_type
+      value_type;
+    typedef 
+      typename decomplexify<value_type>::type
+      nc_value_type;
+    typedef 
+      typename vector_type::const_iterator
+      it_t;
+
+    python::extract<const vector_type &> m2_extractor(obj);
+    python::extract<value_type> s2_extractor(obj);
+    python::extract<nc_value_type> n2_extractor(obj);
+
+    std::auto_ptr<vector_type> new_vec(new vector_type(m1.size()));
+
+    if (m2_extractor.check())
     {
-      typedef 
-        typename MatrixType::value_type
-        value_type;
-      typedef 
-        typename decomplexify<value_type>::type
-        nc_value_type;
-      typedef 
-        typename MatrixType::const_iterator
-        it_t;
+      const vector_type &m2 = m2_extractor();
 
-      python::extract<const MatrixType &> m2_extractor(obj);
-      python::extract<value_type> s2_extractor(obj);
-      python::extract<nc_value_type> n2_extractor(obj);
+      if (m1.size() != m2.size())
+        throw std::runtime_error("cannot apply binary ufunc to vectors of different sizes");
 
-      std::auto_ptr<MatrixType> new_mat(new MatrixType(m1.size()));
+      for (it_t it = m1.begin(); it != m1.end(); ++it) 
+        new_vec->insert_element(it.index(), f(*it, m2(it.index())));
+    }
+    else if (s2_extractor.check())
+    {
+      value_type s2 = s2_extractor();
 
-      if (m2_extractor.check())
-      {
-        const MatrixType &m2 = m2_extractor();
+      for (it_t it = m1.begin(); it != m1.end(); ++it) 
+        new_vec->insert_element(it.index(), f(*it, s2));
+    }
+    else if (n2_extractor.check())
+    {
+      value_type n2 = n2_extractor();
 
-        if (m1.size() != m2.size())
-          throw std::runtime_error("cannot apply binary ufunc to vectors of different sizes");
+      for (it_t it = m1.begin(); it != m1.end(); ++it) 
+        new_vec->insert_element(it.index(), f(*it, n2));
+    }
+    else
+    {
+      Py_INCREF(Py_NotImplemented);
+      return Py_NotImplemented;
+    }
 
-        for (it_t it = m1.begin(); it != m1.end(); ++it) 
-          new_mat->insert_element(it.index(), f(*it, m2(it.index())));
-      }
-      else if (s2_extractor.check())
-      {
-        value_type s2 = s2_extractor();
+    return pyobject_from_new_ptr(new_vec.release());
+  }
 
-        for (it_t it = m1.begin(); it != m1.end(); ++it) 
-          new_mat->insert_element(it.index(), f(*it, s2));
-      }
-      else if (n2_extractor.check())
-      {
-        value_type n2 = n2_extractor();
-
-        for (it_t it = m1.begin(); it != m1.end(); ++it) 
-          new_mat->insert_element(it.index(), f(*it, n2));
-      }
+  template<typename Function, typename MatrixType, typename Name>
+  static PyObject *apply(python::object op1, python::object op2)
+  {
+    PyObject *result = applyBackend(Function(), python::extract<MatrixType>(op1)(), op2);
+    if (result != Py_NotImplemented)
+      return result;
+    else
+    {
+      Py_DECREF(result);
+      PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                             (std::string("_ufunc_") + Name::m_name).c_str(), 
+                                             op2.ptr());
+      if (result == 0)
+        throw python::error_already_set();
       else
-      {
-	PyErr_SetString(PyExc_TypeError, "unidentified second operand to matrix ufunc");
-	throw python::error_already_set();
-      }
-
-      return new_mat.release();
+        return result;
     }
+  }
 
-    static MatrixType *apply(const MatrixType &m1, python::object obj)
+  template<typename Function, typename MatrixType>
+  static PyObject *applyWithoutCoercion(const MatrixType &op1, python::object op2)
+  {
+    return applyBackend(Function(), op1, op2);
+  }
+
+  template<typename Function, typename MatrixType, typename Name>
+  static PyObject *applyReversed(python::object op1, python::object op2)
+  {
+    PyObject *result = applyBackend(reverse_binary_function<Function>(), 
+                                    python::extract<MatrixType>(op1)(), op2);
+    if (result != Py_NotImplemented)
+      return result;
+    else
     {
-      return applyBackend(Function(), m1, obj);
+      Py_DECREF(result);
+      PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                             (std::string("_reverse_ufunc_") + Name::m_name).c_str(), 
+                                             op2.ptr());
+      if (result == 0)
+        throw python::error_already_set();
+      else
+        return result;
     }
+  }
 
-    static MatrixType *applyReversed(const MatrixType &m2, python::object obj)
-    {
-      return applyBackend(reverse_binary_function<Function>(), m2, obj);
-    }
-  };
+  template<typename Function, typename MatrixType>
+  static PyObject *applyReversedWithoutCoercion(const MatrixType &op1, python::object op2)
+  {
+    return applyBackend(reverse_binary_function<Function>(), op1, op2);
+  }
+
+  #define DECLARE_NAME_STRUCT(NAME) \
+  struct name_##NAME { static const char *m_name; }; const char *name_##NAME::m_name = #NAME;
+
+  DECLARE_NAME_STRUCT(add);
+  DECLARE_NAME_STRUCT(subtract);
+  DECLARE_NAME_STRUCT(multiply);
+  DECLARE_NAME_STRUCT(divide);
+  DECLARE_NAME_STRUCT(divide_safe);
+  DECLARE_NAME_STRUCT(power);
+  DECLARE_NAME_STRUCT(maximum);
+  DECLARE_NAME_STRUCT(minimum);
 }
 
 
 
 
+
+
+
+
 // wrapper for stuff that is common to vectors and matrices -------------------
+template <typename MatrixType>
+typename MatrixType::value_type
+sum(MatrixType &mat)
+{
+  generic_ublas::matrix_iterator<MatrixType>
+    first = generic_ublas::begin(mat),
+    last = generic_ublas::end(mat);
+    
+  typename MatrixType::value_type result = 0;
+  while (first != last)
+    result += *first++;
+  return result;
+}
+
+
+
+
+template <typename MatrixType>
+typename helpers::decomplexify<typename MatrixType::value_type>::type
+abs_square_sum(MatrixType &mat)
+{
+  generic_ublas::matrix_iterator<MatrixType>
+    first = generic_ublas::begin(mat),
+    last = generic_ublas::end(mat);
+    
+  typedef 
+    typename helpers::decomplexify<typename MatrixType::value_type>::type 
+    real_type;
+  real_type result = 0;
+  while (first != last)
+    result += helpers::absolute_value_squared(*first++);
+  return result;
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
 static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 {
@@ -1357,25 +1378,27 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 #undef MAKE_UNARY_UFUNC
 
 #define MAKE_BINARY_UFUNC(NAME, f) \
-  pyc.def("_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
-      f<value_type> >::apply, \
-      python::return_value_policy<python::manage_new_object>());
+  pyc.def("_ufunc_" #NAME, ufuncs::apply \
+          <f<value_type>, WrappedClass, ufuncs::name_##NAME>); \
+  pyc.def("_nocast__ufunc_" #NAME, ufuncs::applyWithoutCoercion \
+          <f<value_type>, WrappedClass>);
 #define MAKE_REVERSE_BINARY_UFUNC(NAME, f) \
-  pyc.def("_reverse_ufunc_" NAME, ufuncs::binary_ufunc_applicator<WrappedClass, \
-      f<value_type> >::applyReversed, \
-      python::return_value_policy<python::manage_new_object>());
-  MAKE_BINARY_UFUNC("add", std::plus);
-  MAKE_BINARY_UFUNC("subtract", std::minus);
-  MAKE_REVERSE_BINARY_UFUNC("subtract", std::minus);
-  MAKE_BINARY_UFUNC("multiply", std::multiplies);
-  MAKE_BINARY_UFUNC("divide", std::divides);
-  MAKE_REVERSE_BINARY_UFUNC("divide", std::divides);
-  MAKE_BINARY_UFUNC("divide_safe", std::divides); // FIXME: bogus
-  MAKE_REVERSE_BINARY_UFUNC("divide_safe", std::divides); // FIXME: bogus
-  MAKE_BINARY_UFUNC("power", ufuncs::power);
-  MAKE_REVERSE_BINARY_UFUNC("power", ufuncs::power);
-  MAKE_BINARY_UFUNC("maximum", ufuncs::maximum);
-  MAKE_BINARY_UFUNC("minimum", ufuncs::minimum);
+  pyc.def("_reverse_ufunc_" #NAME, ufuncs::applyReversed \
+          <f<value_type>, WrappedClass, ufuncs::name_##NAME>); \
+  pyc.def("_nocast__reverse_ufunc_" #NAME, ufuncs::applyReversedWithoutCoercion \
+          <f<value_type>, WrappedClass>);
+  MAKE_BINARY_UFUNC(add, std::plus);
+  MAKE_BINARY_UFUNC(subtract, std::minus);
+  MAKE_REVERSE_BINARY_UFUNC(subtract, std::minus);
+  MAKE_BINARY_UFUNC(multiply, std::multiplies);
+  MAKE_BINARY_UFUNC(divide, std::divides);
+  MAKE_REVERSE_BINARY_UFUNC(divide, std::divides);
+  MAKE_BINARY_UFUNC(divide_safe, std::divides); // FIXME: bogus
+  MAKE_REVERSE_BINARY_UFUNC(divide_safe, std::divides); // FIXME: bogus
+  MAKE_BINARY_UFUNC(power, ufuncs::power);
+  MAKE_REVERSE_BINARY_UFUNC(power, ufuncs::power);
+  MAKE_BINARY_UFUNC(maximum, ufuncs::maximum);
+  MAKE_BINARY_UFUNC(minimum, ufuncs::minimum);
 #undef MAKE_BINARY_UFUNC
 }
 
@@ -1387,7 +1410,6 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
   pyc
-    .def("typecode", &typecode<WrappedClass>)
     .def("copy", copyNew<WrappedClass>, 
         python::return_value_policy<python::manage_new_object>())
     .def("clear", &WrappedClass::clear)
@@ -1401,26 +1423,19 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__getitem__", (python::object (*)(const WrappedClass &, PyObject *)) getElement)
     .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
-    // stringification
-    .def("__repr__", &stringify<WrappedClass>) // FIXME: doesn't quite conform to requirements
-
     // unary negation
     .def("__neg__", negateOp<WrappedClass>)
 
     // container - container
-    .def("__add__", plusOp<WrappedClass>)
-    .def("__sub__", minusOp<WrappedClass>)
     .def("__iadd__", plusAssignOp<WrappedClass>, python::return_self<>())
     .def("__isub__", minusAssignOp<WrappedClass>, python::return_self<>())
+
+    .def("sum", sum<WrappedClass>)
+    .def("abs_square_sum", abs_square_sum<WrappedClass>)
     ;
 
   exposeUfuncs(pyc, WrappedClass());
-
-  // pickling
-  if (helpers::isSparse(WrappedClass()))
-    pyc.def_pickle(sparse_pickle_suite<WrappedClass>());
-  else
-    pyc.def_pickle(dense_pickle_suite<WrappedClass>());
+  exposePickling(pyc, WrappedClass());
 }
 
 
@@ -1464,9 +1479,86 @@ static void exposeIterator(PythonClass &pyc, const std::string &python_typename,
 
 
 
+template <typename MatrixType>
+static PyObject *divideByScalarWithoutCoercion(python::object op1, python::object op2)
+{
+  python::extract<typename MatrixType::value_type> op2_scalar(op2);
+  if (op2_scalar.check())
+  {
+    const MatrixType &mat = python::extract<MatrixType>(op1);
+    return pyobject_from_new_ptr(new MatrixType(mat / op2_scalar()));
+  }
+
+  Py_INCREF(Py_NotImplemented);
+  return Py_NotImplemented;
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *divideByScalar(python::object op1, python::object op2)
+{
+  PyObject *result = divideByScalarWithoutCoercion<MatrixType>(op1, op2);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "div", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
+  }
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *divideByScalarInPlaceWithoutCoercion(python::object op1, python::object op2)
+{
+  python::extract<typename MatrixType::value_type> op2_scalar(op2);
+  if (op2_scalar.check())
+  {
+    MatrixType &mat = python::extract<MatrixType &>(op1);
+    mat /= op2_scalar();
+    return pyobject_from_object(op1);
+  }
+
+  Py_INCREF(Py_NotImplemented);
+  return Py_NotImplemented;
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *divideByScalarInPlace(python::object op1, python::object op2)
+{
+  PyObject *result = divideByScalarInPlaceWithoutCoercion<MatrixType>(op1, op2);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "idiv", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
+  }
+}
+
+
+
+
 // vector wrapper -------------------------------------------------------------
 template <typename VectorType>
-static PyObject *multiplyVectorBase(python::object op1, python::object op2)
+static PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
 {
   typedef typename VectorType::value_type value_t;
 
@@ -1495,14 +1587,18 @@ static PyObject *multiplyVectorBase(python::object op1, python::object op2)
 template <typename VectorType>
 static PyObject *multiplyVector(python::object op1, python::object op2)
 {
-  PyObject *result = multiplyVectorBase<VectorType>(op1, op2);
+  PyObject *result = multiplyVectorWithoutCoercion<VectorType>(op1, op2);
   if (result != Py_NotImplemented)
     return result;
   else
   {
     Py_DECREF(result);
-    return PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                               "mul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "mul", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
   }
 }
 
@@ -1510,9 +1606,40 @@ static PyObject *multiplyVector(python::object op1, python::object op2)
 
 
 template <typename VectorType>
-static PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
+static PyObject *multiplyVectorOuterWithoutCoercion(python::object op1, python::object op2)
 {
-  return multiplyVectorBase<VectorType>(op1, op2);
+  typedef typename VectorType::value_type value_type;
+  python::extract<VectorType> op2_vec(op2);
+  if (op2_vec.check())
+  {
+    const VectorType &vec = python::extract<VectorType>(op1);
+    const VectorType &vec2 = op2_vec();
+    return pyobject_from_new_ptr(new ublas::matrix<value_type>(outer_prod(vec, vec2)));
+  }
+
+  Py_INCREF(Py_NotImplemented);
+  return Py_NotImplemented;
+}
+
+
+
+
+template <typename VectorType>
+static PyObject *multiplyVectorOuter(python::object op1, python::object op2)
+{
+  PyObject *result = multiplyVectorOuterWithoutCoercion<VectorType>(op1, op2);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "_outerproduct", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
+  }
 }
 
 
@@ -1532,16 +1659,17 @@ static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
     // products
     .def("__mul__", multiplyVector<WrappedClass>)
     .def("__rmul__", multiplyVector<WrappedClass>)
-    .def("_nocast__mul__", multiplyVectorWithoutCoercion<WrappedClass>)
-    .def("__imul__", multiplyInPlaceByScalar<WrappedClass>,
-         python::return_self<>())
-    .def("__idiv__", divideInPlaceByScalar<WrappedClass>,
-         python::return_self<>());
-  /*
-  pyc
-    .def("_internal_outerproduct", outer_prodWrapper<WrappedClass, WrappedClass>::apply,
-	 python::return_value_policy<python::manage_new_object>());
-  */
+    .def("_nocast_mul", multiplyVectorWithoutCoercion<WrappedClass>)
+
+    .def("__div__", divideByScalar<WrappedClass>)
+    .def("_nocast_div", divideByScalarWithoutCoercion<WrappedClass>)
+    .def("__idiv__", divideByScalarInPlace<WrappedClass>)
+    .def("_nocast_idiv", divideByScalarInPlaceWithoutCoercion<WrappedClass>)
+
+    .def("_outerproduct", multiplyVectorOuter<WrappedClass>)
+    .def("_nocast__outerproduct", multiplyVectorOuterWithoutCoercion<WrappedClass>)
+    ;
+	 
 }
 
 
@@ -1625,7 +1753,7 @@ static PyObject *multiplyMatrixBase(python::object op1, python::object op2,
   {
     const MatrixType &mat = python::extract<MatrixType>(op1);
     const vector_t &vec = op2_vec();
-    if (mat.size1() != vec.size())
+    if (mat.size2() != vec.size())
       throw std::runtime_error("matrix size doesn't match vector");
 
     std::auto_ptr<ublas::vector<typename MatrixType::value_type> > result(new
@@ -1661,8 +1789,12 @@ static PyObject *multiplyMatrix(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    return PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                               "mul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "mul", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
   }
 }
 
@@ -1687,8 +1819,12 @@ static PyObject *rmultiplyMatrix(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    return PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                               "rmul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "rmul", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
   }
 }
 
@@ -1699,6 +1835,59 @@ template <typename MatrixType>
 static PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 {
   return multiplyMatrixBase<MatrixType>(op1, op2, true);
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::object op2)
+{
+  python::extract<MatrixType> op2_mat(op2);
+  if (op2_mat.check())
+  {
+    MatrixType &mat = python::extract<MatrixType &>(op1);
+    const MatrixType &mat2 = op2_mat();
+    if (mat.size2() != mat2.size1())
+      throw std::runtime_error("matrix sizes don't match");
+
+    // FIXME: aliasing!
+    mat = prod(mat, mat2);
+
+    return pyobject_from_object(op1);
+  }
+
+  python::extract<typename MatrixType::value_type> op2_scalar(op2);
+  if (op2_scalar.check())
+  {
+    MatrixType &mat = python::extract<MatrixType &>(op1);
+    mat *= op2_scalar();
+    return pyobject_from_object(op1);
+  }
+
+  Py_INCREF(Py_NotImplemented);
+  return Py_NotImplemented;
+}
+
+
+
+
+template <typename MatrixType>
+static PyObject *multiplyMatrixInPlace(python::object op1, python::object op2)
+{
+  PyObject *result = multiplyMatrixInPlaceWithoutCoercion<MatrixType>(op1, op2);
+  if (result != Py_NotImplemented)
+    return result;
+  else
+  {
+    Py_DECREF(result);
+    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
+                                           "imul", op2.ptr());
+    if (result == 0)
+      throw python::error_already_set();
+    else
+      return result;
+  }
 }
 
 
@@ -1718,22 +1907,20 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
     // products
     .def("__mul__", multiplyMatrix<WrappedClass>)
     .def("__rmul__", rmultiplyMatrix<WrappedClass>)
-    .def("_nocast__mul__", multiplyMatrixWithoutCoercion<WrappedClass>)
-    .def("_nocast__rmul__", rmultiplyMatrixWithoutCoercion<WrappedClass>)
-    .def("__imul__", multiplyInPlaceByScalar<WrappedClass>,
-         python::return_self<>())
-    .def("__imul__", multiplyInPlaceByMatrix<WrappedClass>,
-         python::return_self<>())
-    /*
-    .def("__div__", scalarDivideOp<WrappedClass, double>)
-    .def("__idiv__", scalarDivideAssignOp<WrappedClass, double>, python::return_self<>())
-    */
+    .def("_nocast_mul", multiplyMatrixWithoutCoercion<WrappedClass>)
+    .def("_nocast_rmul", rmultiplyMatrixWithoutCoercion<WrappedClass>)
 
-    .def("addScattered", addScattered<WrappedClass>)
-    .def("addScatteredSymmetric", addScatteredSymmetric<WrappedClass>)
-    .def("solveLower", solveLower<WrappedClass>,
+    .def("__imul__", multiplyMatrixInPlace<WrappedClass>)
+    .def("_nocast_imul", multiplyMatrixInPlaceWithoutCoercion<WrappedClass>)
+    .def("__div__", divideByScalar<WrappedClass>)
+    .def("_nocast_div", divideByScalarWithoutCoercion<WrappedClass>)
+    .def("__idiv__", divideByScalarInPlace<WrappedClass>)
+    .def("_nocast_idiv", divideByScalarInPlaceWithoutCoercion<WrappedClass>)
+
+    .def("add_scattered", addScattered<WrappedClass>)
+    .def("solve_lower", solveLower<WrappedClass>,
 	 python::return_value_policy<python::manage_new_object>())
-    .def("solveUpper", solveUpper<WrappedClass>,
+    .def("solve_upper", solveUpper<WrappedClass>,
 	 python::return_value_policy<python::manage_new_object>())
     ;
 }
@@ -1763,26 +1950,47 @@ public:
 
 
 
+template <typename PYC, typename MT>
+static void exposeMatrixSpecialties(PYC, MT)
+{
+}
+
+
+
+
+template <typename PYC, typename VT, typename L, std::size_t IB, typename IA>
+static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB, IA>)
+{
+  typedef ublas::compressed_matrix<VT, L, IB, IA> matrix_type;
+
+  pyc
+    .def("complete_index1_data", &matrix_type::complete_index1_data);
+}
+
+
+
+
 template <typename WrappedClass>
 static void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
-  class_<WrappedClass> pyclass(total_typename.c_str());
+  class_<WrappedClass> pyc(total_typename.c_str());
 
-  pyclass
+  pyc
     .def(python::init<typename WrappedClass::size_type, 
         typename WrappedClass::size_type>())
 
     // special constructors
-    .def("getFilledMatrix", &getFilledMatrix<WrappedClass>,
+    .def("_get_filled_matrix", &getFilledMatrix<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
-    .staticmethod("getFilledMatrix")
+    .staticmethod("_get_filled_matrix")
     ;
 
-  exposeMatrixConcept(pyclass, WrappedClass());
-  exposeIterator(pyclass, total_typename, WrappedClass());
-  exposeForMatricesConvertibleTo(matrix_converter_exposer<class_<WrappedClass> >(pyclass), 
+  exposeMatrixConcept(pyc, WrappedClass());
+  exposeIterator(pyc, total_typename, WrappedClass());
+  exposeForMatricesConvertibleTo(matrix_converter_exposer<class_<WrappedClass> >(pyc), 
       typename WrappedClass::value_type());
+  exposeMatrixSpecialties(pyc, WrappedClass());
 }
 
 

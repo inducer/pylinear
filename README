@@ -14,10 +14,6 @@ save time in arpack:
   make it possible to take advantage of difference IDO=+/- 1
 
 QUESTIONS:
-BPL: non-compiling derivation example
-  -> impact on matrix operators
-BPL: PyNumberMethods?
-BPL: why can't you specify call policies for attributes in Boost.Python?
 UBLAS: unify indexing, provide multidimensional arrays
 UBLAS: managed_XXX_adaptor
 UBLAS: doc bug: h/s_adaptors don't have expression constructors
@@ -31,6 +27,3 @@ UBLAS: lu doesn't have any headers included
 UBLAS: insert discrepance: coordinate_matrix vs. everybody else.
 UBLAS: Warum ist end2 nicht das Ende der Matrix?
 UBLAS: Was ist rank bei find1/2?
-
-out-of-bounds index [0:8, 0:8] on 6x6 matrix causes no error
-utilize __coerce__

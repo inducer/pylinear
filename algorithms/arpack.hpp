@@ -1,20 +1,41 @@
+/*
+ * Copyright (c) Andreas Kloeckner 2005
+ *
+ * Permission to copy, modify, use and distribute this software 
+ * for any non-commercial or commercial purpose is granted provided 
+ * that this license appear on all copies of the software source code.
+ *
+ * Author assumes no responsibility whatsoever for its use and makes 
+ * no guarantees about its quality, correctness or reliability.
+ *
+ * Author acknowledges the support of the Institut fuer Angewandte 
+ * Mathematik II, Universitaet Karlsruhe, Germany.
+ */
+
+/* 
+ * For ARPACK Copyright, License and Availability see 
+ * detail/arpack_proto.hpp 
+ */ 
+
+
+
+
 #ifndef HEADER_SEEN_ARPACK_HPP
 #define HEADER_SEEN_ARPACK_HPP
 
 
 
 
+#include <boost/scoped_array.hpp>  	
 #include <matrix_operator.hpp>
-#include <arpack_proto.h>
-#include <helpers.hpp>
 #include <vector>
+#include "detail/arpack_proto.hpp"
+//#include <boost/numeric/bindings/arpack/arpack_proto.hpp>
 
 
 
 
-namespace arpack
-{
-  namespace ublas = boost::numeric::ublas;
+namespace boost { namespace numeric { namespace bindings {  namespace arpack {
 
   enum which_eigenvalues { LARGEST_MAGNITUDE,
     SMALLEST_MAGNITUDE,
@@ -54,18 +75,21 @@ namespace arpack
     SHIFT_AND_INVERT_GENERALIZED = 3
   };
 
-  template <typename BaseType>
+  /* VectorType needs to be complex-valued. */
+  template <typename VectorType>
   struct results
   {
-    typedef 
-      std::vector<std::complex<BaseType> > 
-      value_container;
-    typedef
-      std::vector<ublas::vector<std::complex<BaseType> > >
+      typedef typename boost::numeric::bindings::traits::type_traits<
+        typename boost::numeric::bindings::traits::vector_traits<VectorType>::value_type
+      >::real_type real_type;
+      typedef std::complex<real_type> complex_type;
+
+      typedef std::vector<complex_type> value_container;
+      typedef std::vector<VectorType>
       vector_container;
 
-    value_container m_ritz_values;
-    vector_container m_ritz_vectors;
+      value_container m_ritz_values;
+      vector_container m_ritz_vectors;
   };
 
 
@@ -73,15 +97,22 @@ namespace arpack
 
   namespace detail
   {
-    template <typename BaseType>
-    results<BaseType> *makeResults(unsigned nconv, unsigned n, 
-        BaseType *z, std::complex<BaseType> *d)
+    template <typename VectorType>
+    void makeResults(unsigned nconv, unsigned n, 
+                     typename results<VectorType>::real_type *z, 
+                     std::complex<typename results<VectorType>::real_type> *d, 
+                     results<VectorType> &my_results)
     {
       // result generation for real types
       // slightly more complicated: take care of complex conjugate pairs
-      std::auto_ptr<results<BaseType> > my_results(new results<BaseType>);
+
+      typedef typename results<VectorType>::real_type real_type;
+      typedef std::complex<real_type> complex_type;
 
       unsigned i = 0;
+
+      my_results.m_ritz_values.clear();
+      my_results.m_ritz_vectors.clear();
 
       while (i < nconv)
       {
@@ -91,91 +122,112 @@ namespace arpack
           if (i + 1 >= nconv)
             throw std::runtime_error("arpack: complex pair split up");
 
-          my_results->m_ritz_values.push_back(d[i]);
-          my_results->m_ritz_values.push_back(d[i+1]);
+          my_results.m_ritz_values.push_back(d[i]);
+          my_results.m_ritz_values.push_back(d[i+1]);
 
-          ublas::vector<std::complex<BaseType> > ritz_vector(n);
+          VectorType ritz_vector(n);
           for (unsigned j = 0; j < n; j++)
-            ritz_vector[j] = std::complex<BaseType>(z[i*n + j], z[(i+1)*n +j]);
+            ritz_vector[j] = complex_type(z[i*n + j], z[(i+1)*n +j]);
 
-          my_results->m_ritz_vectors.push_back(ritz_vector);
-          my_results->m_ritz_vectors.push_back(conj(ritz_vector));
+          my_results.m_ritz_vectors.push_back(ritz_vector);
+          my_results.m_ritz_vectors.push_back(conj(ritz_vector));
 
           i += 2;
         }
         else
         {
           // real eigenvalue, single eigenvector
-          my_results->m_ritz_values.push_back(d[i]);
-          ublas::vector<std::complex<BaseType> > ritz_vector(n);
+          my_results.m_ritz_values.push_back(d[i]);
+          VectorType ritz_vector(n);
           for (unsigned j = 0; j < n; j++)
             ritz_vector[j] = z[i*n + j];
-          my_results->m_ritz_vectors.push_back(ritz_vector);
+          my_results.m_ritz_vectors.push_back(ritz_vector);
           i++;
         }
       }
-
-      return my_results.release();
     }
 
-    template <typename BaseType>
-    results<BaseType> *makeResults(unsigned nconv, unsigned n, 
-        std::complex<BaseType> *z, std::complex<BaseType> *d)
+    template <typename VectorType>
+    void makeResults(unsigned nconv, unsigned n, 
+                     std::complex<typename results<VectorType>::real_type> *z, 
+                     std::complex<typename results<VectorType>::real_type> *d, 
+                     results<VectorType> &my_results)
     {
       // result generation for complex types
-      std::auto_ptr<results<BaseType> > my_results(new results<BaseType>);
+      my_results.m_ritz_values.clear();
+      my_results.m_ritz_vectors.clear();
 
       // simple: just copy everything over.
       for (unsigned i = 0; i < nconv; i++)
       {
-        my_results->m_ritz_values.push_back(d[i]);
+        my_results.m_ritz_values.push_back(d[i]);
 
-        ublas::vector<std::complex<BaseType> > ritz_vector(n);
+        VectorType ritz_vector(n);
         for (unsigned j = 0; j < n; j++)
           ritz_vector[j] = z[i*n + j];
-        my_results->m_ritz_vectors.push_back(ritz_vector);
+        my_results.m_ritz_vectors.push_back(ritz_vector);
       }
+    }
 
-      return my_results.release();
+    template <typename T>
+    inline bool is_complex(const T &)
+    {
+      return false;
+    }
+
+    template <typename T2>
+    inline bool is_complex(const std::complex<T2> &)
+    {
+      return true;
     }
   }
 
 
 
 
-  template <typename ValueType>
-  results<typename helpers::decomplexify<ValueType>::type> *doReverseCommunication(
-      const matrix_operator<ValueType> &op, 
-      const matrix_operator <ValueType> &m,
+  template <typename MatrixOrOperator, typename ResultsVectorType, typename IterationVectorType>
+  void performReverseCommunication(
+      const MatrixOrOperator &op, 
+      const MatrixOrOperator *m,
       arpack_mode mode,
-      std::complex<typename helpers::decomplexify<ValueType>::type> spectral_shift,
+      std::complex<typename boost::numeric::bindings::traits::type_traits<
+        typename MatrixOrOperator::value_type
+      >::real_type> spectral_shift,
       int number_of_eigenvalues,
       int number_of_arnoldi_vectors,
+      results<ResultsVectorType> &res,
+      const IterationVectorType &starting_vector,
       which_eigenvalues which_e = LARGEST_MAGNITUDE,
-      typename helpers::decomplexify<ValueType>::type tolerance = 1e-8,
-      bool m_is_identity = false,
+      typename boost::numeric::bindings::traits::type_traits<
+        typename MatrixOrOperator::value_type
+      >::real_type tolerance = 1e-8,
       int max_iterations = 0
       )
   {
     typedef 
-      typename helpers::decomplexify<ValueType>::type
-      base_type;
+      typename MatrixOrOperator::value_type
+      value_type;
+    typedef 
+      typename boost::numeric::bindings::traits::type_traits<value_type>::real_type
+      real_type;
     typedef
-      std::complex<base_type>
+      std::complex<real_type>
       complex_type;
 
     int ido = 0;
-    char bmat = m_is_identity ? 'I' : 'G';
+    char bmat = m == 0 ? 'G' : 'I';
     int n = op.size1();
 
-    if ((unsigned) n != op.size2() || (unsigned) n != m.size1() || (unsigned) n != m.size2())
+    if ((unsigned) n != op.size2())
+      throw std::runtime_error("arpack: matrix sizes don't match.");
+    if ((m != 0) && ((unsigned) n != m->size1() || (unsigned) n != m->size2()))
       throw std::runtime_error("arpack: matrix sizes don't match.");
 
     char *which = const_cast<char*>(detail::mapWhichToString(which_e));
 
-    ValueType residual[n];
+    boost::scoped_array<value_type> residual(new value_type[n]);
 
-    ValueType v[number_of_arnoldi_vectors * n];
+    boost::scoped_array<value_type> v(new value_type[number_of_arnoldi_vectors * n]);
     int ldv = n;
 
     int iparam[11];
@@ -195,37 +247,37 @@ namespace arpack
 
     int ipntr[14];
 
-    ValueType workd[3*n];
+    boost::scoped_array<value_type> workd(new value_type[3*n]);
     int lworkl;
-    if (helpers::isComplex(ValueType()))
+    if (detail::is_complex(value_type()))
       lworkl = 3 * number_of_arnoldi_vectors * number_of_arnoldi_vectors 
         + 5 * number_of_arnoldi_vectors;
     else
       lworkl = 3 * number_of_arnoldi_vectors * number_of_arnoldi_vectors 
         + 6 * number_of_arnoldi_vectors;
 
-    ValueType workl[lworkl];
-    double rwork[number_of_arnoldi_vectors];
+    boost::scoped_array<value_type> workl(new value_type[lworkl]);
+    boost::scoped_array<double> rwork(new double[number_of_arnoldi_vectors]);
 
     do
     {
-      naupd(
+      detail::naupd(
           &ido,
           &bmat,
           &n,
           which,
           &number_of_eigenvalues,
           &tolerance,
-          residual,
+          residual.get(),
           &number_of_arnoldi_vectors,
-          v,
+          v.get(),
           &ldv,
           iparam,
           ipntr,
-          workd,
-          workl,
+          workd.get(),
+          workl.get(),
           &lworkl,
-          rwork,
+          rwork.get(),
           &info
           );
 
@@ -267,21 +319,25 @@ namespace arpack
 
       if (ido == -1 || ido == 1 || ido == 2)
       {
-        // FIXME copying is not good
-        ublas::vector<ValueType> operand, result;
+        IterationVectorType operand, result;
         operand.resize(n);
         result.resize(n);
 
-        ValueType *x = workd + ipntr[1-1] - 1;
-        ValueType *y = workd + ipntr[2-1] - 1;
+        value_type *x = workd.get() + ipntr[1-1] - 1;
+        value_type *y = workd.get() + ipntr[2-1] - 1;
 
         for (int i = 0; i < n; i++)
           operand[i] = x[i];
 
-        if (ido == 2)
-          m.apply(operand, result);
+        if (ido == 2) 
+        {
+          if (m == 0)
+            throw std::runtime_error("arpack, rci: multiplication by m requested, but m not supplied");
+          else
+            result = prod(*m, operand);
+        }
         else
-          op.apply(operand, result);
+          result = prod(op, operand);
 
         for (int i = 0; i < n; i++)
           y[i] = result[i];
@@ -303,12 +359,12 @@ namespace arpack
       // prepare for call to neupd
       int rvec = 1;
       char howmny = 'A';
-      int select[number_of_arnoldi_vectors]; // no-op
-      complex_type d[number_of_eigenvalues+1];
+      boost::scoped_array<int> select(new int[number_of_arnoldi_vectors]); // no-op
+      boost::scoped_array<complex_type> d(new complex_type[number_of_eigenvalues+1]);
 
       unsigned z_size;
       unsigned workev_size;
-      if (helpers::isComplex(ValueType()))
+      if (detail::is_complex(value_type()))
       {
         z_size = number_of_eigenvalues;
         workev_size = 2*number_of_arnoldi_vectors;
@@ -319,29 +375,30 @@ namespace arpack
         workev_size = 3*number_of_arnoldi_vectors;
       }
 
-      ValueType z[z_size*n];
+      boost::scoped_array<value_type> z(new value_type[z_size*n]);
       int ldz = n;
 
-      ValueType workev[workev_size];
+      boost::scoped_array<value_type> workev(new value_type[workev_size]);
 
-      neupd(
-          &rvec, &howmny, select, d, z, &ldz, &spectral_shift, workev,
+      detail::neupd(
+          &rvec, &howmny, select.get(), d.get(), z.get(), &ldz, 
+          &spectral_shift, workev.get(),
           // naupd parameters follow
           &bmat,
           &n,
           which,
           &number_of_eigenvalues,
           &tolerance,
-          residual,
+          residual.get(),
           &number_of_arnoldi_vectors,
-          v,
+          v.get(),
           &ldv,
           iparam,
           ipntr,
-          workd,
-          workl,
+          workd.get(),
+          workl.get(),
           &lworkl,
-          rwork,
+          rwork.get(),
           &info
           );
       switch (info)
@@ -381,10 +438,10 @@ namespace arpack
       }
 
       unsigned nconv = iparam[5-1];
-      return detail::makeResults(nconv, n, z, d);
+      detail::makeResults(nconv, n, z.get(), d.get(), res);
     }
   }
-}
+}}}} 
 
 
 

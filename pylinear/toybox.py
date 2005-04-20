@@ -1,8 +1,18 @@
-import math, cmath, random, types
-import pylinear.matrices as num
+import pylinear.array as num
+import pylinear.operation as op
+import pylinear._operation as _op
+
+import math
 import pylinear.linear_algebra as la
-import pylinear.algorithms as algo
 import pylinear.iteration as iteration
+
+
+
+
+def adapt_real_to_complex_operator(real_part, imaginary_part):
+    if real_part.typecode() != imaginary_part.typecode():
+        raise TypeError, "outer and inner must have matching typecodes"
+    return _op.ComplexMatrixOperatorAdaptorFloat64(real_part, imaginary_part)
 
 
 
@@ -23,9 +33,9 @@ def vandermonde(vector, degree = None):
 
 def fit_polynomial(x_vector, data_vector, degree):
     vdm = vandermonde(x_vector, degree)
-    vdm2 = num.matrixmultiply(num.hermite(vdm), vdm)
-    rhs = num.matrixmultiply(num.hermite(vdm), data_vector)
-    return la.solve_linear_equations(vdm2, rhs) 
+    vdm2 = vdm.H * vdm
+    rhs = vdm.H * data_vector
+    return vdm2 <<num.solve>> rhs
 
 
 
@@ -60,7 +70,7 @@ def get_approximant(x_vector, f, degree):
 
 
 # interpolation ---------------------------------------------------------------
-def findInterpolationCoefficients(x_vector, to_x):
+def find_interpolation_coefficients(x_vector, to_x):
     vm = vandermonde(x_vector, degree = len(x_vector) - 1)
     vm_x = vandermonde(num.array([to_x], x_vector.typecode()), len(x_vector)-1)[0]
     return num.matrixmultiply(vm_x, la.inverse(vm))
@@ -68,18 +78,6 @@ def findInterpolationCoefficients(x_vector, to_x):
     
     
     
-# matlab-workalikes -----------------------------------------------------------
-def linspace(x, y, n = 100):
-    if type(x) is types.IntType:
-        x = float(x)
-    if type(y) is types.IntType:
-        y = float(y)
-    h = (y-x) / n
-    return [ x+h*i for i in range(n+1) ]
-
-
-
-
 # Jacobi rotation -------------------------------------------------------------
 def _conjugate(value):
     try:
@@ -107,7 +105,7 @@ def _imaginaryPart(value):
 
   
 
-class tRotationShapeMatrix:
+class tRotationShapeMatrix(object):
     def __init__(self, i, j, ii, ij, ji, jj):
         self.I = i
         self.J = j
@@ -116,10 +114,12 @@ class tRotationShapeMatrix:
         self.JI = ji
         self.JJ = jj
 
-    def hermite(self):
+    def _hermite(self):
         return tRotationShapeMatrix(self.I, self.J,
                                     _conjugate(self.II), _conjugate(self.JI),
                                     _conjugate(self.IJ), _conjugate(self.JJ))
+
+    H = property(_hermite)
 
     def applyFromLeft(self, mat):
         row_i = mat[self.I]
@@ -146,29 +146,11 @@ def makeJacobiRotation(i, j, cos, sin):
 
 
 
-def printMatrixInGrid(a):
-    h,w = a.shape
-    for i in range(h):
-        for j in range(w):
-            if a[i,j] == 0:
-                print "---------- ",
-            else:
-                print "%.6f  " % a[i,j],
-        print
-def printComplexMatrixInGrid(a):
-    h,w = a.shape
-    for i in range(h):
-        for j in range(w):
-            if a[i,j] == 0:
-                print "---------- ",
-            else:
-                print "%.3f %.3fj " % (a[i,j].real, a[i,j].imag),
-        print
-
 def _sign(x):
     return x / abs(x)
 
-def diagonalize(matrix, compute_vectors = True, observer = iteration.makeObserver(rel_goal = 1e-10)):
+def diagonalize_jacobi(matrix, compute_vectors = True, 
+                       observer = iteration.make_observer(rel_goal = 1e-10)):
     """This executes a simple sequence of Jacobi transform on the 
     given symmetric positive definite matrix. It returns a tuple 
     of matrices Q, D. Q is a unitary matrix that contains the
@@ -202,7 +184,7 @@ def diagonalize(matrix, compute_vectors = True, observer = iteration.makeObserve
     observer.reset()
     try:
         while True:
-            observer.addDataPoint(math.sqrt(off_diag_norm_squared(mymatrix)))
+            observer.add_data_point(math.sqrt(off_diag_norm_squared(mymatrix)))
             for i in range(rows):
                 for j in range(0,min(columns,i)):
                     if abs(mymatrix[i,j]) < 1e-10:
@@ -215,18 +197,19 @@ def diagonalize(matrix, compute_vectors = True, observer = iteration.makeObserve
                     other_sin = t * other_cos
 
                     rot = makeJacobiRotation(i, j, other_cos, other_sin)
-                    rot.hermite().applyFromLeft(mymatrix)
+                    rot.H.applyFromLeft(mymatrix)
                     rot.applyFromRight(mymatrix)
 
                     if compute_vectors:
                         rot.applyFromRight(q)
-    except iteration.tIterationSuccessful:
+    except iteration.IterationSuccessful:
         return q, mymatrix
 
 
 
 
-def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-5, rel_goal = 1e-10)):
+def codiagonalize(matrices, observer = iteration.make_observer(stall_thresh = 1e-5, 
+                                                               rel_goal = 1e-10)):
     """This executes the generalized Jacobi process from the research
     papers quoted below. It returns a tuple Q, diagonal_matrices, 
     achieved_tolerance.
@@ -261,8 +244,6 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
     Diagonalization, also published by SIAM.
     """
 
-    mm = num.matrixmultiply
-
     rows, columns = matrices[0].shape
     tc = matrices[0].typecode()
     for mat in matrices[1:]:
@@ -285,7 +266,7 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
 
     try:
         while True:
-            observer.addDataPoint(residual)
+            observer.add_data_point(residual)
             for i in range(rows):
                 for j in range(0,min(columns,i)):
                     g = num.zeros((3,3), num.Float)
@@ -313,7 +294,7 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
                     if bev[0] < 0:
                         bev = - bev
 
-                    r = norm2(bev)
+                    r = op.norm_2(bev)
                     if (bev[0] + r)/r < 1e-7:
                         continue
 
@@ -324,18 +305,18 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
                     sin /= math.sqrt(2*r*(bev[0]+r))
 
                     rot = makeJacobiRotation(i, j, cos, sin)
-                    rot_h = rot.hermite()
+                    rot_h = rot.H
                     for mat in mymats:
                         rot.applyFromLeft(mat)
-                        rot.hermite().applyFromRight(mat)
+                        rot_h.applyFromRight(mat)
 
                     rot_h.applyFromRight(q)
 
             residual = math.sqrt(sum([off_diag_norm_squared(mat) for mat in mymats]))
 
-    except iteration.tIterationStalled:
+    except iteration.IterationStalled:
         return q, mymats, math.sqrt(residual/norm_before)
-    except iteration.tIterationSuccessful:
+    except iteration.IterationSuccessful:
         return q, mymats, math.sqrt(residual/norm_before)
 
 
@@ -343,43 +324,11 @@ def codiagonalize(matrices, observer = iteration.makeObserver(stall_thresh = 1e-
 
 
 # some tools ------------------------------------------------------------------
-def solve_linear_system_cg(matrix, vector):
-    m_inv = algo.makeCGMatrixOperator(algo.makeMatrixOperator(matrix), 
-                                      matrix.shape[0]*2)
-    return algo.applyMatrixOperator(m_inv, vector)
-    
-
-
-
-def entrySum(a):
-    result = 0
-    for i,j in a.indices():
-        result += a[i,j]
-    return result
-
-
-
-
-def frobeniusNormSquared(a):
-    result = 0
-    for i,j in a.indices():
-        result += abs(a[i,j])**2
-    return result
-
-
-
-
-def frobeniusNorm(a):
-    return math.sqrt(frobeniusNormSquared(a))
-
-
-
-
-def matrixExp(a, eps = 1e-15):
+def matrix_exp_by_series(a, eps = 1e-15):
     h,w = a.shape
     assert h == w
 
-    a_frob = frobeniusNorm(a)
+    a_frob = op.norm_frobenius(a)
     
     last_result = num.identity(h, a.typecode())
     result = last_result.copy()
@@ -392,43 +341,35 @@ def matrixExp(a, eps = 1e-15):
     while True:
         result += current_power_of_a * (1./factorial)
 
-        if frobeniusNorm(result - last_result)/a_frob < eps:
+        if op.norm_frobenius(result - last_result)/a_frob < eps:
             return result
 
         n += 1
         last_result = result.copy()
         factorial *= n
-        current_power_of_a = num.matrixmultiply(current_power_of_a, a)
+        current_power_of_a = current_power_of_a * a
     
         
     
 
-def matrixExpBySymmetricDiagonalization(a):
+def matrix_exp_by_symmetric_diagonalization(a):
     # a has to be symmetric
     h,w = a.shape
     assert h == w
 
     q, w = la.Heigenvectors(a)
-    d = num.zeros(a.shape, a.typecode())
-    for i in range(h):
-        d[i,i] = cmath.exp(w[i])
-    mm = num.matrixmultiply
-    return mm(q, mm(d, hermite(q)))
+    return q*num.make_diagonal(num.exp(w))*q.H
     
         
     
 
-def matrixExpByDiagonalization(a):
+def matrix_exp_by_diagonalization(a):
     h,w = a.shape
     assert h == w
 
     v, w = la.eigenvectors(a)
-    e_d = num.zeros(a.shape, a.typecode())
-    v_t = num.transpose(v)
-    for i in range(h):
-        e_d[i,i] = cmath.exp(w[i])
-    mm = num.matrixmultiply
-    return num.transpose(la.solve_linear_equations(v_t, mm(e_d, v_t)))
+    v_t = v.T
+    return (v_t <<num.solve>> (num.make_diagonal(num.exp(w)) * v_t)).T
 
 
 
@@ -442,212 +383,26 @@ def delta(x,y):
 
 
 
-def sp(x,y):
-    return num.innerproduct(x, num.conjugate(y))
-
-
-
-
-def norm2squared(x):
-    val = num.innerproduct(x,num.conjugate(x))
-    try:
-      return val.real
-    except AttributeError:
-      # whoops. not complex
-      return val
-
-
-
-
-
-def norm2(x):
-    scalar_product = num.innerproduct(x,num.conjugate(x))
-    try:
-        return math.sqrt(scalar_product.real)
-    except AttributeError:
-        # whoops. not complex
-        return math.sqrt(scalar_product)
-
-
-
-
-def hermite(x):
-  return num.transpose(num.conjugate(x))
-
-  
-
-
-def orthogonalize(vectors):
-    # Gram-Schmidt FIXME: unstable
-    done_vectors = []
-
-    for v in vectors:
-        my_v = v.copy()
-        for done_v in done_vectors:
-            my_v -= sp(v,done_v) * done_v
-        v_norm = norm2(my_v)
-        if v_norm == 0:
-            raise RuntimeError, "Orthogonalization failed"
-        my_v /= v_norm
-        done_vectors.append(my_v)
-    return done_vectors
-
-
-    
-
-def estimateConditionNumber(matrix, min_index = 0, threshold = None):
-    u, s_vec, vt = la.singular_value_decomposition(matrix)
-    s_list = list(s_vec)
-    s_list.sort(lambda a, b: cmp(abs(a), abs(b)))
-    i = min_index
-    if threshold is not None:
-        while abs(s_list[i]) < threshold and i < len(s_list):
-            i += 1
-        if i == len(s_list):
-            raise ValueError, "there is no eigenvalue above the threshold"
-    return abs(s_list[-1])/abs(s_list[i])
-
-
-
-
-# random matrices -------------------------------------------------------------
-def writeRandomVector(vec):
-    size, = vec.shape
-    for i in range(size):
-        value = random.normalvariate(0,10)
-        if vec.typecode() == num.Complex64:
-            value += 1j*random.normalvariate(0,10)
-        vec[i] = value
-
-
-
-
-def makeRandomVector(size, typecode):
-    vec = num.zeros((size,), typecode)
-    writeRandomVector(vec)
-    return vec
-
-
-
-
-def makeRandomONB(size, typecode):
-    vectors = [ makeRandomVector(size, typecode) for i in range(size) ]
-    vectors = orthogonalize(vectors)
-
-    for i in range(size):
-        for j in range(size):
-            assert abs(delta(i,j) - sp(vectors[i], vectors[j])) < 1e-12
-    return vectors
-
-
-
-
-
-def makeRandomOrthogonalMatrix(size, typecode):
-    vectors = []
-    for i in range(size):
-        v = num.zeros((size,), typecode)
-        writeRandomVector(v)
-        vectors.append(v)
-
-    orth_vectors = orthogonalize(vectors)
-
-    mat = num.zeros((size,size), typecode)
-    for i in range(size):
-        mat[:,i] = orth_vectors[i]
-
-    return mat
-
-
-  
-
-def makeRandomSkewHermitianMatrix(size, typecode):
-    a = num.zeros((size, size), typecode)
-    # fill diagonal
-    if typecode is num.Complex:
-        for i in range(size):
-            a[i,i] = 1j*random.normalvariate(0,10)
-
-    # fill rest
-    for i in range(size):
-        for j in range(i):
-            value = random.normalvariate(0,10)
-            if typecode is num.Complex:
-                value += 1j*random.normalvariate(0,10)
-            a[i,j] = value
-            a[j,i] = -_conjugate(value)
-    return a
-
-
-
-
-def makeRandomSPDMatrix(size, typecode):
-    eigenvalues = makeRandomVector(size, typecode)
-    eigenmat = num.zeros((size,size), typecode)
-    for i in range(size):
-        eigenmat[i,i] = abs(eigenvalues[i])
-
-    orthomat = makeRandomOrthogonalMatrix(size, typecode)
-    return num.matrixmultiply(hermite(orthomat), num.matrixmultiply(eigenmat,orthomat))
-
-
-
-
-def makeFullRandomMatrix(size, typecode):
-    result = num.zeros((size, size), typecode)
-    
-    for row in range(size):
-        for col in range(size):
-            value = random.normalvariate(0,10)
-            if typecode == num.Complex64:
-                value += 1j*random.normalvariate(0,10)
-
-            result[row,col] = value
-    return result
-
-
-
-
-def makeRandomMatrix(size, typecode, matrix_type = num.DenseMatrix):
-    result = num.zeros((size, size), typecode, matrix_type)
-    elements = size ** 2 / 10
-
-    for i in range(elements):
-        row = random.randrange(0, size)
-        col = random.randrange(0, size)
-    
-        value = random.normalvariate(0,10)
-        if typecode == num.Complex64:
-            value += 1j*random.normalvariate(0,10)
-
-        result[row,col] += value
-    return result
-
-
-
-
 # matrix type tests -----------------------------------------------------------
-def hermiticityError(mat):
-    return frobeniusNorm(num.hermite(mat) - mat)
+def hermiticity_error(mat):
+    return op.norm_frobenius(mat.H - mat)
 
-def skewHermiticityError(mat):
-    return frobeniusNorm(num.hermite(mat) + mat)
+def skewhermiticity_error(mat):
+    return op.norm_frobenius(mat.H + mat)
 
-def symmetricityError(mat):
-    return frobeniusNorm(num.transpose(mat) - mat)
+def symmetricity_error(mat):
+    return op.norm_frobenius(mat.T - mat)
 
-def skewSymmetricityError(mat):
-    return frobeniusNorm(num.transpose(mat) + mat)
+def skewsymmetricity_error(mat):
+    return op.norm_frobenius(mat.T + mat)
 
-def unitarietyError(mat):
-    mm = num.matrixmultiply
-    return identityError(mm(num.hermite(mat), mat))
+def unitariety_error(mat):
+    return identity_error(mat.H * mat)
 
-def orthogonalityError(mat):
-    mm = num.matrixmultiply
-    return identityError(mm(num.transpose(mat), mat))
+def orthogonality_error(mat):
+    return identity_error(mat.T * mat)
 
-def identityError(mat):
-    id = num.identity(mat.shape[0], mat.typecode())
-    return frobeniusNorm(mat - id)
+def identity_error(mat):
+    id_mat = num.identity(mat.shape[0], mat.typecode())
+    return op.norm_frobenius(mat - id_mat)
 

@@ -35,7 +35,7 @@ namespace cg
     if (A().size1() != A().size2())
       throw std::runtime_error("cg: A is not quadratic");
 
-    // typed up from J.R. Shewchuck, 
+    // typed up from J.R. Shewchuk, 
     // An Introduction to the Conjugate Gradient Method
     // Without the Agonizing Pain, Edition 1 1/4 [8/1994]
     // Appendix B4
@@ -56,7 +56,7 @@ namespace cg
 	absolute_value(delta_new) < tol*tol * absolute_value(delta_0);
 
       if (calculate_real_residual)
-        residual = b - prod(A,x);
+        residual = b - prod(A, x);
       else
         residual -= alpha*q;
 
@@ -124,6 +124,7 @@ namespace cg
     {
       super::apply(before, after);
 
+      after.clear();
       cg::solveCG(m_matrix, 
 		  m_preconditioner, 
 		  after, 

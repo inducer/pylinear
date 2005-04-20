@@ -4,6 +4,7 @@
 
 
 
+#include <stdexcept>
 #include <boost/numeric/bindings/traits/ublas_vector.hpp>
 #include <boost/numeric/bindings/traits/ublas_sparse.hpp>
 #include <boost/numeric/bindings/umfpack/umfpack.hpp>
@@ -46,7 +47,7 @@ namespace umfpack
     umfpack_matrix_operator(const matrix_type &src)
     : m_matrix(src)
     { 
-      umf::factor(m_matrix, m_numeric);
+      process_umfpack_error(umf::factor(m_matrix, m_numeric));
     }
 
     unsigned size1() const
@@ -61,8 +62,41 @@ namespace umfpack
     void apply(const vector_type &before, vector_type &after) const
     {
       super::apply(before, after);
-      umf::solve(m_matrix, after, before, m_numeric);
+      process_umfpack_error(umf::solve(m_matrix, after, before, m_numeric));
       // FIXME: honor debug levels?
+    }
+  private:
+    static void process_umfpack_error(int umf_error) 
+    {
+      switch (umf_error)
+      {
+      case UMFPACK_OK: 
+        return;
+      case UMFPACK_ERROR_out_of_memory: 
+        throw std::runtime_error("umfpack: out of memory");
+      case UMFPACK_ERROR_invalid_Numeric_object: 
+        throw std::runtime_error("umfpack: invalid numeric object");
+      case UMFPACK_ERROR_invalid_Symbolic_object:
+        throw std::runtime_error("umfpack: invalid symbolic object");
+      case UMFPACK_ERROR_argument_missing:
+        throw std::runtime_error("umfpack: argument missing");
+      case UMFPACK_ERROR_n_nonpositive:
+        throw std::runtime_error("umfpack: n non-positive");
+      case UMFPACK_ERROR_invalid_matrix:
+        throw std::runtime_error("umfpack: invalid matrix");
+      case UMFPACK_ERROR_different_pattern:
+        throw std::runtime_error("umfpack: different pattern");
+      case UMFPACK_ERROR_invalid_system:
+        throw std::runtime_error("umfpack: invalid system");
+      case UMFPACK_ERROR_invalid_permutation:
+        throw std::runtime_error("umfpack: invalid permutation");
+      case UMFPACK_ERROR_internal_error:
+        throw std::runtime_error("umfpack: internal error");
+      case UMFPACK_ERROR_file_IO:
+        throw std::runtime_error("umfpack: file i/o error");
+      default:
+        throw std::runtime_error("umfpack: invalid error code");
+      }
     }
   };
 

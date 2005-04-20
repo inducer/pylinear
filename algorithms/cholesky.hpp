@@ -46,6 +46,7 @@ namespace cholesky
 
     std::auto_ptr<DesiredResult> result(new DesiredResult(A().size1(), A().size2()));
     DesiredResult &L = *result;
+    L.clear();
 
     typedef 
       typename MatrixExpression::size_type

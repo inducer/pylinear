@@ -26,18 +26,16 @@
 \newcommand{\remark}[1]{}
 
 
-\title{PyLinear\\An Open Source project}
+\title{PyLinear}
 
 \author{Andreas Kl\"ockner}
 
 \authoraddress{Institut f\"ur Angewandte Mathematik II, Englerstra\ss e 2\\
-   76xxx Karlsruhe}
+   76131 Karlsruhe}
 
-% I use date to indicate the manual-updates,
-% release below gives the matching software version.
-\date{March 10, 2004}
-\release{0.1}                 % (software) release version;
-\setshortversion{0.1}         % this is used to define the \version macro
+\date{March 22, 2005}
+\release{0.92}                 % (software) release version;
+\setshortversion{0.92}         % this is used to define the \version macro
 
 \makeindex                      % tell \index to actually write the .idx file
 
@@ -47,30 +45,21 @@
 
 \maketitle
 
-% This makes the contents more accessible from the front page of the HTML.
-\ifhtml
-\part*{General}
-\chapter*{Front Matter}
-\label{front}
-\fi
-
-
 \tableofcontents
 
-
-\chapter{Hey du!}
-and the functions that operate upon them.
-
-\label{part:numerical-python}
-
-\declaremodule{extension}{numarray}
-\moduleauthor{The numarray team}{numpy@lists.sourceforge.net}
-\modulesynopsis{Numerics}
+\input{intro}
+\input{installation}
+\input{arraytypes}
+\input{numerics}
+\input{extending}
+\input{diff-pylinear-numpy}
 
 \appendix
+
+\input{ack}
 %begin{latexonly}
 %end{latexonly}
 
-%\input{pylinear.ind}
+\input{pylinear.ind}
 
 \end{document}

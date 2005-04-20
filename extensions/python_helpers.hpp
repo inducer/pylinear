@@ -18,13 +18,21 @@ inline PyObject *pyobject_from_new_ptr(T *ptr)
 
 
 
+inline PyObject *pyobject_from_object(const python::object &obj)
+{
+  PyObject *result = obj.ptr();
+  Py_INCREF(result);
+  return result;
+}
+
+
+
+
 template <typename T>
 inline PyObject *pyobject_from_rvalue(const T &val)
 {
   boost::python::object obj(val);
-  PyObject *result = obj.ptr();
-  Py_INCREF(result);
-  return result;
+  return pyobject_from_object(obj);
 }
 
 
