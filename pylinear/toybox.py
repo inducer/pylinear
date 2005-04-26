@@ -358,7 +358,7 @@ def matrix_exp_by_symmetric_diagonalization(a):
     assert h == w
 
     q, w = la.Heigenvectors(a)
-    return q*num.make_diagonal(num.exp(w))*q.H
+    return q*num.diagonal_matrix(num.exp(w))*q.H
     
         
     
@@ -369,7 +369,7 @@ def matrix_exp_by_diagonalization(a):
 
     v, w = la.eigenvectors(a)
     v_t = v.T
-    return (v_t <<num.solve>> (num.make_diagonal(num.exp(w)) * v_t)).T
+    return (v_t <<num.solve>> (num.diagonal_matrix(num.exp(w)) * v_t)).T
 
 
 

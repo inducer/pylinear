@@ -265,7 +265,7 @@ class TestMatrices(unittest.TestCase):
         size = 100
         mat = make_random_full_matrix(size, num.Complex)
         u, s_vec, vt = op.svd(mat)
-        self.assert_small(u * num.make_diagonal(s_vec) * vt - mat)
+        self.assert_small(u * num.diagonal_matrix(s_vec) * vt - mat)
 
     def test_svd(self):
         self.for_all_typecodes(self.do_test_svd)
@@ -456,6 +456,26 @@ class TestMatrices(unittest.TestCase):
         initial_resid = op.norm_2(b)
         end_resid = op.norm_2(b - A*cg_op(b))
         self.assert_(end_resid/initial_resid < 1e-10)
+
+    def do_test_ssor(self, typecode):
+        size = 200
+        omega = 0.5
+        a = make_random_spd_matrix(size, typecode)
+        d = num.diagonal_matrix(a)
+        l = d + omega * num.lower_left(a)
+        u = l.H
+        d_inv = num.divide(1, num.diagonal(a))
+
+        ssor_a = op.SSORPreconditioner.make(a, omega=omega)
+        for i in range(5):
+            vec = make_random_vector(size, typecode)
+            ssor_vec = ssor_a(vec)
+            vec_2 = 1/(omega*(2-omega))*(l*num.multiply(d_inv, (u*ssor_vec)))
+            self.assert_small(vec - vec_2)
+
+    def test_ssor(self):
+        self.for_all_typecodes(self.do_test_ssor)
+        
 
 
             

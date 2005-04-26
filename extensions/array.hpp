@@ -1893,6 +1893,42 @@ static PyObject *multiplyMatrixInPlace(python::object op1, python::object op2)
 
 
 
+template <typename MatrixType>
+void matrixSimplePushBack(MatrixType &m, 
+                          typename MatrixType::size_type i,
+                          typename MatrixType::size_type j,
+                          const typename MatrixType::value_type &el)
+{
+  m(i, j) = el;
+}
+
+
+
+
+template <typename MatrixType>
+void matrixSimpleAppendElement(MatrixType &m, 
+                               typename MatrixType::size_type i,
+                               typename MatrixType::size_type j,
+                               const typename MatrixType::value_type &el)
+{
+  m(i, j) += el;
+}
+
+
+
+
+template <typename MatrixType>
+void insertElementWrapper(MatrixType &m, 
+                   typename MatrixType::size_type i,
+                   typename MatrixType::size_type j,
+                   const typename MatrixType::value_type &el)
+{
+  m.insert_element(i, j, el);
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
 static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 {
@@ -1958,13 +1994,43 @@ static void exposeMatrixSpecialties(PYC, MT)
 
 
 
-template <typename PYC, typename VT, typename L, std::size_t IB, typename IA>
-static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB, IA>)
+template <typename PYC, typename VT, typename L, typename A>
+static void exposeMatrixSpecialties(PYC &pyc, ublas::matrix<VT, L, A>)
 {
-  typedef ublas::compressed_matrix<VT, L, IB, IA> matrix_type;
+  typedef ublas::matrix<VT, L, A> matrix_type;
 
   pyc
-    .def("complete_index1_data", &matrix_type::complete_index1_data);
+    .def("set_element", matrixSimplePushBack<matrix_type>)
+    .def("set_element_past_end", matrixSimplePushBack<matrix_type>)
+    .def("add_element", matrixSimpleAppendElement<matrix_type>);
+}
+
+
+
+
+template <typename PYC, typename VT, typename L, std::size_t IB, typename IA, typename TA>
+static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB, IA, TA>)
+{
+  typedef ublas::compressed_matrix<VT, L, IB, IA, TA> matrix_type;
+
+  pyc
+    .def("complete_index1_data", &matrix_type::complete_index1_data)
+    .def("set_element_past_end", &matrix_type::push_back);
+}
+
+
+
+
+template <typename PYC, typename VT, typename L, std::size_t IB, typename IA, typename TA>
+static void exposeMatrixSpecialties(PYC &pyc, ublas::coordinate_matrix<VT, L, IB, IA, TA>)
+{
+  typedef ublas::coordinate_matrix<VT, L, IB, IA, TA> matrix_type;
+
+  pyc
+    .def("sort", &matrix_type::sort)
+    .def("set_element", insertElementWrapper<matrix_type>)
+    .def("set_element_past_end", &matrix_type::push_back)
+    .def("add_element", &matrix_type::append_element);
 }
 
 

@@ -55,7 +55,7 @@ def make_random_orthogonal_matrix(size, typecode):
 
   
 
-def make_random_skew_hermitian_matrix(size, typecode):
+def make_random_skewhermitian_matrix(size, typecode):
     a = num.zeros((size, size), typecode)
     # fill diagonal
     if typecode is num.Complex:

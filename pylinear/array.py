@@ -69,8 +69,8 @@ class TypecodeParameterizedType(object):
     def __call__(self, typecode):
         return self.TypeDict[typecode]
 
-    def make(self, typecode, *args):
-        return self.TypeDict[typecode](*args)
+    def make(self, typecode, *args, **kwargs):
+        return self.TypeDict[typecode](*args, **kwargs)
 
     def get_name(self):
         return self.Name
@@ -236,7 +236,7 @@ def _stringify_array(array):
 
         result = ""
         for row_idx, (i,row) in enumerate(strs):
-            indent = 10+len(str(row))
+            indent = 10+len(str(row_idx))
             result += "%d: {%s}" % (i, wrap_vector(row, indent=(indent + 4)*" ", first_indent=indent))
             if row_idx != len(strs) - 1:
                 result += ",\n" + 8 * " "
@@ -424,14 +424,22 @@ def identity(n, typecode, flavor=None):
         result[i,i] = 1
     return result
 
-def make_diagonal(vec, typecode=None, flavor=DenseMatrix):
-    n = vec.shape[0]
-    mat = zeros((n, n), typecode or vec.typecode(),
-                flavor)
-    for i in range(n):
-        mat[i,i] = vec[i]
-    return mat
-
+def diagonal_matrix(vec_or_mat, typecode=None, flavor=DenseMatrix):
+    if len(vec_or_mat.shape) == 1:
+        vec = vec_or_mat
+        n = vec.shape[0]
+        result = zeros((n, n), typecode or vec.typecode(),
+                    flavor)
+        for i in range(n):
+            result[i,i] = vec[i]
+        return result
+    else:
+        mat = vec_or_mat
+        result = zeros(mat.shape, mat.typecode(), mat.flavor)
+        n = mat.shape[0]
+        for i in range(n):
+            result[i,i] = mat[i,i]
+        return result
 
 
 
@@ -464,6 +472,30 @@ def diagonal(mat, offset=0):
         for i in range(length):
             result[i] = mat[i+offset, i]
         return result
+
+def lower_left(mat, include_diagonal=False):
+    result = zeros(mat.shape, mat.typecode(), mat.flavor)
+    if include_diagonal:
+        for i,j in mat.indices():
+            if i >= j:
+                result.set_element_past_end(i, j, mat[i,j])
+    else:
+        for i,j in mat.indices():
+            if i > j:
+                result.set_element_past_end(i, j, mat[i,j])
+    return result
+
+def upper_right(mat, include_diagonal=False):
+    result = zeros(mat.shape, mat.typecode(), mat.flavor)
+    if include_diagonal:
+        for i,j in mat.indices():
+            if i <= j:
+                result.set_element_past_end(i, j, mat[i,j])
+    else:
+        for i,j in mat.indices():
+            if i < j:
+                result.set_element_past_end(i, j, mat[i,j])
+    return result
 
 def take(mat, indices, axis=0):
     if axis == 1:

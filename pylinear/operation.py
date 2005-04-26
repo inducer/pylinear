@@ -27,24 +27,28 @@ class _MatrixOperatorTypecodeFlavorParameterizedType:
 MatrixOperator = _MatrixOperatorTypecodeFlavorParameterizedType()
 
 class _CGTypecodeParameterizedType(num.TypecodeParameterizedType):
-    def make(self, matrix_op, max_it, tol=1e-12, precon_op = None):
+    def make(self, matrix_op, max_it=None, tolerance=1e-12, precon_op=None):
+        if max_it is None:
+            max_it = matrix_op.shape[0] * 10
         if precon_op is None:
             h,w = matrix_op.shape
             precon_op = IdentityOperator.make(matrix_op.typecode(), w)
         if matrix_op.typecode() is not precon_op.typecode():
             raise TypeError, "matrix_op and precon_op must have matching typecodes"
-        return self.TypeDict[matrix_op.typecode()](matrix_op, precon_op, max_it, tol)
+        return self.TypeDict[matrix_op.typecode()](matrix_op, precon_op, max_it, tolerance)
     
 CGOperator = _CGTypecodeParameterizedType("CGMatrixOperator", _op.__dict__)
 
 class _BiCGSTABTypecodeParameterizedType(num.TypecodeParameterizedType):
-    def make(self, matrix_op, max_it, tol=1e-12, precon_op = None):
+    def make(self, matrix_op, max_it=None, tolerance=1e-12, precon_op=None):
+        if max_it is None:
+            max_it = matrix_op.shape[0] * 10
         if precon_op is None:
             h,w = matrix_op.shape
             precon_op = IdentityOperator.make(matrix_op.typecode(), w)
         if matrix_op.typecode() is not precon_op.typecode():
             raise TypeError, "matrix_op and precon_op must have matching typecodes"
-        return self.TypeDict[matrix_op.typecode()](matrix_op, precon_op, max_it, tol)
+        return self.TypeDict[matrix_op.typecode()](matrix_op, precon_op, max_it, tolerance)
     
 BiCGSTABOperator = _BiCGSTABTypecodeParameterizedType(
     "BiCGSTABMatrixOperator", _op.__dict__)
@@ -103,6 +107,49 @@ class _LUInverseTypecodeParameterizedType(num.TypecodeParameterizedType):
 LUInverseOperator = _LUInverseTypecodeParameterizedType("_LUInverseOperator", 
                                                         globals())
 
+class _SSORPreconditioner:
+    def __init__(self, mat, omega=1):
+        # mat needs to be symmetric
+        assert mat.shape[0] == mat.shape[1]
+
+        l = num.lower_left(mat)
+        d = num.diagonal_matrix(mat)
+
+        self.L = d + omega*l
+        self.U = self.L.H
+        self.DVector = num.diagonal(mat)
+        self.Omega = omega
+
+    def size1(self):
+        return self.L.shape[0]
+    
+    def size2(self):
+        return self.L.shape[1]
+
+    def apply(self, before, after):
+        after[:] = self.Omega * (2-self.Omega) * \
+                   self.U.solve_upper(num.multiply(self.DVector, 
+                                                  self.L.solve_lower(before)))
+
+class _SSORPreconditionerFloat64(_SSORPreconditioner, 
+                                 _op.MatrixOperatorFloat64):
+    def __init__(self, *args, **kwargs):
+        _SSORPreconditioner.__init__(self, *args, **kwargs)
+        _op.MatrixOperatorFloat64.__init__(self)
+
+class _SSORPreconditionerComplex64(_SSORPreconditioner, 
+                                   _op.MatrixOperatorComplex64):
+    def __init__(self, *args, **kwargs):
+        _SSORPreconditioner.__init__(self, *args, **kwargs)
+        _op.MatrixOperatorComplex64.__init__(self)
+
+class _SSORPreconditionerTypecodeParameterizedType(num.TypecodeParameterizedType):
+    def make(self, mat, *args, **kwargs):
+        return num.TypecodeParameterizedType.make(
+            self, mat.typecode(), mat, *args, **kwargs)
+
+SSORPreconditioner = _SSORPreconditionerTypecodeParameterizedType(
+    "_SSORPreconditioner", globals())
 
 
 # operator operators ----------------------------------------------------------
