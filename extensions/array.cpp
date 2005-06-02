@@ -62,16 +62,38 @@ namespace
 
 BOOST_PYTHON_MODULE(_array)
 {
-  pylinear_expose_sparse_build();
-  pylinear_expose_sparse_ex();
-  pylinear_expose_dense();
-  pylinear_expose_vector();
+  try
+  {
+    python::register_exception_translator<ublas::divide_by_zero>(translate_divide_by_zero);
+    python::register_exception_translator<ublas::internal_logic>(translate_internal_logic);
+    python::register_exception_translator<ublas::external_logic>(translate_external_logic);
+    python::register_exception_translator<ublas::bad_size>(translate_bad_size);
+    python::register_exception_translator<ublas::bad_index>(translate_bad_index);
+    python::register_exception_translator<ublas::singular>(translate_singular);
+    python::register_exception_translator<ublas::non_real>(translate_non_real);
 
-  python::register_exception_translator<ublas::divide_by_zero>(translate_divide_by_zero);
-  python::register_exception_translator<ublas::internal_logic>(translate_internal_logic);
-  python::register_exception_translator<ublas::external_logic>(translate_external_logic);
-  python::register_exception_translator<ublas::bad_size>(translate_bad_size);
-  python::register_exception_translator<ublas::bad_index>(translate_bad_index);
-  python::register_exception_translator<ublas::singular>(translate_singular);
-  python::register_exception_translator<ublas::non_real>(translate_non_real);
+    pylinear_expose_sparse_build();
+    pylinear_expose_sparse_ex();
+    pylinear_expose_dense();
+    pylinear_expose_vector();
+  }
+  catch (std::exception &ex)
+  {
+    std::cerr << "IMPORT ERROR: " << ex.what() <<std::endl;
+    throw;
+  }
 }
+
+
+
+
+// EMACS-FORMAT-TAG
+//
+// Local Variables:
+// mode: C++
+// eval: (c-set-style "stroustrup")
+// eval: (c-set-offset 'access-label -2)
+// eval: (c-set-offset 'inclass '++)
+// c-basic-offset: 2
+// tab-width: 8
+// End:

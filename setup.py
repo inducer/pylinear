@@ -4,19 +4,54 @@ from distutils.core import setup,Extension
 import glob
 import os
 import os.path
+import sys
 
-home = os.getenv("HOME")
+try:
+    execfile("siteconf.py")
+except IOError:
+    print "*** Please copy siteconf-template.py to siteconf.py,"
+    print "*** then edit siteconf.py to match your environment."
+    sys.exit(1)
 
-boost_path = "%s/work/boost" % home
-boost_ublas_bindings_path = "%s/work/boost-sandbox" % home
-library_dirs = ["%s/pool/lib" % home] 
+# These are in Fortran. No headers available.
+BLAS_INCLUDE_DIRS = []
+LAPACK_INCLUDE_DIRS = []
+ARPACK_INCLUDE_DIRS = []
 
-include_dirs = [boost_path, "algorithms"]
-libraries = ["boost_python"]
-extra_compile_args = ["-fmessage-length=0", "-Wno-sign-compare"]
+INCLUDE_DIRS = ["algorithms"] + \
+               BOOST_INCLUDE_DIRS
+LIBRARY_DIRS = BOOST_LIBRARY_DIRS
+LIBRARIES = BPL_LIBRARIES
 
-#blas_libraries = ["f77blas", "atlas", "g2c"]
-blas_libraries = ["blas"]
+OP_EXTRA_INCLUDE_DIRS = BOOST_UBLAS_BINDINGS_INCLUDE_DIRS
+OP_EXTRA_LIBRARY_DIRS = []
+OP_EXTRA_LIBRARIES = []
+
+USE_BLAS = HAVE_BLAS
+USE_LAPACK = HAVE_LAPACK and HAVE_BLAS
+USE_ARPACK = HAVE_ARPACK and USE_LAPACK
+USE_UMFPACK = HAVE_BLAS and HAVE_BLAS
+
+if HAVE_LAPACK and not HAVE_BLAS:
+    print "*** LAPACK disabled because BLAS is missing"
+if HAVE_ARPACK and not USE_LAPACK:
+    print "*** ARPACK disabled because LAPACK is not usable/missing"
+if HAVE_UMFPACK and not HAVE_BLAS:
+    print "*** UMFPACK disabled because BLAS is missing"
+
+DEFINES = {}
+
+def handle_component(comp):
+    if globals()["USE_"+comp]:
+        globals()["DEFINES"]["USE_"+comp] = 1
+        globals()["OP_EXTRA_INCLUDE_DIRS"] += globals()[comp+"_INCLUDE_DIRS"]
+        globals()["OP_EXTRA_LIBRARY_DIRS"] += globals()[comp+"_LIBRARY_DIRS"]
+        globals()["OP_EXTRA_LIBRARIES"] += globals()[comp+"_LIBRARIES"]
+
+handle_component("BLAS")
+handle_component("LAPACK")
+handle_component("ARPACK")
+handle_component("UMFPACK")
 
 setup(name="PyLinear",
       version="0.92",
@@ -34,19 +69,18 @@ setup(name="PyLinear",
                                "extensions/matrix_sparse_build.cpp",
                                "extensions/matrix_sparse_ex.cpp",
                                ],
-                              include_dirs = include_dirs,
-                              library_dirs = library_dirs,
-                              libraries = libraries,
-                              extra_compile_args = extra_compile_args,
+                              include_dirs = INCLUDE_DIRS,
+                              library_dirs = LIBRARY_DIRS,
+                              libraries = LIBRARIES,
+                              extra_compile_args = EXTRA_COMPILE_ARGS,
                               ),
                     Extension( "_operation", 
-                               ["extensions/operation.cpp", 
+                               ["extensions/operation.cpp",
                                 ],
-          include_dirs = include_dirs + 
-          [boost_ublas_bindings_path],
-          library_dirs = library_dirs,
-          libraries = libraries + ["umfpack", "amd", "arpack", "lapack"] + blas_libraries,
-          extra_compile_args = extra_compile_args,
+                               include_dirs = INCLUDE_DIRS + OP_EXTRA_INCLUDE_DIRS,
+                               library_dirs = LIBRARY_DIRS + OP_EXTRA_LIBRARY_DIRS,
+                               libraries = LIBRARIES + OP_EXTRA_LIBRARIES,
+                               extra_compile_args = EXTRA_COMPILE_ARGS,
           ),
         ]
      )

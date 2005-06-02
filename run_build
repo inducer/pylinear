@@ -1,4 +1,4 @@
 #! /bin/bash
-CC=g++-3.4 time python setup.py build 
+time python setup.py build 
 
 

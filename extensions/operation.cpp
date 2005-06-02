@@ -3,25 +3,37 @@
 #include <bicgstab.hpp>
 #include <lu.hpp>
 #include <cholesky.hpp>
+
+#include <boost/numeric/bindings/traits/ublas_matrix.hpp>
+#include <boost/numeric/bindings/traits/type.hpp>
+
+#include <boost/numeric/ublas/triangular.hpp>
+
+#ifdef USE_UMFPACK
 #include <umfpack.hpp>
+#endif // USE_UMFPACK
+
+#ifdef USE_ARPACK
 #include <arpack.hpp>
+
+namespace arpack = boost::numeric::bindings::arpack;
+#endif // USE_ARPACK
 
 #include "meta.hpp"
 #include "python_helpers.hpp"
 
-#include <boost/numeric/bindings/traits/ublas_matrix.hpp>
-#include <boost/numeric/bindings/traits/type.hpp>
+#ifdef USE_LAPACK
 #include <boost/numeric/bindings/lapack/gesdd.hpp>
 #include <boost/numeric/bindings/lapack/syev.hpp>
 #include <boost/numeric/bindings/lapack/heev.hpp>
 #include <boost/numeric/bindings/lapack/geev.hpp>
-#include <boost/numeric/ublas/triangular.hpp>
+#endif // USE_LAPACK
+
 /*
 #include <boost/numeric/bindings/atlas/clapack.hpp>
 #include <boost/numeric/ublas/lu.hpp>
 */
 
-namespace arpack = boost::numeric::bindings::arpack;
 
 
 
@@ -237,6 +249,7 @@ python::object luWrapper(const MatrixType &a)
 
 
 // svd ------------------------------------------------------------------------
+#ifdef USE_LAPACK
 template <typename ValueType>
 static python::object svdWrapper(const ublas::matrix<ValueType> &a)
 {
@@ -258,11 +271,13 @@ static python::object svdWrapper(const ublas::matrix<ValueType> &a)
 			    python::object(new vec(s)), 
 			    python::object(new mat(vt)));
 }
+#endif // USE_LAPACK
 
 
 
 
 // eigenvectors ---------------------------------------------------------------
+#ifdef USE_LAPACK
 void _Heigenvectors_backend(char jobz, char uplo, 
 			   ublas::matrix<double, ublas::column_major> &a, 
 			   ublas::vector<double> &w) 
@@ -364,6 +379,7 @@ static python::object eigenvectorsWrapper(unsigned get_left_vectors,
 				python::object());
   }
 }
+#endif // USE_LAPACK
 
 
 
@@ -372,10 +388,12 @@ static python::object eigenvectorsWrapper(unsigned get_left_vectors,
 template <typename ValueType>
 void exposeSpecialAlgorithms(ValueType)
 {
+#ifdef USE_LAPACK
   python::def("lu", luWrapper<ublas::matrix<ValueType> >);
   python::def("singular_value_decomposition", svdWrapper<ValueType>);
   python::def("Heigenvectors", HeigenvectorsWrapper<ValueType>);
   python::def("eigenvectors", eigenvectorsWrapper<ValueType>);
+#endif // USE_LAPACK
 }
 
 
@@ -478,6 +496,7 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
        [python::with_custodian_and_ward<1, 2, python::with_custodian_and_ward<1, 3> >()]);
   }
 
+#ifdef USE_UMFPACK
   { 
     typedef umfpack::umfpack_matrix_operator<ValueType> wrapped_type;
     typedef 
@@ -489,12 +508,14 @@ static void exposeMatrixOperators(const std::string &python_eltname, ValueType)
        python::init<const typename wrapped_type::matrix_type &>()
        [python::with_custodian_and_ward<1,2>()]);
   }
+#endif // USE_UMFPACK
 }
 
 
 
 
 // arpack ---------------------------------------------------------------------
+#ifdef USE_ARPACK
 template <typename ResultsType>
 static typename ResultsType::value_container::iterator beginRitzValues(ResultsType &res)
 {
@@ -570,6 +591,7 @@ static void exposeArpack(const std::string &python_valuetypename, ValueType)
   python::def("runArpack", wrapArpack<ValueType, real_type>,
               python::return_value_policy<python::manage_new_object>());
 }
+#endif // USE_ARPACK
 
 
 
@@ -597,6 +619,7 @@ BOOST_PYTHON_MODULE(_operation)
 
   exposeForAllMatrices(ublas_matrix_operator_exposer());
 
+#ifdef USE_ARPACK
   python::enum_<arpack::which_eigenvalues>("arpack_which_eigenvalues")
     .value("SMALLEST_MAGNITUDE", arpack::SMALLEST_MAGNITUDE)
     .value("LARGEST_MAGNITUDE", arpack::LARGEST_MAGNITUDE)
@@ -614,6 +637,7 @@ BOOST_PYTHON_MODULE(_operation)
 
   exposeArpack("Float64", double());
   exposeArpack("Complex64", std::complex<double>());
+#endif // USE_ARPACK
 
   exposeSpecialAlgorithms(double());
   exposeSpecialAlgorithms(std::complex<double>());
