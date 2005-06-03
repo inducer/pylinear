@@ -1,3 +1,4 @@
+import sys
 from pylinear._array import *
 
 
@@ -246,6 +247,24 @@ def _stringify_array(array):
 
 
 
+def _typecode_to_array_typestr(tc):
+    if sys.byteorder == "big":
+        indicator = ">"
+    elif sys.byteorder == "little":
+        indicator = "<"
+    else:
+        raise RuntimeError, "Invalid byte order detected."
+
+    if tc is Float64:
+        return indicator + "f8"
+    elif tc is Complex64:
+        return indicator + "c16"
+    else:
+        raise RuntimeError, "Invalid type code received."
+
+
+
+
 def _add_array_behaviors():
     def get_returner(value):
         # This routine is necessary since we don't want the lambda in
@@ -253,6 +272,7 @@ def _add_array_behaviors():
         return lambda self: value
 
     for tc in TYPECODES:
+        tc_array_typestr = _typecode_to_array_typestr(tc)
         for f in FLAVORS:
             co = f(tc)
             co.__add__ = co._ufunc_add
@@ -265,6 +285,9 @@ def _add_array_behaviors():
             
             co.__str__ = _stringify_array
             co.__repr__ = _stringify_array
+
+            co.__array_typestr__ = property(
+                get_returner(tc_array_typestr))
 
         DenseMatrix(tc).__pow__ = _matrix_power
         DenseMatrix(tc).__rdiv__ = _divide_by_matrix

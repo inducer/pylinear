@@ -184,8 +184,10 @@ An \class{Array} has the following meta-data attributes:
   a tuple of length equal to the array's dimension specifying the
   dimensions of the matrix.  For a vector, this is a singleton
   containing an integer, for a matrix, this is a pair containing the
-  number of rows and columns, in this order.  Assigning a value to the
-  \member{shape} attribute is not supported.
+  number of rows and columns, in this order.  
+
+  Assigning a value to the \member{shape} attribute will destructively
+  resize the array.
 \end{memberdesc}
 
 \begin{memberdesc}[Array]{flavor}

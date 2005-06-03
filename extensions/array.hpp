@@ -1414,9 +1414,13 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
         python::return_value_policy<python::manage_new_object>())
     .def("clear", &WrappedClass::clear)
 
-    .add_property("shape", 
-        (python::object (*)(const WrappedClass &)) getShape, 
-        (void (*)(WrappedClass &, const python::tuple &)) setShape)
+    .add_property(
+      "shape", 
+      (python::object (*)(const WrappedClass &)) getShape, 
+      (void (*)(WrappedClass &, const python::tuple &)) setShape)
+    .add_property(
+      "__array_shape__", 
+      (python::object (*)(const WrappedClass &)) getShape)
     .def("__len__", (unsigned (*)(const WrappedClass &)) getLength)
     .def("swap", &WrappedClass::swap)
 

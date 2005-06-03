@@ -21,7 +21,7 @@ LAPACK_LIBRARIES = ["lapack"]
 ARPACK_LIBRARY_DIRS = []
 ARPACK_LIBRARIES = ["arpack"]
 
-# do not include initial "umfpack/"
+# omit the last "umfpack/"
 UMFPACK_INCLUDE_DIRS = [] 
 UMFPACK_LIBRARY_DIRS = []
 UMFPACK_LIBRARIES = ["umfpack"]

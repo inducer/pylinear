@@ -1,0 +1,33 @@
+as_numeric method
+implement more of array_interface
+documentation
+
+TODO:
+--------------------------------------------------------------------------
+product (?)
+put
+concatenate?
+more ufuncs
+  - with their different methods?
+  - comparison ufuncs (convert to what if not bool?)
+from/to numeric conversion
+UMFPACK crash with *really* singular matrix
+
+save time in arpack:
+  avoid copies for multiplication
+  make it possible to take advantage of difference IDO=+/- 1
+
+QUESTIONS:
+UBLAS: unify indexing, provide multidimensional arrays
+UBLAS: managed_XXX_adaptor
+UBLAS: doc bug: h/s_adaptors don't have expression constructors
+UBLAS: traits cannot be included by itself (?)
+UBLAS: matrix_proxy cannot be included by itself
+UBLAS: casts needed in cholesky
+UBLAS: Permutation matrices
+UBLAS: Toeplitz matrices
+UBLAS: Vandermonde matrices
+UBLAS: lu doesn't have any headers included
+UBLAS: insert discrepance: coordinate_matrix vs. everybody else.
+UBLAS: Warum ist end2 nicht das Ende der Matrix?
+UBLAS: Was ist rank bei find1/2?
