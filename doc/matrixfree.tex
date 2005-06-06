@@ -1,0 +1,72 @@
+\chapter{Matrix-Free Methods}
+\label{cha:matrixfree}
+
+\begin{quote}
+   This chapter introduces the notion of an \class{Operator}, which
+   is PyLinear's way of expressing matrix-free methods.
+\end{quote}
+
+\section{The \class{Operator} concept}
+
+\begin{classdesc*}{Operator}
+  An \class{Operator}\index{Operator} is a (typically linear) mapping
+  of one vector to another. A matrix is a particularly prominent
+  example of this, but \class{Operator}s are mainly used to represent
+  vector-to-vector mappings for which no matrix is available (or too
+  expensive to compute explicitly).
+\end{classdesc*}
+
+Given this single purpose, an \class{Operator} has a pretty 
+simple interface:
+\begin{memberdesc}[Operator]{shape}
+  Returns a tuple \code{(h,w)}, which, in analogy to a \class{Matrix},
+  specifies the sizes of the vectors received and returned by the
+  \class{Operator}.
+\end{memberdesc}
+\begin{methoddesc}[Operator]{typecode}{}
+  Returns the typecode (see \ref{sec:types-and-flavors}) of the
+  \class{Vector}s that this \class{Operator} operates on. This is also
+  the typecode of the \class{Vector}qs returned by the operations of this
+  \class{Operator}. For technical reasons, the two need to match.
+\end{methoddesc}
+\begin{methoddesc}[Operator]{apply}{before, after}
+  This method operates on the \class{Vector} \code{before} and returns
+  the result of the operation in \code{after}. \code{after}
+  needs to be a properly-sized \class{Vector}. Its initial values
+  typically do not matter, but may be used as starting guesses,
+  for example by iterative solvers. Initializing after to
+  all zeroes is always acceptable.
+\end{methoddesc}
+
+\section{\class{Operator}s Form an Algebra}
+
+On top of this simple interface of an \class{Operator}, PyLinear 
+provides a layer of convenience functions that facilitate the
+creation of derived instances, among other things.
+
+\opindex{()}For an \class{Operator} \code{A}, saying \code{A(x)}
+with a properly sized and typed \class{Vector} \code{x} will
+return the result of applying \code{A} to \vector{x}, via the
+
+
+\opindex{+}For two \class{Operator}s \code{A} and \code{B}, you may write
+\code{A+B} to obtain an \class{Operator} mapping that will
+perform the operation \code{A(x)+B(x)}. The operator \code{-} works
+in an analogous fashion.
+
+\opindex{*}For two \class{Operator}s \code{A} and \code{B}, you may
+write \code{A*B} to obtain an \class{Operator} mapping that will
+perform the composed operation \code{A(B(x))}. You may also say
+\code{a*B} or {B*a} with an \class{Operator} \code{B} and a scalar
+\code{a}, and will obtain an \class{Operator} that performs
+\code{a*B(x)}. A unary minus \code{-A} returns the negated
+operator.
+
+\section{Types of \class{Operator}s}
+
+\section{Implementing your own \class{Operator}s}
+
+FIXME \dots
+
+For information on implementing your own operators in C++, please
+refer to Chapter \ref{cha:extending}.
