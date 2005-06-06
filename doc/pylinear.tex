@@ -1,10 +1,3 @@
-% Complete documentation on the extended LaTeX markup used for Python
-% documentation is available in ``Documenting Python'', which is part
-% of the standard documentation for Python.  It may be found online
-% at:
-%
-%     http://www.python.org/doc/current/doc/doc.html
-
 \documentclass[hyperref]{manual}
 
 % latex2html doesn't know [T1]{fontenc}, so we cannot use that:(
@@ -13,18 +6,10 @@
 \usepackage[latin1]{inputenc}
 \usepackage{textcomp}
 
-% provide a cross-linking command for the index
-%begin{latexonly}
-\newcommand*\see[2]{\protect\seename #1}
-\newcommand*{\seename}{$\to$}
-%end{latexonly}
-
-
 % mark internal comments
 % for any published version switch to the second (empty) definition of the macro!
 % \newcommand{\remark}[1]{(\textbf{Note to authors: #1})}
 \newcommand{\remark}[1]{}
-
 
 \title{PyLinear}
 
@@ -34,12 +19,13 @@
    76131 Karlsruhe}
 
 \date{March 22, 2005}
-\release{0.92}                 % (software) release version;
-\setshortversion{0.92}         % this is used to define the \version macro
 
-\makeindex                      % tell \index to actually write the .idx file
+% (software) release version;
+\release{0.92}
+% this is used to define the \version macro
+\setshortversion{0.92}
 
-
+\makeindex
 
 \begin{document}
 
@@ -50,6 +36,7 @@
 \input{intro}
 \input{installation}
 \input{arraytypes}
+\input{matrixfree}
 \input{numerics}
 \input{extending}
 \input{diff-pylinear-numpy}
@@ -57,8 +44,6 @@
 \appendix
 
 \input{ack}
-%begin{latexonly}
-%end{latexonly}
 
 \input{pylinear.ind}
 

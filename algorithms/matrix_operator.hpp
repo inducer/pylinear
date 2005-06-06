@@ -221,7 +221,8 @@ class composite_matrix_operator : public matrix_operator<ValueType>
     {
       super::apply(before, after);
 
-      vector_type temp(m_inner.size1());
+      vector_type temp(ublas::zero_vector<ValueType>(m_inner.size1()));
+      
       m_inner.apply(before, temp);
       m_outer.apply(temp, after);
     }
@@ -267,7 +268,7 @@ class sum_of_matrix_operators : public matrix_operator<ValueType>
     {
       super::apply(before, after);
 
-      vector_type temp(size1());
+      vector_type temp(after);
       m_op1.apply(before, temp);
       m_op2.apply(before, after);
 

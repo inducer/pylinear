@@ -327,7 +327,10 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
         value_type *y = workd.get() + ipntr[2-1] - 1;
 
         for (int i = 0; i < n; i++)
+        {
           operand[i] = x[i];
+          result[i] = 0;
+        }
 
         if (ido == 2) 
         {

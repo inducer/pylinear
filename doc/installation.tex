@@ -2,7 +2,64 @@
 \label{cha:installation}
 
 \begin{quote}
-   This chapter ...
+   This chapter gives you an idea of how to install PyLinear on your 
+   computer.
 \end{quote}
 
-FIXME
+First of all, let's talk about the software that PyLinear needs to run
+or can use to be more useful.
+\begin{itemize}
+  \item Boost, from \url{http://www.boost.org}. Required.
+
+    Download from CVS, or use version 1.33 (which, as of this writing, 
+    is still to be released).
+  \item Boost numerics bindings. Required.
+
+    Use the tarball from \url{http://news.tiker.net/software/ublas-bindings}.
+  \item BLAS. Optional, but is a prerequisite of all the more
+    advanced software. 
+
+    Any machine-specific BLAS should be fine. If your machine doesn't come
+    with one, use ATLAS, from \url{http://atlas.sf.net}
+  \item LAPACK. Optional, gives you eigenvalues, SVD and such of
+    dense matrices.
+
+    Requires BLAS.
+
+    Use the one that came with your computer, the one that came with 
+    ATLAS, or the Fortran one from \url{http://www.netlib.org/}.
+
+  \item UMFPACK. Optional, gives you a direct solver for 
+    \class{SparseExecuteMatrix} instances.
+
+    Requires BLAS.
+
+    Download from \url{http://www.cise.ufl.edu/research/sparse/umfpack} 
+  \item ARPACK. Optional, gives you an eigensolver for
+    \class{MatrixOperator} instances.
+
+    Requires BLAS, LAPACK.
+
+    Download from \url{http://www.caam.rice.edu/software/ARPACK/}.
+\end{itemize}
+
+Now, copy the file \texttt{siteconf-template.py}, which is distributed
+in the PyLinear tarball, to \texttt{siteconf.py} and modify it to suit
+your environment. Especially, modify the \texttt{HAVE_SOMETHING} items
+to \constant{True} if you have the given piece of software.  Then,
+make sure that the \texttt{SOMETHING_LIBRARY_DIRS} and
+\texttt{SOMETHING_INCLUDE_DIRS} (if applicable) reflect where the
+library binaries (\texttt{libSOMETHING.so} or \texttt{libSOMETHING.a})
+and the header files (if applicable) are to be found. If the library
+name is different on your machine, also edit
+\texttt{SOMETHING_LIBRARIES}.
+
+Lastly, unless you want to wait \em{years} on that compilation, make
+sure that the \texttt{OPT} variable in
+\texttt{/usr/lib/python2.n/config} does \em{not} contain a
+\texttt{-g}.
+
+After all this preparation, type \texttt{python setup.py build}, wait
+for the compile to finish successfully, and then \texttt{su -c "python
+setup.py install"}.  If all went according to plan, you now have a 
+working PyLinear installation.

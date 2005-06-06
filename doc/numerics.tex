@@ -1,26 +1,26 @@
-\chapter{Numerical algorithms}
+\chapter{Matrix-Free Methods}
 \label{cha:numerics}
 
 \begin{quote}
-   This chapter introduces the advanced numerical algorithms available
+   This chapter introduces the numerical algorithms available
    in PyLinear.
 \end{quote}
 
 PyLinear features six different modules of numerical algorithms:
 \begin{itemize}
-  \item \module{pylinear.operation} introduces the notion of a
-    \class{Operator} and offers several implementations of the 
-    concept. It is also the main module of linear
+  \item \module{pylinear.operation} uses the previously introduced 
+    notion of an \class{Operator} and offers several implementations 
+    of the concept. It is also the main module of linear
     algebra computational routines in PyLinear. It offers a
     comprehensive set of linear algebra primitives, such as
     determinants, decompositions, linear solves, eigenvalue finding
     and the like.
   \item \module{pylinear.linear_algebra} is a compatibility module 
-    which aims for complete exchangability with NumPy's \module{LinearAlgebra}.
+    which aims for complete exchangeability with NumPy's \module{LinearAlgebra}.
     It offers a high-level subset of \module{pylinear.operation} 
     with less exposed detail.
   \item \module{pylinear.mpi} will provide an interface between
-    MPI and PyLinear, but is not yet written.
+   MPI and PyLinear, but is not yet written.
   \item \module{pylinear.toybox} serves as a staging area for
     the above modules and has an unspecified interface that may 
     change at any time. Look in the source to find experimental
@@ -28,9 +28,6 @@ PyLinear features six different modules of numerical algorithms:
     these may disappear or change at any time.
 \end{itemize}
 
-\section{The \class{Operator} concept}
-
-An \class{Operator}\index{Operator} in the context 
 \section{Matrix computations}
 \section{Convenient helpers}
 \section{Parallel PyLinear}
