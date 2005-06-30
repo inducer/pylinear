@@ -26,14 +26,22 @@
 
 
 
+#include <boost/numeric/bindings/traits/type_traits.hpp>  	
+#include <boost/numeric/bindings/traits/vector_traits.hpp>  	
 #include <boost/scoped_array.hpp>  	
 #include <matrix_operator.hpp>
 #include <vector>
 #include "detail/arpack_proto.hpp"
+#include <boost/lexical_cast.hpp>
 //#include <boost/numeric/bindings/arpack/arpack_proto.hpp>
 
 
 
+
+extern "C"
+{
+  void dlarnv_(int *idist, int *iseed, int *n, double *x);
+}
 
 namespace boost { namespace numeric { namespace bindings {  namespace arpack {
 
@@ -126,11 +134,15 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
           my_results.m_ritz_values.push_back(d[i+1]);
 
           VectorType ritz_vector(n);
+          // un-conjugate ritz vector
           for (unsigned j = 0; j < n; j++)
             ritz_vector[j] = complex_type(z[i*n + j], z[(i+1)*n +j]);
-
           my_results.m_ritz_vectors.push_back(ritz_vector);
-          my_results.m_ritz_vectors.push_back(conj(ritz_vector));
+
+          // conjugate ritz vector
+          for (unsigned j = 0; j < n; j++)
+            ritz_vector[j] = complex_type(z[i*n + j], -z[(i+1)*n +j]);
+          my_results.m_ritz_vectors.push_back(ritz_vector);
 
           i += 2;
         }
@@ -215,7 +227,7 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
       complex_type;
 
     int ido = 0;
-    char bmat = m == 0 ? 'G' : 'I';
+    char bmat = m == 0 ? 'I' : 'G';
     int n = op.size1();
 
     if ((unsigned) n != op.size2())
@@ -226,6 +238,8 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
     char *which = const_cast<char*>(detail::mapWhichToString(which_e));
 
     boost::scoped_array<value_type> residual(new value_type[n]);
+    for (int i = 0; i < n; i++)
+      residual[i] = starting_vector[i];
 
     boost::scoped_array<value_type> v(new value_type[number_of_arnoldi_vectors * n]);
     int ldv = n;
@@ -243,7 +257,7 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
     iparam[10-1] = 0; // NUMOPB
     iparam[11-1] = 0; // NUMREO
 
-    int info = 0; // we're not specifying a previous residual
+    int info = 1; // we are specifying a previous residual
 
     int ipntr[14];
 
@@ -313,8 +327,11 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
           throw std::runtime_error("arpack, naupd: MODE and BMAT don't agree (-11)");
         case -12:
           throw std::runtime_error("arpack, naupd: ISHIFT invalid (-12)");
+        case -9999:
+          throw std::runtime_error("arpack, naupd: failed to build an Arnoldi factorization (-9999)");
         default:
-          throw std::runtime_error("arpack, naupd: invalid naupd error code");
+          throw std::runtime_error("arpack, naupd: invalid naupd error code: "
+                                   + boost::lexical_cast<std::string>(info));
       }
 
       if (ido == -1 || ido == 1 || ido == 2)
@@ -437,7 +454,8 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
         case -14:
           throw std::runtime_error("arpack, neupd: no eigenvalues found (-14)");
         default:
-          throw std::runtime_error("arpack, neupd: invalid neupd error code");
+          throw std::runtime_error("arpack, neupd: invalid neupd error code: "
+                                   + boost::lexical_cast<std::string>(info));
       }
 
       unsigned nconv = iparam[5-1];

@@ -53,13 +53,14 @@ class _BiCGSTABTypecodeParameterizedType(num.TypecodeParameterizedType):
 BiCGSTABOperator = _BiCGSTABTypecodeParameterizedType(
     "BiCGSTABMatrixOperator", _op.__dict__)
 
-class _UMFPACKTypecodeParameterizedType(num.TypecodeParameterizedType):
-    def make(self, matrix):
-        matrix.complete_index1_data()
-        return self.TypeDict[matrix.typecode()](matrix)
+if _op.has_umfpack():
+    class _UMFPACKTypecodeParameterizedType(num.TypecodeParameterizedType):
+        def make(self, matrix):
+            matrix.complete_index1_data()
+            return self.TypeDict[matrix.typecode()](matrix)
 
-UMFPACKOperator = _UMFPACKTypecodeParameterizedType("UMFPACKMatrixOperator", 
-                                                    _op.__dict__)
+    UMFPACKOperator = _UMFPACKTypecodeParameterizedType("UMFPACKMatrixOperator", 
+                                                        _op.__dict__)
 
 class _LUInverseOperator:
     def __init__(self, l, u, perm):
@@ -232,11 +233,20 @@ _add_operator_behaviors()
 
 
 
+# library support queries -----------------------------------------------------
+has_blas = _op.has_blas
+has_lapack = _op.has_lapack
+has_arpack = _op.has_arpack
+has_umfpack = _op.has_umfpack
+
+
+
+
 # computational routines ------------------------------------------------------
 def solve_linear_system(mat, rhs):
     typecode = mat.typecode()
     h,w = mat.shape
-    if mat.flavor is num.SparseExecuteMatrix:
+    if mat.flavor is num.SparseExecuteMatrix and _op.has_umfpack():
         # use UMFPACK
         umf_operator = UMFPACKOperator.make(mat)
 
@@ -285,23 +295,24 @@ def solve_linear_system_cg(matrix, vector):
 
 cholesky = _op.cholesky
 lu = _op.lu
-svd = _op.singular_value_decomposition
-left_right_diagonalize = _op.eigenvectors
+if _op.has_lapack():
+    svd = _op.singular_value_decomposition
+    left_right_diagonalize = _op.eigenvectors
 
-def eigenvalues(mat):
-    w, vl, vr = _op.eigenvectors(False, False, mat)
-    return w
+    def eigenvalues(mat):
+        w, vl, vr = _op.eigenvectors(False, False, mat)
+        return w
 
-def diagonalize(mat):
-    w, vl, vr = _op.eigenvectors(False, True, mat)
-    return vr, w
+    def diagonalize(mat):
+        w, vl, vr = _op.eigenvectors(False, True, mat)
+        return vr, w
 
-def eigenvalues_hermitian(mat, upper = True):
-    q, w = _op.Heigenvectors(False, upper, mat)
-    return w
+    def eigenvalues_hermitian(mat, upper = True):
+        q, w = _op.Heigenvectors(False, upper, mat)
+        return w
 
-def diagonalize_hermitian(mat, upper = True):
-    return _op.Heigenvectors(True, upper, mat)
+    def diagonalize_hermitian(mat, upper = True):
+        return _op.Heigenvectors(True, upper, mat)
 
 
 
@@ -407,44 +418,45 @@ def norm_infinity(vec):
 
 
 # arpack interface ------------------------------------------------------------
-SMALLEST_MAGNITUDE = _op.SMALLEST_MAGNITUDE
-LARGEST_MAGNITUDE = _op.LARGEST_MAGNITUDE
-SMALLEST_REAL_PART = _op.SMALLEST_REAL_PART
-LARGEST_REAL_PART = _op.LARGEST_REAL_PART
-SMALLEST_IMAGINARY_PART = _op.SMALLEST_IMAGINARY_PART
-LARGEST_IMAGINARY_PART = _op.LARGEST_IMAGINARY_PART
+if _op.has_arpack():
+    SMALLEST_MAGNITUDE = _op.SMALLEST_MAGNITUDE
+    LARGEST_MAGNITUDE = _op.LARGEST_MAGNITUDE
+    SMALLEST_REAL_PART = _op.SMALLEST_REAL_PART
+    LARGEST_REAL_PART = _op.LARGEST_REAL_PART
+    SMALLEST_IMAGINARY_PART = _op.SMALLEST_IMAGINARY_PART
+    LARGEST_IMAGINARY_PART = _op.LARGEST_IMAGINARY_PART
 
-def operator_eigenvectors(
-    operator,
-    n_eigenvectors,
-    right_hand_operator = None,
-    spectral_shift = None,
-    which_eigenvalues = LARGEST_MAGNITUDE,
-    n_arnoldi_vectors = None,
-    tolerance = 1e-12,
-    max_iterations = None):
+    def operator_eigenvectors(
+        operator,
+        n_eigenvectors,
+        right_hand_operator = None,
+        spectral_shift = None,
+        which_eigenvalues = LARGEST_MAGNITUDE,
+        n_arnoldi_vectors = None,
+        tolerance = 1e-12,
+        max_iterations = None):
 
-    if n_arnoldi_vectors is None:
-        n_arnoldi_vectors = 2 * n_eigenvectors
+        if n_arnoldi_vectors is None:
+            n_arnoldi_vectors = 2 * n_eigenvectors + 1
 
-    mode = _op.REGULAR_NON_GENERALIZED
-    if right_hand_operator is not None:
-        mode = _op.REGULAR_GENERALIZED
-    if spectral_shift is not None:
-        mode = _op.SHIFT_AND_INVERT_GENERALIZED
+        mode = _op.REGULAR_NON_GENERALIZED
+        if right_hand_operator is not None:
+            mode = _op.REGULAR_GENERALIZED
+        if spectral_shift is not None:
+            mode = _op.SHIFT_AND_INVERT_GENERALIZED
 
-    if max_iterations is None:
-        max_iterations = 0
+        if max_iterations is None:
+            max_iterations = 0
 
-    result = _op.runArpack(operator, right_hand_operator,
-                           mode, spectral_shift or 0,
-                           n_eigenvectors,
-                           n_arnoldi_vectors,
-                           which_eigenvalues,
-                           tolerance,
-                           max_iterations)
+        result = _op.runArpack(operator, right_hand_operator,
+                               mode, spectral_shift or 0,
+                               n_eigenvectors,
+                               n_arnoldi_vectors,
+                               which_eigenvalues,
+                               tolerance,
+                               max_iterations)
 
-    return zip(result.RitzValues, result.RitzVectors)
+        return zip(result.RitzValues, result.RitzVectors)
 
 
 

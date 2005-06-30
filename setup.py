@@ -30,20 +30,20 @@ OP_EXTRA_LIBRARIES = []
 USE_BLAS = HAVE_BLAS
 USE_LAPACK = HAVE_LAPACK and HAVE_BLAS
 USE_ARPACK = HAVE_ARPACK and USE_LAPACK
-USE_UMFPACK = HAVE_BLAS and HAVE_BLAS
+USE_UMFPACK = USE_BLAS and HAVE_UMFPACK
 
-if HAVE_LAPACK and not HAVE_BLAS:
+if HAVE_LAPACK and not USE_LAPACK:
     print "*** LAPACK disabled because BLAS is missing"
 if HAVE_ARPACK and not USE_LAPACK:
     print "*** ARPACK disabled because LAPACK is not usable/missing"
-if HAVE_UMFPACK and not HAVE_BLAS:
+if HAVE_UMFPACK and not USE_UMFPACK:
     print "*** UMFPACK disabled because BLAS is missing"
 
-DEFINES = {}
+OP_EXTRA_DEFINES = {}
 
 def handle_component(comp):
     if globals()["USE_"+comp]:
-        globals()["DEFINES"]["USE_"+comp] = 1
+        globals()["OP_EXTRA_DEFINES"]["USE_"+comp] = 1
         globals()["OP_EXTRA_INCLUDE_DIRS"] += globals()[comp+"_INCLUDE_DIRS"]
         globals()["OP_EXTRA_LIBRARY_DIRS"] += globals()[comp+"_LIBRARY_DIRS"]
         globals()["OP_EXTRA_LIBRARIES"] += globals()[comp+"_LIBRARIES"]
@@ -77,10 +77,11 @@ setup(name="PyLinear",
                     Extension( "_operation", 
                                ["extensions/operation.cpp",
                                 ],
+                               define_macros = list(OP_EXTRA_DEFINES.iteritems()),
                                include_dirs = INCLUDE_DIRS + OP_EXTRA_INCLUDE_DIRS,
                                library_dirs = LIBRARY_DIRS + OP_EXTRA_LIBRARY_DIRS,
                                libraries = LIBRARIES + OP_EXTRA_LIBRARIES,
                                extra_compile_args = EXTRA_COMPILE_ARGS,
-          ),
-        ]
+                               ),
+                    ]
      )

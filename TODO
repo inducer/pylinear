@@ -1,6 +1,14 @@
 as_numeric method
 implement more of array_interface
 documentation
+2x2 block composite matrix operator
+array_type interface more complete
+inplace broadcast? macht das sinn?
+license note
+memory leaks?
+to_numpy with shared memory
+to_complex operator?
+cholesky sparsity
 
 TODO:
 --------------------------------------------------------------------------

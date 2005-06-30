@@ -152,6 +152,16 @@ class TestMatrices(unittest.TestCase):
     def test_umfpack(self):
         self.for_all_typecodes(self.do_test_umfpack)
 
+    def test_arpack_classic(self):
+        size = 10
+        A = make_random_matrix(size, num.Float)
+        Aop = op.MatrixOperator.make(A)
+
+        results = op.operator_eigenvectors(Aop, 3)
+
+        for value,vector in results:
+            self.assert_(op.norm_2(A*vector - value*vector) < 1e-7)
+
     def do_test_arpack_generalized(self, typecode):
         size = 100
         A = make_random_matrix(size, typecode)

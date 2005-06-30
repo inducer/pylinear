@@ -555,12 +555,13 @@ arpack::results<ublas::vector<std::complex<RealType> > > *wrapArpack(
 {
   typedef arpack::results<ublas::vector<std::complex<RealType> > > results_type;
   std::auto_ptr<results_type> results(new results_type());
+  ublas::vector<ValueType> start_vector = ublas::unit_vector<ValueType>(op.size1(), 0);
   try
   {
     arpack::performReverseCommunication(
       op, m, mode, spectral_shift, 
       number_of_eigenvalues, number_of_arnoldi_vectors,
-      *results, ublas::vector<ValueType>(),
+      *results, start_vector,
       which_e, tolerance, max_iterations);
   }
   catch (std::exception &ex)
@@ -592,6 +593,14 @@ static void exposeArpack(const std::string &python_valuetypename, ValueType)
               python::return_value_policy<python::manage_new_object>());
 }
 #endif // USE_ARPACK
+
+
+
+// library support queries ----------------------------------------------------
+bool has_blas() { return USE_BLAS; }
+bool has_lapack() { return USE_LAPACK; }
+bool has_arpack() { return USE_ARPACK; }
+bool has_umfpack() { return USE_UMFPACK; }
 
 
 
@@ -643,6 +652,11 @@ BOOST_PYTHON_MODULE(_operation)
   exposeSpecialAlgorithms(std::complex<double>());
 
   exposeForAllMatrices(cholesky_exposer());
+
+  python::def("has_blas", has_blas);
+  python::def("has_lapack", has_lapack);
+  python::def("has_arpack", has_arpack);
+  python::def("has_umfpack", has_umfpack);
 }
 
 
