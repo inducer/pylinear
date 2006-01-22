@@ -374,15 +374,6 @@ def matrix_exp_by_diagonalization(a):
 
 
 
-def delta(x,y):
-    if x == y:
-        return 1
-    else:
-        return 0
-
-
-
-
 # matrix type tests -----------------------------------------------------------
 def hermiticity_error(mat):
     return op.norm_frobenius(mat.H - mat)
@@ -405,4 +396,120 @@ def orthogonality_error(mat):
 def identity_error(mat):
     id_mat = num.identity(mat.shape[0], mat.typecode())
     return op.norm_frobenius(mat - id_mat)
+
+
+
+
+
+# Numerical algorithms -------------------------------------------------------
+def find_zero_by_newton(f, fprime, x_start, tolerance = 1e-12, maxit = 10):
+    it = 0
+    while it < maxit:
+        it += 1
+        f_value = f(x_start)
+        if math.fabs(f_value) < tolerance:
+            return x_start
+        x_start -= f_value / fprime(x_start)
+    raise RuntimeError, "Newton iteration failed, a zero was not found"
+
+
+
+
+def find_vector_zero_by_newton(f, fprime, x_start, tolerance = 1e-12, maxit = 10):
+    it = 0
+    while it < maxit:
+        it += 1
+        f_value = f(x_start)
+        if op.norm_2(f_value) < tolerance:
+            return x_start
+        x_start -= num.matrixmultiply(la.inverse(fprime(x_start)), f_value)
+    raise RuntimeError, "Newton iteration failed, a zero was not found"
+
+
+
+
+def distance_to_line(start_point, direction, point):
+    # Ansatz: start_point + alpha * direction 
+    # <start_point + alpha * direction - point, direction> = 0!
+    alpha = - num.innerproduct(start_point - point, direction) / \
+            op.norm_2_squared(direction)
+    foot_point = start_point + alpha * direction
+    return op.norm_2(point - foot_point), alpha
+
+
+
+
+def angle_cosine_between_vectors(vec1, vec2):
+    return vec1*vec2.H / (op.norm_2(vec1)*op.norm_2(vec2))
+
+
+
+
+def interpolate_vector_list(vectors, inbetween_points):
+    if len(vectors) == 0:
+        return []
+
+    result = [vectors[0]]
+    last_vector = vectors[0]
+    for vector in vectors[1:]:
+        for i in range(inbetween_points):
+            result.append(last_vector + (vector-last_vector) \
+                          * float(i+1) \
+                          / float(inbetween_points+1))
+        result.append(vector)
+        last_vector = vector
+    return result
+
+
+
+
+def make_rotation_matrix(radians, n = 2, axis1 = 0, axis2 = 1, typecode = num.Float):
+    mat = num.identity(n, typecode)
+    mat[axis1,axis1] = math.cos(radians)
+    mat[axis2,axis1] = math.sin(radians)
+    mat[axis1,axis2] = -math.sin(radians)
+    mat[axis2,axis2] = math.cos(radians)
+    return mat
+
+
+
+
+def get_parallelogram_volume(vectors):
+    if vectors[0].shape[0] == 2:
+        return vectors[0][0] * vectors[1][1] - vectors[1][0] * vectors[0][1]
+    else:
+        raise RuntimeError, "not implemented"
+
+
+
+
+def unit_vector(i, dim, typecode = num.Float):
+    uvec = num.zeros((dim,), typecode)
+    uvec[i] = 1
+    return uvec
+
+
+
+
+def conjugate(value):
+    try:
+        return value.conjugate()
+    except AttributeError:
+        return value
+
+
+
+
+# Obscure stuff --------------------------------------------------------------
+def write_matrix_as_csv(filename, matrix):
+    mat_file = file(filename, "w")
+    h,w = matrix.shape
+    for row in range(0, h):
+        for column in range(0, w):
+            mat_file.write("%f," % matrix[ row, column ])
+    mat_file.write("\n")
+
+
+
+
 

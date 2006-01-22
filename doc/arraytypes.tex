@@ -56,13 +56,13 @@ Each of the flavors is represented by a symbolic constant:
 
 \begin{tableii}{l|l}{constant}{Constant}{Corresponding Flavor}
   \lineii{Vector}
-         {Specifies the dense vector flavor.}
+         {The dense vector flavor.}
   \lineii{DenseMatrix}
-         {Specifies the dense matrix flavor.}
+         {The dense matrix flavor.}
   \lineii{SparseBuildMatrix}
-         {Specifies the sparse build matrix flavor.}
+         {The sparse build matrix flavor.}
   \lineii{SparseExecuteMatrix}
-         {Specifies the sparse execute matrix flavor.}
+         {The sparse execute matrix flavor.}
 \end{tableii}
 
 Likewise, each of the element types has its own symbolic constant.
@@ -70,15 +70,15 @@ These constants are usually called \indexii{type}{code}\index{typecode}\dfn{type
 
 \begin{tableii}{l|l}{constant}{Constant}{Corresponding Element Type}
   \lineii{Float64}
-         {Specifies the 64-bit real element type.}
+         {The 64-bit real element type.}
   \lineii{Complex64}
-         {Specifies the 2x64-bit complex element type.}
+         {The 2x64-bit complex element type.}
   \lineii{Float}
-         {Specifies the machine-native C++ \ctype{double} element type.
-          Currently an alias for \constant{Float64}.}
+         {The machine-native C++ \ctype{double} element type.
+          An alias for \constant{Float64}.}
   \lineii{Complex}
-         {Specifies the machine-native C++ \ctype{std::complex<double>} 
-          element type. Currently an alias for \constant{Complex64}.}
+         {The machine-native C++ \ctype{std::complex<double>} 
+          element type. An alias for \constant{Complex64}.}
 \end{tableii}
 
 Despite some dissimilarity, PyLinear's matrix layer attempts to be
@@ -101,15 +101,15 @@ the creation of new \class{Array}s:
 >>> a
 \end{verbatim}
    The \function{array} function takes several arguments --- the first
-   one is the values, which can be a Python sequence object (such as a
-   list or a tuple).  The optional argument \code{type} specifies the
-   element type of the matrix. If omitted, as in the example above,
-   Python tries to find the best data type which can represent all the
+   one is a Python sequence object (such as a list or a tuple).  The
+   optional argument \code{type} specifies the element type of the
+   matrix. If omitted, as in the example above, Python tries to find
+   the best data type which can represent all the
    elements. \function{array} always creates dense matrices or
    vectors, depending on the \dfn{dimensionality}\index{dimension} of
-   the input data.  (The dimension of the data is 1 for a list, 2 for a
-   list of lists, and so on.  1-dimensional data will be converted to
-   vectors, 2-dimensional data to matrices.)
+   the input data.  (The dimension of the data is 1 for a list, 2 for
+   a list of lists, and so on.  1-dimensional data will be converted
+   to vectors, 2-dimensional data to matrices.)
    
    Since the elements we gave our example were two floats and one integer, it
    chose \class{Float64} as the type of the resulting array. One can specify
@@ -118,11 +118,10 @@ the creation of new \class{Array}s:
    though all of its input elements are reals:
 \begin{verbatim}
 >>> x,y,z = 1,2,3
->>> a = array([x,y,z])                  # reals are enough for 1, 2 and 3
-[3](1,2,3)
+>>> a = array([x,y,z]) # reals are enough for 1, 2 and 3
 >>> print a
->>> a = array([x,y,z], type=Complex64)    # not the default type
->>> a
+>>> a = array([x,y,z], typecode=Complex64) # not the default type
+>>> print a
 \end{verbatim}
     Note that in NumPy, \function{array} takes a few more arguments, such as
     \code{copy}, \code{savespace}, and \code{shape}. These are not supported.
@@ -131,7 +130,7 @@ the creation of new \class{Array}s:
 \begin{funcdesc}{sparse}{mapping, shape=None, typecode=None, flavor=SparseBuildMatrix}
   This function creates a (not necessarily sparse) \class{Matrix} of
   the given \code{shape}, \code{typecode}, and \code{flavor} based on
-  a sparse representation its entries. At present, it cannot create
+  a sparse representation of its entries. At present, it cannot create
   \class{Vector}s. The sparse representation consists of a dictionary
   of dictionaries, whose keys are the row indices for the outer dictionary,
   and the column indices for the inner one.
@@ -210,14 +209,14 @@ An \class{Array} has the following data attributes:
   Reading this attribute obtains a copy of the real part of the matrix.
   For real matrices, the matrix is simply copied.
 
-  Returns a view, not a copy, in NumPy. Only on complex arrays in NumPy.
+  In NumPy, this method does not return a copy, but a view.
 \end{memberdesc}
 
 \begin{memberdesc}[Array]{imaginary}
   Reading this attribute obtains a copy of the imaginary part of the matrix.
   For real matrices, a zero matrix of the same size is returned.
 
-  Returns a view, not a copy, in NumPy. Only on complex arrays in NumPy.
+  In NumPy, this method does not return a copy, but a view.
 \end{memberdesc}
 
 In addition to the \class{Array} data attributes, \class{Matrix} types
@@ -247,14 +246,19 @@ unlike NumPy, slices return copies, not views of the corresponding
 data.
 
 The following methods are available on PyLinear's \class{Array} types:
-\begin{methoddesc}[Array]{sum}{}
+
+\begin{methoddesc}{sum}{}
   The \method{sum} method returns the sum of all non-zero array elements. (Saying
   ``non-zero'' sounds stupid, but it actually means that for sparse arrays,
   only non-zero elements are considered, and thus represents a guarantee
   with respect to asymptotic complexity of the operation.)
+  Returns the sum of all elements in the array.
 \end{methoddesc}
-% abs_square_sum intentionally undocumented
-\begin{methoddesc}[Array]{__iter__}{}
+%\begin{methoddesc}{abs_square_sum}{} INTENTIONALLY LEFT OUT
+%  Returns the sum of the squared absolute values of all elements in
+%  the array.
+%\end{methoddesc}
+\begin{methoddesc}{__iter__}{}
   For \class{Matrix} types, this method returns an iterator whose
   consecutive values are the rows of the matrix. Note that this method
   always returns a \emph{dense} \class{Vector}, so it can be slow
@@ -275,7 +279,7 @@ The following methods are available on PyLinear's \class{Array} types:
 ...
 \end{verbatim}
 \end{methoddesc}
-\begin{methoddesc}[Array]{indices}{}
+\begin{methoddesc}{indices}{}
   This method works like the \method{keys}() method on a
   dictionary: It returns an iterator whose values are all indices
   of the \class{Array} for which the corresponding value is
@@ -283,20 +287,21 @@ The following methods are available on PyLinear's \class{Array} types:
   each element's index, while for sparse matrices, only non-zero
   elements are enumerated.
 \end{methoddesc}
-\begin{methoddesc}[Matrix]{add_scattered}{row_indices, column_indices, small_matrix}
-  This operation adds entries from a small matrix to a potentially 
-  discontiguous set of columns of rows of a larger matrix.
-  This operation is common in finite element codes.
+\begin{methoddesc}{add_scattered}{row_indices, column_indices, little_matrix}
+  Modifies the called matrix in-place by adding a the entries of a
+  \var{little_matrix} to the already present entries, where the
+  affected rows and columns are given by \var{row_indices},
+  \var{column_indices}.
 \begin{verbatim}
 >>> a = num.zeros((10,10), num.Float, num.SparseBuildMatrix)
 >>> b = num.array([[1,2],[3,4]])
 >>> a.add_scattered([4,8], [1,3], b)
 >>> a
 \end{verbatim}
+  This operation is common in finite element codes.
 \end{methoddesc}
-\begin{methoddesc}[Array]{copy}{}
-  This method returns an exact copy of the instance it is 
-  called on.
+\begin{methoddesc}{copy}{}
+  Returns an identical copy of the matrix.
 \begin{verbatim}
 >>> a = num.array([1,2,3])
 >>> b = a.copy()
@@ -305,6 +310,10 @@ The following methods are available on PyLinear's \class{Array} types:
 >>> b
 \end{verbatim}
 \end{methoddesc}
+
+The following methods tie into the particulars of the sparse matrices'
+memory layouts.
+
 \begin{methoddesc}[SparseBuildMatrix]{sort}{}
   The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
   can become unsorted, depending on the order of insertions into the
@@ -312,43 +321,59 @@ The following methods are available on PyLinear's \class{Array} types:
   normal usage, you don't have to worry about sorting your matrices,
   since this action is triggered automatically whenever it is
   necessary.
-\end{methoddesc}{sort}
-\begin{methoddesc}[Matrix]{set_element}{i, j, value}
-  Only on \class{DenseMatrix}, \class{SparseBuildMatrix}. Basically,
-  this element is equivalent to \code{self[i,j] = value},
-  however it runs slightly faster on \class{SparseBuildMatrix}
-  instances.
 \end{methoddesc}
-\begin{methoddesc}[Matrix]{add_element}{i, j, value}
-  Only on \class{DenseMatrix}, \class{SparseBuildMatrix}. Basically,
-  this element is equivalent to \code{self[i,j] += value},
-  however it may avoid a sort on \class{SparseBuildMatrix}
-  instances and may thus run \em{significantly} faster.
+\begin{methoddesc}{set_element}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
 \end{methoddesc}
-\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, value}
-  Basically, this element is equivalent to \code{self[i,j] = value},
-  however it will typically only work if $(i,j)$ is lexicographically
-  larger than the index of any other nonzero element. It is the only
-  efficient way to build \class{SparseExecuteMatrix} types
-  directly. This can be achieved if the matrix structure is known
-  ahead of time.
+\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}. If used, the user guarantees that for all
+  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if 
+  it is available, whereas the alternative notation will always
+  work, but may be exceedingly slow. (Consider the case of a
+  \class{SparseBuildMatrix}, which might have to be resorted.)
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{add_element}{i, j, number}
+  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
+  column.
+
+  Why would you want this if you could easily say \code{A[i,j] +=
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
 \end{methoddesc}
 \begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
-  Brace yourself, this method is pretty technical, and chances are
-  you won't need it. Skip on first reading. That said,  a 
-  \class{SparseExecuteMatrix}'s storage consists of a list of 
-  matrix entries, plus a list of column pointers into a list 
-  of row pointers, which, in turn, point into the entry list.
-  Together, these lists determine the sparse structure of the
-  matrix. The column pointer list is often not filled up 
-  to the end, i.e. it only contains entries up to the column
-  that contains the last non-zero entry. (This makes sense
-  because it makes building these matrices row-by-row possible.)
-  Some software, such as UMFPACK, assumes that the column pointer
-  list (aka the index1_array) is filled up to the last column,
-  and give an error if that is not the case. This method
-  causes the column pointer list to be filled up, so that
-  these errors do not occur.
+  This is a rather internal method, but it is explained here
+  nonetheless.
+
+  The \class{SparseExecuteMatrix} class uses a list to indicate the
+  column starts in a linear field of numbers. This list of column
+  starts, in its original state, is usually incomplete, i.e. does not
+  cover all rows, which allows $O(1)$ insertion at the end of the
+  number field. This method makes sure that the column start list is
+  complete. This is required by certain third-party sparse matrix
+  libraries that directly read the structure of your sparse
+  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
+  call this method automatically, however, so that you don't have to
+  worry about this here. But if you are binding to other sparse matrix
+  libraries, this call might come in useful.
 \end{methoddesc}
 
 PyLinear also supports a number of data access functions.
@@ -564,8 +589,8 @@ found in NumPy, are not (yet) supported in PyLinear.
 \subsection{Multiplication semantics}
 \label{subsec:arraymultiplication}
 
-This section explains what the value of \code{a*b} is, where at least
-one of \code{a} and \code{b} is an \class{Array}.
+This section explains the value of the expression\code{a*b}, where at
+least one of \code{a} and \code{b} is an \class{Array}.
 
 If the other operand is a scalar (it doesn't matter which), the
 result will be the element-wise product of the array with that scalar.
@@ -573,7 +598,13 @@ result will be the element-wise product of the array with that scalar.
 If both operands are \class{Vector}s, \code{a*b} computes the inner
 product of both vectors. Note that in the complex case no complex
 conjugates are taken. If you require them, use the expression
-\code{a*b.H}.
+\code{a*b.H}. \emph{WARNING:} This notation is convenient, but
+slightly dangerous, mathematically. The inner product, if simply
+written as a ``dot product'', is \emph{not} associative, meaning that
+for vectors $a$, $b$ and $c$, typically $(a\cdot b)\cdot
+c\not=a\cdot(b\cdot c)$.  PyLinear has no way of rejecting
+unparenthesized expressions such as \code{a*b*c}, but their meaning is
+uncertain since the order of evaluation is not explicitly specified.
 
 If \code{a} is a \class{Vector} and \code{b} is a \class{Matrix},
 \code{a*b} will result in $b^Ta$, using the conventional matrix-vector
@@ -607,8 +638,8 @@ The following expressions are also valid:
   Computes the \var{scalar} multiple of the inverse of
   \var{matrix}. Only for dense matrices.
 
-  Do not use code like \code{1/a*x} to solve linear systems of
-  equations; besides being slow, this tends to yield imprecise
+  Do not use code like \code{1/a*b} to solve the linear system
+  $Ax=b$; besides being slow, this tends to yield imprecise
   results. Instead, use the \code{<<solve>>} pseudo-operator.
 
   Use of this operator will fail unless the module

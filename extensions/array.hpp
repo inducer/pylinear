@@ -153,7 +153,7 @@ struct python_matrix_value_iterator
     return this;
   }
 
-  python::object next()
+  PyObject *next()
   {
     if (m_row_index >= m_matrix.size1())
     {
@@ -161,7 +161,7 @@ struct python_matrix_value_iterator
       throw python::error_already_set();
     }
 
-    return python::object(
+    return pyobject_from_new_ptr(
         new typename get_corresponding_vector_type<MatrixType>::type(
           ublas::row(m_matrix, m_row_index++)));
   }
@@ -256,7 +256,7 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
 
 
 template <typename MatrixType>
-static python::object getElement(const MatrixType &m, PyObject *index)
+static PyObject *getElement(const MatrixType &m, PyObject *index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
@@ -273,14 +273,14 @@ static python::object getElement(const MatrixType &m, PyObject *index)
     translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
     if (!si1.m_was_slice && !si2.m_was_slice)
-      return python::object(m(si1.m_start, si2.m_start));
+      return pyobject_from_rvalue(m(si1.m_start, si2.m_start));
     else if (!si1.m_was_slice)
-      return python::object(new vector_t(row(m,si1.m_start)));
+      return pyobject_from_new_ptr(new vector_t(row(m,si1.m_start)));
     else if (!si2.m_was_slice)
-      return python::object(new vector_t(column(m,si2.m_start)));
+      return pyobject_from_new_ptr(new vector_t(column(m,si2.m_start)));
     else
     {
-      return python::object(
+      return pyobject_from_new_ptr(
           new MatrixType(
             project(
               m,
@@ -296,9 +296,9 @@ static python::object getElement(const MatrixType &m, PyObject *index)
     translateIndex(index, si, m.size1());
 
     if (!si.m_was_slice)
-      return python::object(new vector_t(row(m, si.m_start)));
+      return pyobject_from_new_ptr(new vector_t(row(m, si.m_start)));
     else
-      return python::object(
+      return pyobject_from_new_ptr(
           new MatrixType(
             project(
               m,
@@ -314,15 +314,15 @@ static python::object getElement(const MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-static python::object getElement(const ublas::vector<ValueType> &m, PyObject *index)
+static PyObject *getElement(const ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
   translateIndex(index, si, m.size());
 
   if (!si.m_was_slice)
-    return python::object(m(si.m_start));
+    return pyobject_from_rvalue(m(si.m_start));
   else
-    return python::object(
+    return pyobject_from_new_ptr(
       new ublas::vector<ValueType>(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
 }
 
@@ -486,7 +486,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
 
       project(m,
           ublas::basic_slice<typename MatrixType::size_type>(si.m_start, si.m_step, si.m_sliceLength),
-          ublas::basic_slice<typename MatrixType::size_type>(0, 1, m.size2())) = new_mat();
+          ublas::basic_slice<typename MatrixType::size_type>(0, 1, m.size2())) = new_mat;
     }
     else
     {
@@ -719,36 +719,36 @@ inline MatrixType *copyNew(const MatrixType &m)
 
 
 template <typename MatrixType>
-static python::object hermiteMatrix(const MatrixType &m)
+static PyObject *hermiteMatrix(const MatrixType &m)
 {
-  return python::object(new MatrixType(herm(m)));
+  return pyobject_from_new_ptr(new MatrixType(herm(m)));
 }
 
 
 
 
 template <typename MatrixType>
-static python::object transposeMatrix(const MatrixType &m)
+static PyObject *transposeMatrix(const MatrixType &m)
 {
-  return python::object(new MatrixType(trans(m)));
+  return pyobject_from_new_ptr(new MatrixType(trans(m)));
 }
 
 
 
 
 template <typename VectorType>
-static python::object hermiteVector(const VectorType &m)
+static PyObject *hermiteVector(const VectorType &m)
 {
-  return python::object(new VectorType(conj(m)));
+  return pyobject_from_new_ptr(new VectorType(conj(m)));
 }
 
 
 
 
 template <typename VectorType>
-static python::object transposeVector(const VectorType &m)
+static PyObject *transposeVector(const VectorType &m)
 {
-  return python::object(new VectorType(m));
+  return pyobject_from_new_ptr(new VectorType(m));
 }
 
 
@@ -762,9 +762,9 @@ struct realWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static python::object apply(const MatrixType &m)
+  inline static PyObject *apply(const MatrixType &m)
   {
-    return python::object(new result_type(real(m)));
+    return pyobject_from_new_ptr(new result_type(real(m)));
   }
 };
 
@@ -779,9 +779,9 @@ struct imagWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static python::object apply(const MatrixType &m)
+  inline static PyObject *apply(const MatrixType &m)
   {
-    return python::object(new result_type(imag(m)));
+    return pyobject_from_new_ptr(new result_type(imag(m)));
   }
 };
 
@@ -1424,7 +1424,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__len__", (unsigned (*)(const WrappedClass &)) getLength)
     .def("swap", &WrappedClass::swap)
 
-    .def("__getitem__", (python::object (*)(const WrappedClass &, PyObject *)) getElement)
+    .def("__getitem__", (PyObject *(*)(const WrappedClass &, PyObject *)) getElement)
     .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
     // unary negation

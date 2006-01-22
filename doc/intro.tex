@@ -22,9 +22,15 @@ the term \code{A*B} in Numeric means element-by-element
 multiplication, PyLinear changes this to mean conventional
 matrix-matrix and matrix-vector multiplication, to match customary
 uses in scientific computing, and following the example of languages
-such as Matlab.  Chapter \ref{cha:diff-pylinear-numpy} is dedicated to
-highlighting the differences between PyLinear and NumPy and its
-desecendents.
+such as Matlab\footnote{This has one important gotcha. Vector-vector
+multiplication (also known as the dot product) is \emph{not}
+associative, i.e. if $a$, $b$ and $c$ are vectors, then typically
+$(a\cdot b)\cdot c\not=a\cdot(b\cdot c)$. (Note that the type of the
+parenthesized expression is scalar.) PyLinear will not reject code
+such as \code{a*b*c}, but its meaning is inherently undefined. Matlab
+gets around this limitation by introducing column and row vectors.}.
+Chapter \ref{cha:diff-pylinear-numpy} is dedicated to highlighting the
+differences between PyLinear and NumPy and its desecendents.
 
 In very simple terms, PyLinear is no more than a mapping of the
 operators supplied by Boost.UBlas into Python using the Boost.Python

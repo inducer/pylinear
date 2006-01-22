@@ -46,10 +46,10 @@ namespace lu
   template <typename MatrixExpression, typename DesiredResultL, typename DesiredResultU>
   boost::tuple<DesiredResultL *, DesiredResultU *, std::vector<unsigned> *, int> lu(const MatrixExpression &a)
   {
-    if (a().size1() != a().size2())
+    if (a.size1() != a.size2())
       throw std::runtime_error("cholesky: A is not quadratic");
 
-    unsigned n = a().size1();
+    unsigned n = a.size1();
     int parity = 1;
 
     std::auto_ptr<DesiredResultL> result_l(new DesiredResultL(n, n));
@@ -86,7 +86,7 @@ namespace lu
       double big = 0;
       big = 0;
       for (size_type col = 0; col < n; col++)
-        if ((temp = magnitude(a()(row, col))) > big) 
+        if ((temp = magnitude(a(row, col))) > big) 
           big = temp;
       if (big == 0)
         throw std::runtime_error("lu: all-zero column in lu decomposition");
@@ -105,7 +105,7 @@ namespace lu
       // elements above diagonal --> r
       for (size_type row = 0; row < col; row++) 
       {
-        sum = a()(permut[row], col);
+        sum = a(permut[row], col);
         for (size_type i = 0;i < row;i++)
           sum -= value_type(l(row, i))*value_type(u(i, col));
 
@@ -113,7 +113,7 @@ namespace lu
 
         /*
          * vectorizing does not make this faster:
-        u(row, col) = a()(permut[row], col) - inner_prod(
+        u(row, col) = a(permut[row], col) - inner_prod(
             ublas::project(ublas::row(l, row), range(0, row)),
             ublas::project(ublas::column(u, col), range(0, row))
             );
@@ -124,7 +124,7 @@ namespace lu
       biggest_row = 0;
 
       // element on diagonal --> first into l, then into u
-      sum = a()(permut[col], col);
+      sum = a(permut[col], col);
       for (size_type i = 0; i < col; i++)
         sum -= value_type(l(col, i))*value_type(u(i, col));
       l(col, col) = sum;
@@ -138,7 +138,7 @@ namespace lu
       // elements below diagonal --> l
       for (size_type row = col + 1; row < n; row++) 
       {
-        sum = a()(permut[row], col);
+        sum = a(permut[row], col);
         for (size_type i = 0; i < col; i++)
           sum -= value_type(l(row, i))*value_type(u(i, col));
         l(row, col) = sum;

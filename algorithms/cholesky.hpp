@@ -41,10 +41,10 @@ namespace cholesky
   template <typename MatrixExpression, typename DesiredResult>
   DesiredResult *cholesky(const MatrixExpression &A)
   {
-    if (A().size1() != A().size2())
+    if (A.size1() != A.size2())
       throw std::runtime_error("cholesky: A is not quadratic");
 
-    std::auto_ptr<DesiredResult> result(new DesiredResult(A().size1(), A().size2()));
+    std::auto_ptr<DesiredResult> result(new DesiredResult(A.size1(), A.size2()));
     DesiredResult &L = *result;
     L.clear();
 
@@ -57,10 +57,10 @@ namespace cholesky
 
     // FIXME: this is a quick prototype
 
-    for (size_type col = 0; col < A().size2(); col++) 
+    for (size_type col = 0; col < A.size2(); col++) 
     {
       // determine diagonal element
-      value_type sum = A()(col,col);
+      value_type sum = A(col,col);
       for (size_type row = 0; row < col; row++) 
       {
         value_type value = L(col,row);
@@ -72,9 +72,9 @@ namespace cholesky
       L(col,col) = sqrt(sum);
 
       // determine off-diagonal elements
-      for (size_type row = col+1; row < A().size2(); row++) 
+      for (size_type row = col+1; row < A.size2(); row++) 
       {
-        sum = A()(row,col);
+        sum = A(row,col);
         for (size_type i = 0; i < col; i++)
         {
           // FIXME : casts needed due to bug in sparse uBLAS

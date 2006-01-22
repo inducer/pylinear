@@ -1,6 +1,6 @@
 #!/usr/bin/env python
+# -*- coding: latin-1 -*-
 
-from distutils.core import setup,Extension
 import glob
 import os
 import os.path
@@ -12,6 +12,8 @@ except IOError:
     print "*** Please copy siteconf-template.py to siteconf.py,"
     print "*** then edit siteconf.py to match your environment."
     sys.exit(1)
+
+from distutils.core import setup,Extension
 
 # These are in Fortran. No headers available.
 BLAS_INCLUDE_DIRS = []
@@ -56,11 +58,12 @@ handle_component("UMFPACK")
 setup(name="PyLinear",
       version="0.92",
       description="Matrix handling in Python",
-      author="Andreas Kloeckner",
-      author_email="mathem@tiker.net",
+      author=u"Andreas Klöckner",
+      author_email="inform@tiker.net",
       license = "BSD-Style",
       url="http://news.tiker.net/software/pylinear",
       packages=["pylinear"],
+      package_dir={"pylinear": "src"},
       ext_package="pylinear",
       ext_modules=[ Extension("_array", 
                               ["extensions/array.cpp", 

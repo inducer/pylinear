@@ -109,6 +109,8 @@ def _is_number(value):
     try: 
         complex(value)
         return True
+    except AttributeError:
+        return False
     except TypeError:
         return False
 
@@ -133,6 +135,11 @@ def _matrix_cast_and_retry(matrix, operation, other):
             print "CONFUSED"
             return NotImplemented
 
+    try:
+        other.flavor
+    except AttributeError:
+        return NotImplemented
+
     tcmax = _max_typecode([matrix.typecode(), other.typecode()])
     m_cast = asarray(matrix, tcmax)
     if other.flavor is Vector:
@@ -153,7 +160,10 @@ def _vector_cast_and_retry(vector, operation, other):
             print "CONFUSED"
             return NotImplemented
 
-    if other.flavor is not Vector:
+    try:
+        if other.flavor is not Vector:
+            return NotImplemented
+    except AttributeError:
         return NotImplemented
 
     tcmax = _max_typecode([vector.typecode(), other.typecode()])

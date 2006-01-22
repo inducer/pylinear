@@ -405,10 +405,16 @@ def norm_1(vec):
     return num.absolute_value(vec).sum()
 
 def norm_2_squared(vec):
-    return vec.abs_square_sum()
+    try:
+        return vec.abs_square_sum()
+    except AttributeError:
+        return abs(vec)**2
 
 def norm_2(vec):
-    return math.sqrt(vec.abs_square_sum())
+    try:
+        return math.sqrt(vec.abs_square_sum())
+    except AttributeError:
+        return math.sqrt(abs(vec)**2)
 
 def norm_infinity(vec):
     # FIXME a tad slow

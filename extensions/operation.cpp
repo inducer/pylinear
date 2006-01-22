@@ -163,8 +163,9 @@ python::object luWrapper(const MatrixType &a)
       sign *= -1;
   }
   
-  python::object py_result = python::make_tuple(python::object(l.get()), 
-  python::object(u.get()), py_permut, sign);
+  // FIXME: pyobject_from_new_ptr
+  //python::object py_result = python::make_tuple(python::object(l.get()), 
+  //python::object(u.get()), py_permut, sign);
   l.release();
   u.release();
 
@@ -179,7 +180,7 @@ python::object luWrapper(const MatrixType &a)
 My LU is still slow, but faster than the UBLAS builtin.
 */
 template <typename MatrixType>
-python::object luWrapper(const MatrixType &a)
+PyObject *luWrapper(const MatrixType &a)
 {
   typedef MatrixType result_type;
   boost::tuple<result_type *, result_type *, std::vector<unsigned> *, int> result = 
@@ -192,10 +193,11 @@ python::object luWrapper(const MatrixType &a)
   for (unsigned i = 0; i < permut.size(); i++)
     py_permut.append(permut[i]);
   
-  return python::make_tuple(python::object(l.release()),
-                            python::object(u.release()), 
-                            py_permut, 
-                            result.get<3>());
+  return Py_BuildValue("(NNOi)",
+                       pyobject_from_new_ptr(l.release()),
+                       pyobject_from_new_ptr(u.release()), 
+                       py_permut.ptr(),
+                       result.get<3>());
 }
 
 
@@ -236,8 +238,9 @@ python::object luWrapper(const MatrixType &a)
       sign *= -1;
   }
   
-  python::object py_result = python::make_tuple(python::object(l.get()), 
-  python::object(u.get()), py_permut, sign);
+  python::object py_result = python::make_tuple(
+  pyobject_from_new_ptr(l.get()), 
+  pyobject_from_new_ptr(u.get()), py_permut, sign);
   l.release();
   u.release();
 
@@ -251,7 +254,7 @@ python::object luWrapper(const MatrixType &a)
 // svd ------------------------------------------------------------------------
 #ifdef USE_LAPACK
 template <typename ValueType>
-static python::object svdWrapper(const ublas::matrix<ValueType> &a)
+static PyObject *svdWrapper(const ublas::matrix<ValueType> &a)
 {
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
@@ -267,9 +270,10 @@ static python::object svdWrapper(const ublas::matrix<ValueType> &a)
 
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::vector<ValueType> vec;
-  return python::make_tuple(python::object(new mat(u)),
-			    python::object(new vec(s)), 
-			    python::object(new mat(vt)));
+  return Py_BuildValue("(NNN)", 
+                       pyobject_from_new_ptr(new mat(u)),
+                       pyobject_from_new_ptr(new vec(s)), 
+                       pyobject_from_new_ptr(new mat(vt)));
 }
 #endif // USE_LAPACK
 
@@ -303,8 +307,8 @@ void _Heigenvectors_backend(char jobz, char uplo,
 }
 
 template <typename ValueType>
-static python::object HeigenvectorsWrapper(bool get_vectors, bool upper, 
-					   const ublas::matrix<ValueType> &a)
+static PyObject *HeigenvectorsWrapper(bool get_vectors, bool upper, 
+                                      const ublas::matrix<ValueType> &a)
 {
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
@@ -318,17 +322,18 @@ static python::object HeigenvectorsWrapper(bool get_vectors, bool upper,
 			 a_copy, *w);
 
   typedef ublas::matrix<ValueType> mat;
-  return python::make_tuple(python::object(new mat(a_copy)), 
-			    python::object(w.release()));
+  return Py_BuildValue("(NN)",
+                       pyobject_from_new_ptr(new mat(a_copy)), 
+                       pyobject_from_new_ptr(w.release()));
 }
 
 
 
 
 template <typename ValueType>
-static python::object eigenvectorsWrapper(unsigned get_left_vectors, 
-					  unsigned get_right_vectors,
-					  const ublas::matrix<ValueType> &a)
+static PyObject *eigenvectorsWrapper(unsigned get_left_vectors, 
+                                     unsigned get_right_vectors,
+                                     const ublas::matrix<ValueType> &a)
 {
   typedef ublas::matrix<ValueType> mat;
   typedef ublas::matrix<ValueType, ublas::column_major> fortran_mat;
@@ -359,24 +364,28 @@ static python::object eigenvectorsWrapper(unsigned get_left_vectors,
   if (get_left_vectors)
   {
     if (get_right_vectors)
-      return python::make_tuple(python::object(w.release()),
-				python::object(new cmat(*vl)),
-				python::object(new cmat(*vr)));
+      return Py_BuildValue("(NNN)",
+                           pyobject_from_new_ptr(w.release()),
+                           pyobject_from_new_ptr(new cmat(*vl)),
+                           pyobject_from_new_ptr(new cmat(*vr)));
     else
-      return python::make_tuple(python::object(w.release()),
-				python::object(new cmat(*vl)),
-				python::object());
+      return Py_BuildValue("(NNs)",
+                           pyobject_from_new_ptr(w.release()),
+                           pyobject_from_new_ptr(new cmat(*vl)),
+                           NULL);
   }
   else
   {
     if (get_right_vectors)
-      return python::make_tuple(python::object(w.release()),
-				python::object(),
-				python::object(new cmat(*vr)));
+      return Py_BuildValue("(NsN)",
+                           pyobject_from_new_ptr(w.release()),
+                           NULL,
+                           pyobject_from_new_ptr(new cmat(*vr)));
     else
-      return python::make_tuple(python::object(w.release()),
-				python::object(),
-				python::object());
+      return Py_BuildValue("(Nss)",
+                           pyobject_from_new_ptr(w.release()),
+                           NULL,
+                           NULL);
   }
 }
 #endif // USE_LAPACK

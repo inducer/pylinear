@@ -62,6 +62,12 @@ def make_random_skewhermitian_matrix(size, typecode):
         for i in range(size):
             a[i,i] = 1j*random.normalvariate(0,10)
 
+    def _conjugate(x):
+        try:
+            return x.conjugate()
+        except AttributeError:
+            return x
+
     # fill rest
     for i in range(size):
         for j in range(i):
