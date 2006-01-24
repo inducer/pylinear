@@ -1,10 +1,13 @@
 \documentclass[hyperref]{manual}
 
+\batchmode
+
 % latex2html doesn't know [T1]{fontenc}, so we cannot use that:(
 
 \usepackage{amsmath}
 \usepackage[latin1]{inputenc}
 \usepackage{textcomp}
+\usepackage{hyperref}
 
 % mark internal comments
 % for any published version switch to the second (empty) definition of the macro!
@@ -15,14 +18,16 @@
 
 \author{Andreas Kl\"ockner}
 
-\authoraddress{Division of Applied Mathematiccs, Brown University\\Campus Box F, Providence, RI 02912, USA}
+\authoraddress{
+  Division of Applied Mathematiccs, Brown University\\
+  Campus Box F, Providence, RI 02912, USA}
 
-\date{March 22, 2005}
+\date{January 23, 2006}
 
 % (software) release version;
-\release{0.92}
+\release{0.93}
 % this is used to define the \version macro
-\setshortversion{0.92}
+\setshortversion{0.93}
 
 \makeindex
 

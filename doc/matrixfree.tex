@@ -14,6 +14,11 @@
   example of this, but \class{Operator}s are mainly used to represent
   vector-to-vector mappings for which no matrix is available (or too
   expensive to compute explicitly).
+  \footnote{
+    Note, however, that for technical reasons \class{Matrix} classes are
+    not automatically \class{Operator} instances--they need to be
+    explicitly made into these, as we will see soon.
+  }
 \end{classdesc*}
 
 Given this single purpose, an \class{Operator} has a pretty 
@@ -26,8 +31,8 @@ simple interface:
 \begin{methoddesc}[Operator]{typecode}{}
   Returns the typecode (see \ref{sec:types-and-flavors}) of the
   \class{Vector}s that this \class{Operator} operates on. This is also
-  the typecode of the \class{Vector}qs returned by the operations of this
-  \class{Operator}. For technical reasons, the two need to match.
+  the typecode of the \class{Vector}s returned by the operations of this
+  \class{Operator}. For technical reasons, the two always match.
 \end{methoddesc}
 \begin{methoddesc}[Operator]{apply}{before, after}
   This method operates on the \class{Vector} \code{before} and returns
@@ -46,8 +51,7 @@ creation of derived instances, among other things.
 
 \opindex{()}For an \class{Operator} \code{A}, saying \code{A(x)}
 with a properly sized and typed \class{Vector} \code{x} will
-return the result of applying \code{A} to \vector{x}, via the
-
+return the result of applying \code{A} to \code{x}, via the
 
 \opindex{+}For two \class{Operator}s \code{A} and \code{B}, you may write
 \code{A+B} to obtain an \class{Operator} mapping that will
@@ -63,6 +67,62 @@ perform the composed operation \code{A(B(x))}. You may also say
 operator.
 
 \section{Types of \class{Operator}s}
+
+Matrix-generated are the most obvious kind of \class{Operator}, but 
+there are more--and they do not necessarily correspond to a stored
+matrix representation.
+
+All the ways to generate \class{Operator} instances are contained 
+in the \module{pylinear.operation}. Let's import it:
+\begin{verbatim}
+  >>> from pylinear.array import *
+  >>> import pylinear.operation as op
+\end{verbatim}
+
+Each type of operator comes with a constructor class. For example,
+matrix operators are constructed by calling the method \method{make}
+on the object called \var{MatrixOperator} in the \module{operation} 
+module. Consider this example:
+\begin{verbatim}
+  >>> a = array([[1,2],[3,4]])
+  >>> a_op = op.MatrixOperator.make(a)
+  >>> v = array([5,6])
+  >>> a*v
+  >>> a_op(v)
+  >>> a_plus_a_op = a_op+a_op
+  >>> a_plus_a_op(v)
+  >>> four_a_op = 2*a_op + a_plus_a_op
+  >>> four_a_op(v)
+\end{verbatim}
+
+\begin{classdesc*}{MatrixOperator}
+  A \class{MatrixOperator} makes a matrix into an \class{Operator}.
+\end{classdesc*}
+\begin{methoddesc}{make}{matrix}
+  This static method takes a matrix argument and returns a matrix
+  operator of the corresponding type.
+
+  It does not make a copy of the matrix, instead, it just keeps
+  a reference to the given matrix around.
+\end{methoddesc}
+
+Now that you have seen one constructor class, you have basically
+seen them all, as they are basically structured in the same way.
+What is going to vary from here on down is
+\begin{itemize}
+\item The name of the constructor class and
+\item the arguments of the \method{make} call.
+\end{itemize}
+
+So, let's dive right in.
+\begin{classdesc*}{CGOperator}
+  A \class{CGOperator} inverts an \class{Operator} given to it
+  by means of the Hestenes/Stiefel Conjugate Gradient method.
+
+  It requires that the matrix representation of the given 
+  \class{Operator} be symmetric.
+\end{classdesc*}
+
 
 \section{Implementing your own \class{Operator}s}
 

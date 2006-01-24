@@ -19,20 +19,27 @@ while idx < len(lines):
         hadcode = False
     if line.strip() == "\\end{verbatim}":
         verbmode = False
-    if verbmode and line.startswith(">>>"):
+    if verbmode and line.lstrip().startswith(">>>"):
         print>>outf, line
-        statement = line[3:]
-        strip_spaces = len(statement) - len(statement.lstrip())
+        statement = line
+        pre_strip_spaces = strip_spaces = len(statement) - len(statement.lstrip())
+        statement = statement[strip_spaces+3:]
+        strip_spaces += len(statement) - len(statement.lstrip())
         statement = statement.lstrip()
         while idx+1< len(lines) and lines[idx+1].startswith("..."):
             idx += 1
             line = lines[idx][:-1]
             statement += "\n" + line[3+strip_spaces]
             print>>outf, line
-        code = compile(statement+"\n", doc_fn, "exec")
+        try:
+            code = compile(statement+"\n", doc_fn, "eval")
+        except SyntaxError:
+            code = compile(statement+"\n", doc_fn, "single")
         result = eval(code)
         if result is not None:
-            print>>outf, result
+            s = pre_strip_spaces*" " +\
+                str(result).replace("\n", "%s\n" % (pre_strip_spaces*" "))
+            print>>outf, s
 
         hadcode = True
     elif (not verbmode) or (not hadcode):

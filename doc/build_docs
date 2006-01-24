@@ -1,7 +1,22 @@
 #! /bin/bash
 
+set -e
+
 PY_SRC_PATH=~/work/python
 PY_DOC_PATH="$PY_SRC_PATH/Doc"
 
 export TEXINPUTS="$TEXINPUTS:$PY_DOC_PATH/texinputs" 
 "$PY_DOC_PATH/tools/mkhowto" "$@"
+mkdir ,temp
+export TEXINPUTS="..:$TEXINPUTS:$PY_DOC_PATH/texinputs" 
+cd ,temp
+latex "$@" || true
+makeindex *.idx
+latex "$@"
+latex "$@"
+DVINAME=`echo *.dvi`
+dvips $DVINAME -o ${DVINAME%.dvi}.ps
+ps2pdf *.ps
+cp *.pdf ..
+cd ..
+rm -R ,temp
