@@ -12,6 +12,8 @@ right software installed on your computer. You will need the
 following:
 
 \begin{itemize}
+  \item \citetitle[http://www.python.org]{Python} is of course
+    the most important prerequisite. Version 2.3 or newer will work.
   \item The \citetitle[http://boost.org]{Boost libraries}. 
     Versions 1.33 and up work fine. Section \ref{sec:install-bpl}
     will help you with the installation of this prerequisite.
@@ -88,7 +90,12 @@ Otherwise, you must follow these steps:
 \section{Installing the Boost UBlas Bindings}
 
 \label{sec:install-bindings}
-
+This part is, fortunately, very easy. Just go to \url{http://news.tiker.net/software/boost-bindings},
+download the current snapshot and extract it somewhere, for example by typing
+\begin{verbatim}
+  tar xvfz boost-bindings-NNNNNNNN.tar.gz
+\end{verbatim}
+Then remember the path where you unpacked it for the next step.
 
 \section{Installing PyLinear}
 
@@ -105,4 +112,37 @@ need to state in which directories to find the header files (in
 \var{XXX_INCLUDE_DIRS}), the libraries (in \var{XXX_LIBRARY_DIRS})
 and finally, if the libraries are named in some nonstandard fashion,
 you may also have to change the library names to link against (in
-\var{XXX_LIBRARIES}).
+\var{XXX_LIBRARIES}). The defaults work at least with Debian Linux. 
+
+These above instructions apply to all prerequisite libraries. Here are
+a few hints for specific libraries:
+\begin{itemize}
+\item For Boost, set \var{BOOST_INCLUDE_DIR} to the directory where
+  the root of your boost tree.  Typically, it ends in
+  \file{boost}. For \var{BOOST_LIBRARY_DIRS}, give the path where you
+  put the \code{libboost_python*.so} files. Finally, you should
+  usually leave BPL_LIBRARIES unchanged and make a symbolic link from
+  \file{libboost_python.so} to the actual (non-symlink) \file{.so}
+  file.
+\item For the Boost bindings, just insert the path where you unpacked
+  them--No further installation is required.
+\item Here's an extra trick for BLAS and LAPACK if you are using
+  Debian: If you install lapack and blas, make sure to install the
+  versions ending in ``3'' (i.e. \code{blas3-dev} and
+  \code{atlas3-dev}), and also install ``\code{atlas3-ARCH}-dev'',
+  where \code{ARCH} is your processor architecture. Debian will then
+  automatically activate an accelerated BLAS for your computer.
+\end{itemize}
+
+Then, type
+\begin{verbatim}
+  python setup.py build
+\end{verbatim}
+and wait what happens. This will compile PyLinear, which, depending on
+your compiler, will take around 400 MB of your computers memory. If you
+do not have this much physical memory, this might be quite slow due to
+swapping. Once this step completes, type
+\begin{verbatim}
+  su -c "python setup.py install"
+\end{verbatim}
+Congratulations! You have now successfully installed PyLinear.

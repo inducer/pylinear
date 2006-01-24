@@ -1,5 +1,6 @@
 # --------------------------------------------------------------------
-# Set up your configuration below.
+# Specify your configuration below.
+# See documentation for hints.
 # --------------------------------------------------------------------
 
 # Change to "True" (without the quotes) if the respective package is available.
@@ -9,9 +10,10 @@ HAVE_ARPACK = False
 HAVE_UMFPACK = False
 
 BOOST_INCLUDE_DIRS = ["/home/ak/work/boost"]
-BOOST_UBLAS_BINDINGS_INCLUDE_DIRS = ["/home/ak/work/boost-sandbox"]
 BOOST_LIBRARY_DIRS = ["/home/ak/pool/lib"] 
 BPL_LIBRARIES = ["boost_python"]
+
+BOOST_UBLAS_BINDINGS_INCLUDE_DIRS = ["/home/ak/work/boost-sandbox"]
 
 BLAS_LIBRARY_DIRS = []
 BLAS_LIBRARIES = ["blas"]
