@@ -110,23 +110,130 @@ Now that you have seen one constructor class, you have basically
 seen them all, as they are basically structured in the same way.
 What is going to vary from here on down is
 \begin{itemize}
-\item The name of the constructor class and
+\item the name of the constructor class and
 \item the arguments of the \method{make} call.
 \end{itemize}
+Note however that for technical reasons the instance returned by
+\method{make} is not a \class{MatrixOperator}:
+\begin{verbatim}
+  >>> isinstance(a_op, op.MatrixOperator)
+\end{verbatim}
 
-So, let's dive right in.
+So, let's dive right in. The next best thing past applying a linear
+operator directly is applying its inverse. Here are some operators to
+achieve that. Of course you could always compute the inverse of the
+matrix that generates the operator. There are better ways,
+however. The simplest one is the \class{LUInverseOperator}:
+\begin{classdesc*}{LUInverseOperator}
+  A \class{LUInverseOperator} operates on vectors as the inverse of
+  the dense matrix it is constructed for, by computing a LU 
+  decomposition.
+\end{classdesc*}
+\begin{methoddesc}{make}{matrix}
+  Returns an \class{Operator} whose effect on a vector is $A^{-1}$,
+  if $A$ is the given \var{matrix}.
+
+  This is a static method.
+\end{methoddesc}
+However, for sparse matrices, computing the plain LU decomposition is
+rarely feasible. More finesse is required to maintain the sparseness,
+and thus the tractability, of the operation. That kind of finesse is
+provided by UMFPACK, which is also wrapped in an \class{Operator}
+interface in PyLinear.
+\begin{classdesc*}{UMFPACKOperator}
+  A \class{UMFPACKOperator} operates on vectors as the inverse of a
+  \class{SparseExecuteMatrix} given to it.
+
+  Unlike the \class{CGOperator} and the \class{BiCGSTABOperator},
+  it does not perform an iterative, but rather a direct method.
+  Upon construction, it computes a sparse LU-like decomposition 
+  to make actual solving an efficient process.
+\end{classdesc*}
+\begin{methoddesc}{make}{matrix}
+  Returns an \class{Operator} whose effect on a vector is $A^{-1}$,
+  if $A$ is the given \var{matrix}, which has to be a 
+  \class{SparseExecuteMatrix} instance.
+
+  This is a static method.
+\end{methoddesc}
+Direct methods like the ones above are important tools, but for some
+types of matrices, one can do even better, by means of iterative methods,
+which, as an added benefit, do not require a matrix representation of
+the operation they are inverting:
 \begin{classdesc*}{CGOperator}
   A \class{CGOperator} inverts an \class{Operator} given to it
   by means of the Hestenes/Stiefel Conjugate Gradient method.
 
   It requires that the matrix representation of the given 
-  \class{Operator} be symmetric.
+  \class{Operator} be symmetric (or hermitian for complex matrices) 
+  and positive definite.
 \end{classdesc*}
+\begin{methoddesc}{make}{matrix_op, max_it=None, tolerance=1e-12, precon_op=None}
+  Returns a \class{CGOperator} that will iteratively approximate the
+  inverse of the \class{Operator} \var{matrix_op}. \var{max_it}
+  specifies a bound on the number of iterations taken to reach the
+  goal of decreasing the residual $\sqrt{(A*x-b)^2}$ by a factor of
+  \var{tolerance} (where, obviously, $A$ is a matrix representation of
+  \var{matrix_op}, $b$ is the vector to which the \class{CGOperator}
+  is applied, and $x$ is the candidate result.  If the given target
+  precision is not reached in the given number of iterations, an
+  exception is thrown.
 
+  \var{precon_op}, finally, is an approximation to $A^{-1}$ that is
+  applied once each iteration. As a preconditioner, it should be
+  computationally inexpensive--e.g., if an application of $A$ takes $O(n)$
+  computations, so should the preconditioner.
+
+  Notice that neither \var{matrix_op} nor \var{precon_op} are needed
+  in matrix form--they are only passed in as operators.
+
+  This is a static method.
+\end{methoddesc}
+\begin{classdesc*}{BiCGSTABOperator}
+  A \class{BiCGSTABOperator} inverts an \class{Operator} given to it
+  by means of the BiCGSTAB method.
+
+  It relieves the symmetry requirement of the CG method, but may break
+  down for some matrices.
+\end{classdesc*}
+\begin{methoddesc}{make}{matrix_op, max_it=None, tolerance=1e-12, precon_op=None}
+  Returns a \class{BiCGSTABOperator} that will iteratively approximate the
+  inverse of \var{matrix_op}. For the parameters, see \code{CGOperator.make}.
+
+  Notice that neither \var{matrix_op} nor \var{precon_op} are needed
+  in matrix form--they are only passed in as operators.
+
+  This is a static method.
+\end{methoddesc}
+One preconditioner that is usable with the above iterative methods is
+available as part of NumPy:
+\begin{classdesc*}{SSORPreconditioner}
+  A \class{SSORPreconditioner} computes an approximate inverse of the
+  given matrix: Let $L$ be the lower-left submatrix not including the
+  diagonal, and $D$ the diagonal part. Then, for a given parameter
+  $\omega$, the SSOR preconditioner is given by 
+  \[
+  (2-\omega)(D+\omega L)^{-H}(\omega D)(D+\omega L)^{-1},
+  \]
+  which can be rather efficiently implemented.
+
+  $\omega$ is usually chosen to be one.
+
+  It requires the matrix to be symmetric (or hermitian in the complex
+  case).
+\end{classdesc*}
+\begin{methoddesc}{make}{matrix, omega=1}
+  Returns an \class{Operator} whose effect on a vector is $A^{-1}$,
+  if $A$ is the given \var{matrix}, which has to be a 
+  \class{SparseExecuteMatrix} instance.
+
+  This is a static method.
+\end{methoddesc}
 
 \section{Implementing your own \class{Operator}s}
 
-FIXME \dots
+TO BE WRITTEN. Refer to the source in \file{src/operation.py}, 
+class \class{LUInverseOperator} for an example. FIXME
 
 For information on implementing your own operators in C++, please
 refer to Chapter \ref{cha:extending}.

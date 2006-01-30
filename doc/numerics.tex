@@ -1,4 +1,4 @@
-\chapter{Matrix-Free Methods}
+\chapter{Numerics with PyLinear}
 \label{cha:numerics}
 
 \begin{quote}
@@ -14,11 +14,15 @@ PyLinear features six different modules of numerical algorithms:
     algebra computational routines in PyLinear. It offers a
     comprehensive set of linear algebra primitives, such as
     determinants, decompositions, linear solves, eigenvalue finding
-    and the like.
+    and the like. While the \class{Operator}-based functions have
+    been described in Chapter \ref{cha:matrixfree}, the conceptually
+    simpler function-call interfaces are described in Section
+    \ref{sec:matrix-computations}.
   \item \module{pylinear.linear_algebra} is a compatibility module 
     which aims for complete exchangeability with NumPy's \module{LinearAlgebra}.
     It offers a high-level subset of \module{pylinear.operation} 
-    with less exposed detail.
+    with less exposed detail. See its documentation, which was made
+    available as part of NumPy and numarray.
   \item \module{pylinear.mpi} will provide an interface between
    MPI and PyLinear, but is not yet written.
   \item \module{pylinear.toybox} serves as a staging area for
