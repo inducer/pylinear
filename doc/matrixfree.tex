@@ -114,10 +114,8 @@ What is going to vary from here on down is
 \item the arguments of the \method{make} call.
 \end{itemize}
 Note however that for technical reasons the instance returned by
-\method{make} is not a \class{MatrixOperator}:
-\begin{verbatim}
-  >>> isinstance(a_op, op.MatrixOperator)
-\end{verbatim}
+\method{make} is not a \class{MatrixOperator}; in fact, \class{MatrixOperator}
+is not even technically a class.
 
 So, let's dive right in. The next best thing past applying a linear
 operator directly is applying its inverse. Here are some operators to

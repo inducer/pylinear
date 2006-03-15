@@ -8,6 +8,7 @@ license note
 to_numpy with shared memory
 to_complex operator?
 cholesky sparsity
+Throw exceptions for non-matching slice assigns
 
 TODO:
 --------------------------------------------------------------------------

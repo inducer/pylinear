@@ -29,7 +29,7 @@ while idx < len(lines):
         while idx+1< len(lines) and lines[idx+1].startswith("..."):
             idx += 1
             line = lines[idx][:-1]
-            statement += "\n" + line[3+strip_spaces]
+            statement += "\n" + line[3+strip_spaces:]
             print>>outf, line
         try:
             code = compile(statement+"\n", doc_fn, "eval")

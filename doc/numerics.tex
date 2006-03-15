@@ -33,7 +33,46 @@ PyLinear features six different modules of numerical algorithms:
 \end{itemize}
 
 \section{Matrix computations}
-\section{Convenient helpers}
-\section{Parallel PyLinear}
 
-Does not exist yet. :)
+\begin{funcdesc}{solve_linear_system}{matrix, rhs}
+  Solves the linear system \code{matrix*solution=rhs}. Uses LU
+  decomposition or UMFPACK, depending on availability and sparseness
+  of \var{matrix}.
+\end{funcdesc}
+\begin{funcdesc}{solve_linear_system_cg}{matrix, rhs}
+  Solves the linear system \code{matrix*solution=rhs}, where \var{matrix} is
+  symmetric and positive definite. Uses the Hestenes-Stiefel Conjugate
+  Gradient method. See also \class{CGOperator}.
+\end{funcdesc}
+\begin{funcdesc}{cholesky}{matrix}
+  Returns the Cholesky decomposition $L$ of \var{matrix}. If we let $A$
+  be equal to \var{matrix}, then $L$ satisfies $A=L L^H$.
+\end{funcdesc}
+\begin{funcdesc}{lu}{matrix}
+  Returns a tuple \code{(l, u, perm, sign)} that represents the LU
+  decomposition of \var{matrix}.
+
+  Let $A$ be equal to \var{matrix}, $L$ equal to \var{l}, $U$ equal
+  to \var{u} and $P$ equal to a permutation matrix with $P_{i,j}=1$
+  iff \code{perm[i]=j}. Then the LU decomposition satisfies $LU=PA$.
+
+  See also \function{make_permutation_matrix}, which turns \var{perm}
+  into a matrix like $P$.
+\end{funcdesc}
+\begin{funcdesc}{eigenvalues}{matrix}
+  Returns a sequence (of unspecified type) that contains all eigenvalues
+  of \var{matrix}. Requires LAPACK.
+\end{funcdesc}
+\begin{funcdesc}{diagonalize}{matrix}
+  Returns a tuple \code{(vr, w)} of a matrix \var{vr} and a vector \var{w}.
+
+  Let $A$ be equal to \var{matrix}, $V$ equal to \var{vr}, and $D$ equal
+  to a \var{u} and $P$ equal to a permutation matrix with $P_{i,j}=1$
+  iff \code{perm[i]=j}. Then the LU decomposition satisfies $LU=PA$.
+\end{funcdesc}
+
+
+\section{Convenient helpers}
+%\section{Parallel PyLinear}
+
+%Does not exist yet. :)

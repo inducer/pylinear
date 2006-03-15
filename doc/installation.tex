@@ -43,6 +43,12 @@ PyLinear's functionality:
   \item \citetitle[http://www.caam.rice.edu/software/ARPACK/]{ARPACK},
     which requires both BLAS and LAPACK, allows the solving of
     sparse eigenvalue problems.
+
+    If you are planning on using ARPACK, please also read about the
+    this \citetitle[http://news.tiker.net/node/373]{bug} that might
+    require you to patch ARPACK in order to use PyLinear with ARPACK.
+    (If you don't use it, you may get invalid results or inexplicable
+    crashes. Do yourself the favor.)
 \end{itemize}
 
 \section{Installing Boost Python}
@@ -145,4 +151,15 @@ swapping. Once this step completes, type
 \begin{verbatim}
   su -c "python setup.py install"
 \end{verbatim}
+
+As a final step, you may change into the \file{test/} subdirectory
+and execute
+\begin{verbatim}
+  python test_matrices.py
+\end{verbatim}
+This will execute PyLinear's unit test suite. A few failures here
+are ok, since the matrices for which we perform computations are
+randomly generated. If you run the tests multiple times, there
+should however be no tests that fail consistently every time.
+
 Congratulations! You have now successfully installed PyLinear.

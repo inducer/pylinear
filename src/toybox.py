@@ -512,4 +512,17 @@ def write_matrix_as_csv(filename, matrix):
 
 
 
+def shift(vec, dist):
+    result = vec.copy()
+    N = len(vec)
+    dist = dist % N
+    if dist > 0:
+        result[dist:] = vec[:N-dist]
+        result[:dist] = vec[N-dist:]
+    return result
+
+
+        
+
+
 
