@@ -402,7 +402,7 @@ def norm_frobenius(mat):
 
 # vector norms ----------------------------------------------------------------
 def norm_1(vec):
-    return num.absolute_value(vec).sum()
+    return num.absolute(vec).sum()
 
 def norm_2_squared(vec):
     try:
@@ -418,7 +418,7 @@ def norm_2(vec):
 
 def norm_infinity(vec):
     # FIXME a tad slow
-    return max(num.absolute_value(vec))
+    return max(num.absolute(vec))
 
 
 
