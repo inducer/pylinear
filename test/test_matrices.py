@@ -486,6 +486,39 @@ class TestMatrices(unittest.TestCase):
     def test_ssor(self):
         self.for_all_typecodes(self.do_test_ssor)
         
+    def do_test_newton(self, typecode):
+        def my_sin(x):
+            if isinstance(x, complex):
+                return cmath.sin(x)
+            else:
+                return math.sin(x)
+
+        def my_cos(x):
+            if isinstance(x, complex):
+                return cmath.sin(x)
+            else:
+                return math.sin(x)
+
+        def f(r):
+            x = r[0]; y = r[1]
+            # gradient of sin(x)*5*cos(y)+x**2+y**2
+            return num.array([
+                5*my_cos(x)*my_cos(y)+2*x, 
+                -5*my_sin(x)*my_sin(y)+2*y])
+        def fprime(r):
+            x = r[0]; y = r[1]
+            return num.array([
+                [-5*my_cos(y)*my_sin(x)+2,
+                    -5*my_cos(x)*my_sin(y)],
+                [-5*my_cos(x)*my_sin(y),
+                    -5*my_cos(y)*my_sin(x)+2]])
+        result = toybox.find_vector_zero_by_newton(f, fprime, 
+                num.array([1,2]))
+        self.assert_small(f(result))
+
+    def test_newton(self):
+        self.for_all_typecodes(self.do_test_newton)
+        
 
 
             

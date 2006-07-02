@@ -12,7 +12,7 @@
   An \class{Operator}\index{Operator} is a (typically linear) mapping
   of one vector to another. A matrix is a particularly prominent
   example of this, but \class{Operator}s are mainly used to represent
-  vector-to-vector mappings for which no matrix is available (or too
+  vector-to-vector mappings for which no matrix is explicitly stored (or too
   expensive to compute explicitly).
   \footnote{
     Note, however, that for technical reasons \class{Matrix} classes are
@@ -21,7 +21,7 @@
   }
 \end{classdesc*}
 
-Given this single purpose, an \class{Operator} has a pretty 
+Given its single purpose, an \class{Operator} has a pretty 
 simple interface:
 \begin{memberdesc}[Operator]{shape}
   Returns a tuple \code{(h,w)}, which, in analogy to a \class{Matrix},
@@ -51,7 +51,8 @@ creation of derived instances, among other things.
 
 \opindex{()}For an \class{Operator} \code{A}, saying \code{A(x)}
 with a properly sized and typed \class{Vector} \code{x} will
-return the result of applying \code{A} to \code{x}, via the
+return the result of applying \code{A} to \code{x}, by calling the
+\method{apply} method described above.
 
 \opindex{+}For two \class{Operator}s \code{A} and \code{B}, you may write
 \code{A+B} to obtain an \class{Operator} mapping that will
@@ -114,8 +115,8 @@ What is going to vary from here on down is
 \item the arguments of the \method{make} call.
 \end{itemize}
 Note however that for technical reasons the instance returned by
-\method{make} is not a \class{MatrixOperator}; in fact, \class{MatrixOperator}
-is not even technically a class.
+\method{make} is not an instance of class \class{MatrixOperator}; 
+in fact, \class{MatrixOperator} is not even technically a class.
 
 So, let's dive right in. The next best thing past applying a linear
 operator directly is applying its inverse. Here are some operators to
@@ -166,24 +167,24 @@ the operation they are inverting:
   \class{Operator} be symmetric (or hermitian for complex matrices) 
   and positive definite.
 \end{classdesc*}
-\begin{methoddesc}{make}{matrix_op, max_it=None, tolerance=1e-12, precon_op=None}
+\begin{methoddesc}{make}{matrix\_op, max\_it=None, tolerance=1e-12, precon\_op=None}
   Returns a \class{CGOperator} that will iteratively approximate the
-  inverse of the \class{Operator} \var{matrix_op}. \var{max_it}
+  inverse of the \class{Operator} \var{matrix\_op}. \var{max\_it}
   specifies a bound on the number of iterations taken to reach the
   goal of decreasing the residual $\sqrt{(A*x-b)^2}$ by a factor of
   \var{tolerance} (where, obviously, $A$ is a matrix representation of
-  \var{matrix_op}, $b$ is the vector to which the \class{CGOperator}
+  \var{matrix\_op}, $b$ is the vector to which the \class{CGOperator}
   is applied, and $x$ is the candidate result.  If the given target
   precision is not reached in the given number of iterations, an
   exception is thrown.
 
-  \var{precon_op}, finally, is an approximation to $A^{-1}$ that is
+  \var{precon\_op}, finally, is an approximation to $A^{-1}$ that is
   applied once each iteration. As a preconditioner, it should be
   computationally inexpensive--e.g., if an application of $A$ takes $O(n)$
   computations, so should the preconditioner.
 
-  Notice that neither \var{matrix_op} nor \var{precon_op} are needed
-  in matrix form--they are only passed in as operators.
+  Notice that neither \var{matrix\_op} nor \var{precon\_op} are needed
+  in matrix form--they are only passed in as \class{Operator} instances.
 
   This is a static method.
 \end{methoddesc}
@@ -194,12 +195,12 @@ the operation they are inverting:
   It relieves the symmetry requirement of the CG method, but may break
   down for some matrices.
 \end{classdesc*}
-\begin{methoddesc}{make}{matrix_op, max_it=None, tolerance=1e-12, precon_op=None}
+\begin{methoddesc}{make}{matrix\_op, max\_it=None, tolerance=1e-12, precon\_op=None}
   Returns a \class{BiCGSTABOperator} that will iteratively approximate the
-  inverse of \var{matrix_op}. For the parameters, see \code{CGOperator.make}.
+  inverse of \var{matrix\_op}. For the parameters, see \code{CGOperator.make}.
 
-  Notice that neither \var{matrix_op} nor \var{precon_op} are needed
-  in matrix form--they are only passed in as operators.
+  Notice that neither \var{matrix\_op} nor \var{precon\_op} are needed
+  in matrix form--they are only passed in as \class{Operator} instances.
 
   This is a static method.
 \end{methoddesc}

@@ -1,4 +1,6 @@
 /*
+ * Boost C++ ARPACK bindings.
+ *
  * Copyright (c) Andreas Kloeckner 2005
  *
  * Permission to copy, modify, use and distribute this software 
@@ -197,7 +199,10 @@ namespace boost { namespace numeric { namespace bindings {  namespace arpack {
 
 
 
-  template <typename MatrixOrOperator, typename ResultsVectorType, typename IterationVectorType>
+  template <typename MatrixOrOperator, 
+           typename ResultsVectorType, 
+           typename IterationVectorType>
+  inline
   void performReverseCommunication(
       const MatrixOrOperator &op, 
       const MatrixOrOperator *m,

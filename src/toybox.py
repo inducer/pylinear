@@ -415,14 +415,14 @@ def find_zero_by_newton(f, fprime, x_start, tolerance = 1e-12, maxit = 10):
 
 
 
-def find_vector_zero_by_newton(f, fprime, x_start, tolerance = 1e-12, maxit = 10):
+def find_vector_zero_by_newton(f, fprime, x_start, tolerance = 1e-12, maxit = 100):
     it = 0
     while it < maxit:
         it += 1
         f_value = f(x_start)
         if op.norm_2(f_value) < tolerance:
             return x_start
-        x_start -= num.matrixmultiply(la.inverse(fprime(x_start)), f_value)
+        x_start -= fprime(x_start) <<num.solve>> f_value
     raise RuntimeError, "Newton iteration failed, a zero was not found"
 
 
@@ -497,6 +497,48 @@ def conjugate(value):
     except AttributeError:
         return value
 
+
+
+
+# ODEs -----------------------------------------------------------------------
+def runge_kutta_step(start, dt, f):
+    w1 = start + dt/2 * f(start)
+    w2 = start + dt/2 * f(w1)
+    w3 = start + dt * f(w2)
+    return 1./3 * (-start+w1+2*w2+w3+dt/2*f(w3))
+
+
+
+
+dae = _op.dae
+dae_solver = _op.dae_solver
+def integrate_ode(initial, f, t, t_end, steps=100):
+    n = len(f(t, initial))
+    t_start = t
+
+    class my_dae(dae):
+        def dimension(self):
+            return n
+
+        def residual(self, t, y, yprime):
+            #print t, y
+            return yprime - f(t, y)
+
+    solver = dae_solver(my_dae())
+    timesteps = [(t,initial)]
+    dt = float(t_end-t)/steps
+
+    y = initial.copy()
+    while t < t_end:
+        progress_in_current_timestep = (t-t_start)%dt
+        if progress_in_current_timestep > 0.99 * dt:
+            next_timestep = t+2*dt-progress_in_current_timestep
+        else:
+            next_timestep = t+dt-progress_in_current_timestep
+            solver.want_intermediate_steps = True
+        state, t = solver.step(t, next_timestep, y, f(t, y))
+        timesteps.append((t, y.copy()))
+    return timesteps
 
 
 

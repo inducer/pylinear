@@ -15,10 +15,24 @@ except IOError:
 
 from distutils.core import setup,Extension
 
+def old_config():
+    print "*** You are using an old version of Pylinear's configuration."
+    print "*** Please start with a fresh copy of siteconf-template.py."
+    sys.exit(1)
+
+try:
+    PYLINEAR_CONF_TEMPLATE_VERSION
+except NameError:
+    old_config()
+
+if PYLINEAR_CONF_TEMPLATE_VERSION < 2:
+    old_config()
+
 # These are in Fortran. No headers available.
 BLAS_INCLUDE_DIRS = []
 LAPACK_INCLUDE_DIRS = []
 ARPACK_INCLUDE_DIRS = []
+DASKR_INCLUDE_DIRS = []
 
 INCLUDE_DIRS = ["algorithms"] + \
                BOOST_INCLUDE_DIRS
@@ -33,6 +47,7 @@ USE_BLAS = HAVE_BLAS
 USE_LAPACK = HAVE_LAPACK and HAVE_BLAS
 USE_ARPACK = HAVE_ARPACK and USE_LAPACK
 USE_UMFPACK = USE_BLAS and HAVE_UMFPACK
+USE_DASKR = USE_LAPACK and HAVE_DASKR
 
 if HAVE_LAPACK and not USE_LAPACK:
     print "*** LAPACK disabled because BLAS is missing"
@@ -40,6 +55,8 @@ if HAVE_ARPACK and not USE_LAPACK:
     print "*** ARPACK disabled because LAPACK is not usable/missing"
 if HAVE_UMFPACK and not USE_UMFPACK:
     print "*** UMFPACK disabled because BLAS is missing"
+if HAVE_DASKR and not USE_DASKR:
+    print "*** DASKR disabled because LAPACK is not usable/missing"
 
 OP_EXTRA_DEFINES = {}
 
@@ -54,11 +71,12 @@ handle_component("BLAS")
 handle_component("LAPACK")
 handle_component("ARPACK")
 handle_component("UMFPACK")
+handle_component("DASKR")
 
 setup(name="PyLinear",
       version="0.92",
       description="Matrix handling in Python",
-      author=u"Andreas Klöckner",
+      author=u"Andreas Kloeckner",
       author_email="inform@tiker.net",
       license = "BSD-Style",
       url="http://news.tiker.net/software/pylinear",
