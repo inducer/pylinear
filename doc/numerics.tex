@@ -32,12 +32,50 @@ PyLinear features six different modules of numerical algorithms:
     these may disappear or change at any time.
 \end{itemize}
 
+\section{Querying available functionality}
+\label{sec:querying-functionality}
+
+Some features in PyLinear depend on outside software (such as BLAS and LAPACK).
+Many of these software packages are optional, and may or may not have been
+available when PyLinear was compiled. Whether or not this was the case,
+PyLinear still promises to function, albeit with reduced functionality.
+
+The following functions in the module \module{pylinear} enable you
+to query whether certain functionality is available:
+
+\begin{funcdesc}{has_blas}{}
+  Returns a \class{bool} indicating whether BLAS was available at
+  compile time.
+\end{funcdesc}
+\begin{funcdesc}{has_lapack}{}
+  Returns a \class{bool} indicating whether LAPACK was available at
+  compile time.
+\end{funcdesc}
+\begin{funcdesc}{has_arpack}{}
+  Returns a \class{bool} indicating whether ARPACK was available at
+  compile time.
+\end{funcdesc}
+\begin{funcdesc}{has_umfpack}{}
+  Returns a \class{bool} indicating whether UMFPACK was available at
+  compile time.
+\end{funcdesc}
+\begin{funcdesc}{has_daskr}{}
+  Returns a \class{bool} indicating whether DASKR was available at
+  compile time.
+\end{funcdesc}
+
+If a given function depends on some external package, the relevant
+documentation section will state this.  Section
+\ref{sec:checking-prerequisites} provides a description of these packages.
+
 \section{Matrix computations}
 
 \begin{funcdesc}{solve_linear_system}{matrix, rhs}
   Solves the linear system \code{matrix*solution=rhs}. Uses LU
   decomposition or UMFPACK, depending on availability and sparseness
   of \var{matrix}.
+
+  Returns the vector \code{solution}.
 \end{funcdesc}
 \begin{funcdesc}{solve_linear_system_cg}{matrix, rhs}
   Solves the linear system \code{matrix*solution=rhs}, where \var{matrix} is

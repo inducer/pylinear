@@ -769,7 +769,7 @@ BOOST_PYTHON_MODULE(_operation)
     typedef daskr::dae<ublas::vector<double> > wrapped_type;
 
     python::class_<dae_wrapper<ublas::vector<double> >,
-      boost::noncopyable>("dae")
+      boost::noncopyable>("DAE")
       .def("dimension", python::pure_virtual(&wrapped_type::dimension))
       .def("residual", &wrapped_type::residual)
       ;
@@ -779,7 +779,7 @@ BOOST_PYTHON_MODULE(_operation)
     typedef ublas::vector<double> vec;
     typedef daskr::dae_solver<vec> wrapped_type;
 
-    python::class_<wrapped_type>("dae_solver", 
+    python::class_<wrapped_type>("DAESolver", 
         python::init<daskr::dae<vec> &>()
         [python::with_custodian_and_ward<1,2>()])
       .add_property("relative_tolerance", 

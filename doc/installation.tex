@@ -6,42 +6,83 @@
 \end{quote}
 
 \section{Checking prerequisites}
+\label{sec:checking-prerequisites}
 
-The first step in installing TagPy is to make sure that you have the
-right software installed on your computer. You will need the
-following:
+The first step in installing PyLinear is to make sure that you have the right
+software installed on your computer. You will need the following:
 
 \begin{itemize}
-  \item \citetitle[http://www.python.org]{Python} is of course
-    the most important prerequisite. Version 2.3 or newer will work.
-  \item The \citetitle[http://boost.org]{Boost libraries}. 
+  \item Python is of course the most important prerequisite. 
+    Version 2.3 or newer will work.
+
+    You can find Python at \url{http://www.python.org}.
+  \item The Boost libraries.
     Versions 1.33 and up work fine. Section \ref{sec:install-bpl}
     will help you with the installation of this prerequisite.
-  \item The
-    \citetitle[http://news.tiker.net/software/boost-bindings]{Boost
-    UBlas library bindings}. Section \ref{sec:install-bindings} will
-    help you with this.
-  \item A good enough C++ compiler. \citetitle[http://gcc.gnu.org]{gcc}
-    version 3.3 and up work fine.
+
+    You can find Boost at \url{http://www.boost.org}.
+  \item The Boost Numeric library bindings. 
+    Section \ref{sec:install-bindings} will help you with this.
+
+    You can find the Boost Numeric bindings at
+    \url{http://news.tiker.net/software/boost-bindings}.
+  \item A good enough C++ compiler. GCC version 3.3 and up work fine.
+
+    GCC versions 4.0 and better will compile PyLinear using much less memory
+    and generally much faster than the older 3.x series.  Using them is highly
+    recommended. Note however that GCC 4.1 has a
+    bug that affects Boost.UBlas.
+    (see \url{http://gcc.gnu.org/bugzilla/show_bug.cgi?id=28016})
+
+    GCC can be found at \url{http://gcc.gnu.org}.
 \end{itemize}
 
 Optionally, you may install the following libraries to augment
 PyLinear's functionality:
 
 \begin{itemize}
-  \item The \citetitle[http://netlib.org/blas]{Basic Linear
-    Algebra Subprograms}, better known as the BLAS. This will
-    not enable any new functionality by itself, but is a
-    prerequisite for the following libraries.
-  \item The \citetitle[http://netlib.org/lapack]{Linear Algebra
-    Package}, better known as LAPACK. This will enable a few
-    extra operations on dense matrices, such as finding eigenvalues,
-    the singular value decomposition or the inverse.
-  \item \citetitle[http://www.cise.ufl.edu/research/sparse/umfpack/]{UMFPACK},
-    which requires BLAS, will provide an efficient direct solver
-    for linear systems involving sparse matrices.
-  \item \citetitle[http://www.caam.rice.edu/software/ARPACK/]{ARPACK},
-    which requires both BLAS and LAPACK, allows the solving of
+  \item 
+    The \em{Basic Linear Algebra Subprograms}, better known as the BLAS. This will
+    not enable any new functionality by itself, but is a prerequisite for many
+    of the following libraries.
+
+    You can find the original Fortran BLAS at \url{http://netlib.org/blas}.  A
+    good, generic implementation is ATLAS at \url{http://math-atlas.sf.net}.
+
+  \item 
+    The \em{Linear Algebra Package}, better known as \em{LAPACK}. This will
+    enable a few extra operations on dense matrices, such as finding
+    eigenvalues or the singular value decomposition.
+
+    You can find LAPACK at \url{http://netlib.org/lapack}.
+    ATLAS now includes a LAPACK implementation.
+
+  \item 
+    \em{UMFPACK}, which requires BLAS, provides an efficient direct solver for
+    linear systems involving sparse matrices.
+
+    As of late, most major Linux distributions package UMFPACK as part of a
+    bigger package called UFsparse. While this is (in my opinion) not such a
+    great idea, it's a fact that PyLinear has to live with.
+
+    Newer versions of PyLinear therefore default to using UFsparse,
+    but will still run with just UMFPACK (and COLAMD) installed.
+    
+    Unfortunately, versions of the Boost Numeric Bindings prior to
+    release 2006-04-30 (from the PyLinear's author's web site) 
+    defaulted to using an include file \file{umfpack/umfpack.h},
+    which is not possible within UFsparse, where UMFPACK headers
+    are typically installed under \file{/usr/include/ufsparse/umfpack.h}.
+    The above-mentioned release fixes this, but also requires you
+    to mention the full path to \file{umfpack.h} in \file{siteconf.py}.
+
+    BIG FAT WARNING: If you get the Boost Numeric Bindings from CVS,
+    you will have to make this change yourself.
+
+    You can find UMFPACK at \url{http://www.cise.ufl.edu/research/sparse/}.
+
+  \item 
+    \em{ARPACK}, which requires both BLAS and LAPACK, allows the solving of
     sparse eigenvalue problems.
 
     If you are planning on using ARPACK, please also read about the
@@ -49,7 +90,27 @@ PyLinear's functionality:
     require you to patch ARPACK in order to use PyLinear with ARPACK.
     (If you don't use it, you may get invalid results or inexplicable
     crashes. Do yourself the favor.)
+
+    You can find ARPACK at \url{http://www.caam.rice.edu/software/ARPACK/}.
+
+  \item 
+    \em{DASKR}, a well-known package for solving Differential-Algebraic
+    Equations, or DAEs for short. DAEs are a generalization of Ordinary
+    Differential Equations, or ODEs for short.
+
+    This functionality is available as part of the toybox (see Chapter
+    \ref{cha:numerics}) for what the toybox is), but it's there if you need it.
+
+    For ease of compilation, the DASKR source is packaged with PyLinear. To
+    enable its use, simply go to the subdirectory \file{fortran/daskr}, type
+    \program{./build.sh}, watch for its successful completion and uncomment the
+    default options relating to DASKR in \file{siteconf.py}.
+
+    You can find DASKR at \url{http://netlib.org/ode}.
 \end{itemize}
+
+PyLinear allows you to query at runtime which of these packages are available,
+see Section \ref{sec:querying-functionality}.
 
 \section{Installing Boost Python}
 
@@ -71,16 +132,19 @@ Otherwise, you must follow these steps:
   \item Download and install Boost.Jam, a build tool.
   \item Build Boost, such as by typing
     \begin{verbatim}
-      bjam -sPYTHON_ROOT=/usr -sPYTHON_VERSION=2.4 -sBUILD="release <runtime-link>dynamic <threading>multi"
+      bjam -sPYTHON_ROOT=/usr -sPYTHON_VERSION=2.4 \
+        -sBUILD="release <runtime-link>dynamic <threading>multi"
     \end{verbatim}
 
     (You may have to adapt \code{PYTHON_ROOT} and
     \code{PYTHON_VERSION} depending on your system.)
   \item Check the directory 
     \begin{verbatim}
-      boost/bin/boost/libs/python/build/libboost_python.so/gcc/release/shared-linkable-true/threading-multi
+      boost/bin/boost/libs/python/build/libboost_python.so...
+        .../gcc/release/shared-linkable-true/threading-multi
     \end{verbatim}
-    and find \file{libboost_python*.so}. Copy these files to somewhere
+    and find \file{libboost_python*.so}. (Don't copy the dots--they are only
+    there to make the line fit on this page.) Copy these files to somewhere
     on your dynamic linker path, for example:
     \begin{itemize}
     \item \file{/usr/lib}
@@ -102,6 +166,9 @@ download the current snapshot and extract it somewhere, for example by typing
   tar xvfz boost-bindings-NNNNNNNN.tar.gz
 \end{verbatim}
 Then remember the path where you unpacked it for the next step.
+
+If you get the Boost Numeric Bindings from CVS, please read the section
+on installing UMFPACK/UFsparse in Section \ref{sec:checking-prerequisites}.
 
 \section{Installing PyLinear}
 

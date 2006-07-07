@@ -1,15 +1,15 @@
 import pylinear.array as num
-import pylinear.operation as op
+import pylinear.computation as comp
 
 
 
-solve_linear_equations = op.solve_linear_system
-inverse = op.inverse
-determinant = op.determinant
-singular_value_decomposition = op.svd
-cholesky_decomposition = op.cholesky
+solve_linear_equations = comp.solve_linear_system
+inverse = comp.inverse
+determinant = comp.determinant
+singular_value_decomposition = comp.svd
+cholesky_decomposition = comp.cholesky
 
-eigenvalues = op.eigenvalues
-eigenvectors = op.diagonalize
-Heigenvalues = op.eigenvalues_hermitian
-Heigenvectors = op.diagonalize_hermitian
+eigenvalues = comp.eigenvalues
+eigenvectors = comp.diagonalize
+Heigenvalues = comp.eigenvalues_hermitian
+Heigenvectors = comp.diagonalize_hermitian

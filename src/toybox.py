@@ -1,5 +1,7 @@
+import pylinear
 import pylinear.array as num
-import pylinear.operation as op
+import pylinear.operator as op
+import pylinear.computation as comp
 import pylinear._operation as _op
 
 import math
@@ -71,9 +73,14 @@ def get_approximant(x_vector, f, degree):
 
 # interpolation ---------------------------------------------------------------
 def find_interpolation_coefficients(x_vector, to_x):
+    """ This routine finds the coefficients with which you
+    need to dot the values of a function at the points
+    given in x_vector to find the value at to_x, using
+    polynomial interpolation.
+    """
     vm = vandermonde(x_vector, degree = len(x_vector) - 1)
     vm_x = vandermonde(num.array([to_x], x_vector.typecode()), len(x_vector)-1)[0]
-    return num.matrixmultiply(vm_x, la.inverse(vm))
+    return vm.T <<num.solve>> vm_x
 
     
     
@@ -105,7 +112,7 @@ def _imaginaryPart(value):
 
   
 
-class tRotationShapeMatrix(object):
+class RotationShapeMatrix(object):
     def __init__(self, i, j, ii, ij, ji, jj):
         self.I = i
         self.J = j
@@ -115,9 +122,9 @@ class tRotationShapeMatrix(object):
         self.JJ = jj
 
     def _hermite(self):
-        return tRotationShapeMatrix(self.I, self.J,
-                                    _conjugate(self.II), _conjugate(self.JI),
-                                    _conjugate(self.IJ), _conjugate(self.JJ))
+        return RotationShapeMatrix(self.I, self.J,
+                _conjugate(self.II), _conjugate(self.JI),
+                _conjugate(self.IJ), _conjugate(self.JJ))
 
     H = property(_hermite)
 
@@ -139,9 +146,9 @@ class tRotationShapeMatrix(object):
 
 
 def makeJacobiRotation(i, j, cos, sin):
-    return tRotationShapeMatrix(i,j,
-                                cos, _conjugate(sin),
-                                -sin, _conjugate(cos))
+    return RotationShapeMatrix(i,j,
+            cos, _conjugate(sin),
+            -sin, _conjugate(cos))
         
 
 
@@ -294,7 +301,7 @@ def codiagonalize(matrices, observer = iteration.make_observer(stall_thresh = 1e
                     if bev[0] < 0:
                         bev = - bev
 
-                    r = op.norm_2(bev)
+                    r = comp.norm_2(bev)
                     if (bev[0] + r)/r < 1e-7:
                         continue
 
@@ -328,7 +335,7 @@ def matrix_exp_by_series(a, eps = 1e-15):
     h,w = a.shape
     assert h == w
 
-    a_frob = op.norm_frobenius(a)
+    a_frob = comp.norm_frobenius(a)
     
     last_result = num.identity(h, a.typecode())
     result = last_result.copy()
@@ -341,7 +348,7 @@ def matrix_exp_by_series(a, eps = 1e-15):
     while True:
         result += current_power_of_a * (1./factorial)
 
-        if op.norm_frobenius(result - last_result)/a_frob < eps:
+        if comp.norm_frobenius(result - last_result)/a_frob < eps:
             return result
 
         n += 1
@@ -376,16 +383,16 @@ def matrix_exp_by_diagonalization(a):
 
 # matrix type tests -----------------------------------------------------------
 def hermiticity_error(mat):
-    return op.norm_frobenius(mat.H - mat)
+    return comp.norm_frobenius(mat.H - mat)
 
 def skewhermiticity_error(mat):
-    return op.norm_frobenius(mat.H + mat)
+    return comp.norm_frobenius(mat.H + mat)
 
 def symmetricity_error(mat):
-    return op.norm_frobenius(mat.T - mat)
+    return comp.norm_frobenius(mat.T - mat)
 
 def skewsymmetricity_error(mat):
-    return op.norm_frobenius(mat.T + mat)
+    return comp.norm_frobenius(mat.T + mat)
 
 def unitariety_error(mat):
     return identity_error(mat.H * mat)
@@ -395,7 +402,7 @@ def orthogonality_error(mat):
 
 def identity_error(mat):
     id_mat = num.identity(mat.shape[0], mat.typecode())
-    return op.norm_frobenius(mat - id_mat)
+    return comp.norm_frobenius(mat - id_mat)
 
 
 
@@ -420,7 +427,7 @@ def find_vector_zero_by_newton(f, fprime, x_start, tolerance = 1e-12, maxit = 10
     while it < maxit:
         it += 1
         f_value = f(x_start)
-        if op.norm_2(f_value) < tolerance:
+        if comp.norm_2(f_value) < tolerance:
             return x_start
         x_start -= fprime(x_start) <<num.solve>> f_value
     raise RuntimeError, "Newton iteration failed, a zero was not found"
@@ -432,15 +439,15 @@ def distance_to_line(start_point, direction, point):
     # Ansatz: start_point + alpha * direction 
     # <start_point + alpha * direction - point, direction> = 0!
     alpha = - num.innerproduct(start_point - point, direction) / \
-            op.norm_2_squared(direction)
+            comp.norm_2_squared(direction)
     foot_point = start_point + alpha * direction
-    return op.norm_2(point - foot_point), alpha
+    return comp.norm_2(point - foot_point), alpha
 
 
 
 
 def angle_cosine_between_vectors(vec1, vec2):
-    return vec1*vec2.H / (op.norm_2(vec1)*op.norm_2(vec2))
+    return vec1*vec2.H / (comp.norm_2(vec1)*comp.norm_2(vec2))
 
 
 
@@ -510,36 +517,57 @@ def runge_kutta_step(start, dt, f):
 
 
 
-dae = _op.dae
-dae_solver = _op.dae_solver
-def integrate_ode(initial, f, t, t_end, steps=100):
-    n = len(f(t, initial))
-    t_start = t
+if pylinear.has_daskr():
+    DAE = _op.DAE
+    DAESolver = _op.DAESolver
 
-    class my_dae(dae):
-        def dimension(self):
-            return n
+    def integrate_dae(dae, t, y0, yprime0, t_end, steps=100, 
+            intermediate_steps=False):
+        solver = DAESolver(dae)
 
-        def residual(self, t, y, yprime):
-            #print t, y
-            return yprime - f(t, y)
+        times = [t]
+        y_data = [y0]
+        yprime_data = [yprime0]
 
-    solver = dae_solver(my_dae())
-    timesteps = [(t,initial)]
-    dt = float(t_end-t)/steps
+        dt = float(t_end-t)/steps
 
-    y = initial.copy()
-    while t < t_end:
-        progress_in_current_timestep = (t-t_start)%dt
-        if progress_in_current_timestep > 0.99 * dt:
-            next_timestep = t+2*dt-progress_in_current_timestep
-        else:
-            next_timestep = t+dt-progress_in_current_timestep
+        if intermediate_steps:
             solver.want_intermediate_steps = True
-        state, t = solver.step(t, next_timestep, y, f(t, y))
-        timesteps.append((t, y.copy()))
-    return timesteps
 
+        t_start = t
+
+        y = y0.copy()
+        yprime = yprime0.copy()
+        while t < t_end:
+            progress_in_current_timestep = (t-t_start)%dt
+            if progress_in_current_timestep > 0.99 * dt:
+                next_timestep = t+2*dt-progress_in_current_timestep
+            else:
+                next_timestep = t+dt-progress_in_current_timestep
+
+            state, t = solver.step(t, next_timestep, y, yprime0)
+
+            times.append(t)
+            y_data.append(y.copy())
+            yprime_data.append(yprime.copy())
+
+        return times, y_data, yprime_data
+
+
+
+
+    def integrate_ode(initial, f, t, t_end, steps=100):
+        n = len(f(t, initial))
+
+        class my_dae(DAE):
+            def dimension(self):
+                return n
+
+            def residual(self, t, y, yprime):
+                #print t, y
+                return yprime - f(t, y)
+
+        return integrate_dae(my_dae(), t, initial, f(t, initial), t_end, steps=steps)
 
 
 # Obscure stuff --------------------------------------------------------------

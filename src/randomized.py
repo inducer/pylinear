@@ -1,6 +1,6 @@
 import random
 import pylinear.array as num
-import pylinear.operation as op
+import pylinear.computation as comp
 
 
 
@@ -26,7 +26,7 @@ def make_random_vector(size, typecode):
 
 def make_random_onb(size, typecode):
     vectors = [ makeRandomVector(size, typecode) for i in range(size) ]
-    vectors = op.orthogonalize(vectors)
+    vectors = comp.orthogonalize(vectors)
 
     for i in range(size):
         for j in range(size):
@@ -44,7 +44,7 @@ def make_random_orthogonal_matrix(size, typecode):
         write_random_vector(v)
         vectors.append(v)
 
-    orth_vectors = op.orthogonalize(vectors)
+    orth_vectors = comp.orthogonalize(vectors)
 
     mat = num.zeros((size,size), typecode)
     for i in range(size):

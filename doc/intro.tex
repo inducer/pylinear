@@ -32,23 +32,19 @@ gets around this limitation by introducing column and row vectors.}.
 Chapter \ref{cha:diff-pylinear-numpy} is dedicated to highlighting the
 differences between PyLinear and NumPy and its desecendents.
 
-In very simple terms, PyLinear is no more than a mapping of the
-operators supplied by Boost.UBlas into Python using the Boost.Python
-binding library.  This has two implications that balance each
-other. First, PyLinear is no speed demon. It does have the right
-asymptotic complexity guarantees (i.e. operations that ought to be
-linear-time in fact are), but often, due to Python's interpreted
-nature, the constants are pretty large. That's the bad news. The good
-news is that since PyLinear is essentially a scripting language for
-Boost.UBlas, it is sheepishly easy to convert a slow inner loop from
-Python into C++, without losing much abstraction: The matrix and
-vector types as well as most operations are available in C++ with only
-slightly more difficult syntax than in Python. But if that is so, why
-would you want to use Python in the first place? Because it's
-high-level, safe and does not require the sometimes lengthy compile
-times of C++.  And you need to convert \emph{only} that slow inner
-loop!  Since you, too, can use Boost.Python to bind that inner loop to
-Python (and still use PyLinear's facilities), there's no real need to
-move the whole system into C++. That way, Python can be the convenient
-and safe prototyping language for large computation systems written in
-C++.
+In very simple terms, PyLinear is a mapping of the operators supplied by
+Boost.UBlas into Python using the Boost.Python library.  This has two
+implications that balance each other. First, PyLinear is no speed demon. It
+does have the right asymptotic complexity guarantees (i.e. operations that
+ought to be linear-time in fact are). That's the bad news. The good news is
+that since PyLinear is essentially a scripting language for Boost.UBlas, it is
+sheepishly easy to convert a slow inner loop from Python into C++, without
+losing much abstraction: The matrix and vector types as well as most operations
+are available in C++ with only slightly more difficult syntax than in Python.
+But if that is so, why would you want to use Python in the first place? Because
+it's high-level, safe and does not require the sometimes lengthy compile times
+of C++.  And you need to convert \emph{only} that slow inner loop!  Since you,
+too, can use Boost.Python to bind that inner loop to Python (and still use
+PyLinear's facilities), there's no real need to move the whole system into C++.
+That way, Python can be the convenient and safe prototyping language for large
+computation systems written in C++.

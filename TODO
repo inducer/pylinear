@@ -1,5 +1,17 @@
+document solve_upper
+array interface
+Throw exceptions for non-matching slice assigns
+Documentation fallout of comp/op split
+Test/port fempy and pywannier.
+Make test suite use constant data.
+Find working LU example.
+
+--------------------------------------------------------------------------
+Old notes:
+--------------------------------------------------------------------------
+
+
 as_numeric method
-implement more of array_interface
 documentation
 2x2 block composite matrix operator
 array_type interface more complete
@@ -8,7 +20,6 @@ license note
 to_numpy with shared memory
 to_complex operator?
 cholesky sparsity
-Throw exceptions for non-matching slice assigns
 
 TODO:
 --------------------------------------------------------------------------

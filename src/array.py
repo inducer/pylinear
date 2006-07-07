@@ -202,61 +202,76 @@ def _divide_by_matrix(mat, x):
 
 
 
-def _stringify_array(array):
-    # slow? does it matter?
-
-    def wrap_vector(strs, max_length=80, indent=8*" ", first_indent=0):
-        result = ""
-        line_length = first_indent
-        for i, s in enumerate(strs):
-            item_length = len(s) + 2
-            if line_length + item_length > max_length:
-                line_length = len(indent)
-                result += "\n%s" % indent
-            line_length += item_length
-            result += s
-            if i != len(strs) - 1:
-                result += ", "
-        return result
-
-    if array.flavor is Vector:
-        strs = [str(entry) for entry in array]
-        return "array([%s])" % wrap_vector(strs, indent=7*" ", first_indent=7)
-    elif array.flavor is DenseMatrix:
-        h,w = array.shape
-        strs = [[str(array[i,j]) for i in range(h)] for j in range(w)]
-        col_widths = [max([len(s) for s in col]) for col in strs]
-        result = ""
-        for i, v in enumerate(array):
-            row = [strs[j][i].rjust(col_widths[j])
-                   for j in range(w)]
-            result += "[%s]" % wrap_vector(row, indent=12*" ", first_indent=8)
-            if i != h - 1:
-                result += ",\n" + 7 * " "
-        return "array([%s])" % result
-    else: # sparse matrices
-        strs = []
-        last_row = -1
-        for i, j in array.indices():
-            if i != last_row:
-                current_row = []
-                strs.append((i, current_row))
-                last_row = i
-
-            current_row.append("%d: %s" % (j, str(array[i,j])))
-
-        result = ""
-        for row_idx, (i,row) in enumerate(strs):
-            indent = 10+len(str(row_idx))
-            result += "%d: {%s}" % (i, wrap_vector(row, indent=(indent + 4)*" ", first_indent=indent))
-            if row_idx != len(strs) - 1:
-                result += ",\n" + 8 * " "
-        return "sparse({%s},\n%sshape=%s, flavor=%s)" % (
-            result, 7*" ",repr(array.shape), array.flavor.name)
+# stringification -------------------------------------------------------------
+def _wrap_vector(strs, max_length=80, indent=8*" ", first_indent=0):
+    result = ""
+    line_length = first_indent
+    for i, s in enumerate(strs):
+        item_length = len(s) + 2
+        if line_length + item_length > max_length:
+            line_length = len(indent)
+            result += "\n%s" % indent
+        line_length += item_length
+        result += s
+        if i != len(strs) - 1:
+            result += ", "
+    return result
 
 
 
 
+def _stringify_vector(array, num_stringifier):
+    strs = [num_stringifier(entry) for entry in array]
+    return "array([%s])" % _wrap_vector(strs, indent=7*" ", first_indent=7)
+
+
+
+
+def _stringify_dense_matrix(array, num_stringifier):
+    h,w = array.shape
+    strs = [[num_stringifier(array[i,j]) for i in range(h)] for j in range(w)]
+    col_widths = [max([len(s) for s in col]) for col in strs]
+    result = ""
+    for i, v in enumerate(array):
+        row = [strs[j][i].rjust(col_widths[j])
+               for j in range(w)]
+        result += "[%s]" % _wrap_vector(row, indent=12*" ", first_indent=8)
+        if i != h - 1:
+            result += ",\n" + 7 * " "
+    return "array([%s])" % result
+
+def _stringify_sparse_matrix(array, num_stringifier):
+    strs = []
+    last_row = -1
+    for i, j in array.indices():
+        if i != last_row:
+            current_row = []
+            strs.append((i, current_row))
+            last_row = i
+
+        current_row.append("%d: %s" % (j, num_stringifier(array[i,j])))
+
+    result = ""
+    for row_idx, (i,row) in enumerate(strs):
+        indent = 10+len(str(row_idx))
+        result += "%d: {%s}" % (i, _wrap_vector(row, indent=(indent + 4)*" ", first_indent=indent))
+        if row_idx != len(strs) - 1:
+            result += ",\n" + 8 * " "
+    return "sparse({%s},\n%sshape=%s, flavor=%s)" % (
+        result, 7*" ",repr(array.shape), array.flavor.name)
+
+def _str_vector(array): return _stringify_vector(array, str)
+def _str_dense_matrix(array): return _stringify_dense_matrix(array, str)
+def _str_sparse_matrix(array): return _stringify_sparse_matrix(array, str)
+
+def _repr_vector(array): return _stringify_vector(array, repr)
+def _repr_dense_matrix(array): return _stringify_dense_matrix(array, repr)
+def _repr_sparse_matrix(array): return _stringify_sparse_matrix(array, repr)
+
+
+
+
+# array interface -------------------------------------------------------------
 def _typecode_to_array_typestr(tc):
     if sys.byteorder == "big":
         indicator = ">"
@@ -275,6 +290,7 @@ def _typecode_to_array_typestr(tc):
 
 
 
+# python-implemented methods --------------------------------------------------
 def _add_array_behaviors():
     def get_returner(value):
         # This routine is necessary since we don't want the lambda in
@@ -293,15 +309,26 @@ def _add_array_behaviors():
             co.flavor = property(get_returner(f))
             co.typecode = get_returner(tc)
             
-            co.__str__ = _stringify_array
-            co.__repr__ = _stringify_array
+            co.__array_typestr__ = property(get_returner(tc_array_typestr))
 
-            co.__array_typestr__ = property(
-                get_returner(tc_array_typestr))
 
         DenseMatrix(tc).__pow__ = _matrix_power
         DenseMatrix(tc).__rdiv__ = _divide_by_matrix
         DenseMatrix(tc).__rtruediv__ = _divide_by_matrix
+
+        # stringification -----------------------------------------------------
+        Vector(tc).__str__ = _str_vector
+        Vector(tc).__repr__ = _repr_vector
+        DenseMatrix(tc).__str__ = _str_dense_matrix
+        DenseMatrix(tc).__repr__ = _repr_dense_matrix
+
+        for f in FLAVORS:
+            if f not in [Vector, DenseMatrix]:
+                co = f(tc)
+                co.__str__ = _str_sparse_matrix
+                co.__repr__ = _repr_vector
+
+        # cast_and_retry ------------------------------------------------------
         for mt in MATRIX_FLAVORS:
             mt(tc)._cast_and_retry = _matrix_cast_and_retry
         for vt in VECTOR_FLAVORS:
@@ -640,8 +667,8 @@ class _InfixOperator:
 outer = _InfixOperator(outerproduct)
 
 def _solve_operator(mat, rhs):
-    import pylinear.operation as op
-    return op.solve_linear_system(mat, rhs)
+    import pylinear.computation as comp
+    return comp.solve_linear_system(mat, rhs)
 
 solve = _InfixOperator(_solve_operator)
 

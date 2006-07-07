@@ -37,7 +37,8 @@ LAPACK_LIBRARIES = ["lapack"]
 ARPACK_LIBRARY_DIRS = []
 ARPACK_LIBRARIES = ["arpack"]
 
-# *** CHANGE: include trailing "umfpack"
+# *** CHANGE with respect to prior versions: 
+# include trailing "umfpack" or "ufsparse"
 # make sure you use boost-bindings release 2006-04-30 or newer.
 # older version, stand-alone
 #UMFPACK_INCLUDE_DIRS = ["/usr/include/umfpack"] 
