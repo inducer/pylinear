@@ -1717,9 +1717,9 @@ static void exposeVectorType(WrappedClass, const std::string &python_typename, c
 
   pyclass
     .def(python::init<typename WrappedClass::size_type>())
-    .def("getFilledMatrix", &getFilledVector<WrappedClass>,
+    .def("_get_filled_matrix", &getFilledVector<WrappedClass>,
         python::return_value_policy<python::manage_new_object>())
-    .staticmethod("getFilledMatrix")
+    .staticmethod("_get_filled_matrix")
     ;
 
   exposeVectorConcept(pyclass, WrappedClass());
