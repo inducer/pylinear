@@ -141,10 +141,12 @@ class TestMatrices(unittest.TestCase):
 
     def do_test_umfpack(self, typecode):
         size = 100
-        A = make_random_matrix(size, typecode, num.SparseExecuteMatrix)
+        #A = make_random_matrix(size, typecode, num.SparseExecuteMatrix)
+        #b = make_random_vector(size, typecode)
+        A = tmd.umf_a[typecode]
+        b = tmd.umf_b[typecode]
 
         umf_op = op.UMFPACKOperator.make(A)
-        b = make_random_vector(size, typecode)
         x = num.zeros((size,), typecode)
 
         umf_op.apply(b, x)
@@ -170,10 +172,10 @@ class TestMatrices(unittest.TestCase):
 
     def do_test_arpack_generalized(self, typecode):
         size = 100
-        A = make_random_matrix(size, typecode)
+        A = tmd.agen_a[typecode]
         Aop = op.MatrixOperator.make(A)
 
-        M = make_random_spd_matrix(size, typecode)
+        M = tmd.agen_m[typecode]
         Mop = op.MatrixOperator.make(M)
 
         Minvop = op.LUInverseOperator.make(M)
@@ -191,9 +193,10 @@ class TestMatrices(unittest.TestCase):
         size = 100
         sigma = 1
 
-        A = make_random_matrix(size, typecode)
-
-        M = make_random_spd_matrix(size, typecode)
+        #A = make_random_matrix(size, typecode)
+        #M = make_random_spd_matrix(size, typecode)
+        A = tmd.arpsi_a[typecode]
+        M = tmd.arpsi_m[typecode]
         Mop = op.MatrixOperator.make(M)
 
         shifted_mat_invop = op.LUInverseOperator.make(A - sigma * M)
@@ -218,9 +221,11 @@ class TestMatrices(unittest.TestCase):
 
     def do_test_solve(self, typecode):
         size = 200
-        A = make_random_full_matrix(size, typecode)
-        b = num.zeros((size,), typecode)
-        write_random_vector(b)
+        #A = make_random_full_matrix(size, typecode)
+        #b = num.zeros((size,), typecode)
+        #write_random_vector(b)
+        A = tmd.solve_a[typecode]
+        b = tmd.solve_b[typecode]
         x = A <<num.solve>> b
         self.assert_(comp.norm_2(A*x - b) < 1e-10)
 
@@ -228,16 +233,15 @@ class TestMatrices(unittest.TestCase):
         self.for_all_typecodes(self.do_test_solve)
 
     def do_test_lu(self, typecode):
-        size = 30
-        A = make_random_full_matrix(size, typecode)
-        #print repr(A)
+        size = 100
+        A = make_random_full_matrix(size, typecode)+10*num.identity(size, num.Float)
         L,U,permut,sign = comp.lu(A)
         permut_mat = comp.make_permutation_matrix(permut)
-        permut_a = permut_mat * A
-        self.assert_small(L * U - permut_a)
+        self.assert_small(L * U - permut_mat * A)
 
     def test_lu(self):
-        self.for_all_typecodes(self.do_test_lu)
+        #self.for_all_typecodes(self.do_test_lu)
+        self.do_test_lu(num.Float)
 
     def do_test_sparse(self, typecode):
         def countElements(mat):
@@ -297,7 +301,8 @@ class TestMatrices(unittest.TestCase):
                     result += abs(a[i,j])**2
             return result
 
-        a = make_random_spd_matrix(size, typecode)
+        #a = make_random_spd_matrix(size, typecode)
+        a = tmd.jacspd[typecode]
         before = math.sqrt(off_diag_norm_squared(a))
         q, aprime = toybox.diagonalize_jacobi(a, iteration.make_observer(rel_goal = 1e-10))
         after = math.sqrt(off_diag_norm_squared(aprime))

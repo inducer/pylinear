@@ -199,8 +199,10 @@ PyObject *luWrapper(const MatrixType &a)
   typedef MatrixType result_type;
   boost::tuple<result_type *, result_type *, std::vector<unsigned> *, int> result = 
     lu::lu<MatrixType, result_type, result_type>(a);
+
   std::auto_ptr<result_type> l(result.get<0>()), u(result.get<1>());
   std::auto_ptr<std::vector<unsigned> > permut_ptr(result.get<2>());
+
   std::vector<unsigned> &permut = *permut_ptr;
 
   python::list py_permut;

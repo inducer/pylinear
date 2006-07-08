@@ -3,8 +3,6 @@ array interface
 Throw exceptions for non-matching slice assigns
 Documentation fallout of comp/op split
 Test/port fempy and pywannier.
-Make test suite use constant data.
-Find working LU example.
 
 --------------------------------------------------------------------------
 Old notes:

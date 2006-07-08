@@ -41,7 +41,7 @@ namespace lu
 
 
 
-  /** Postcondition P*A = L*U.
+  /** Postcondition: P*A = L*U.
    */
   template <typename MatrixExpression, typename DesiredResultL, typename DesiredResultU>
   boost::tuple<DesiredResultL *, DesiredResultU *, std::vector<unsigned> *, int> lu(const MatrixExpression &a)
@@ -53,7 +53,9 @@ namespace lu
     int parity = 1;
 
     std::auto_ptr<DesiredResultL> result_l(new DesiredResultL(n, n));
+    result_l->clear();
     std::auto_ptr<DesiredResultU> result_u(new DesiredResultU(n, n));
+    result_u->clear();
     std::auto_ptr<std::vector<unsigned> > permut_ptr(new std::vector<unsigned>);
     permut_ptr->resize(n);
 

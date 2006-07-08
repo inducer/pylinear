@@ -326,7 +326,7 @@ def _add_array_behaviors():
             if f not in [Vector, DenseMatrix]:
                 co = f(tc)
                 co.__str__ = _str_sparse_matrix
-                co.__repr__ = _repr_vector
+                co.__repr__ = _repr_sparse_matrix
 
         # cast_and_retry ------------------------------------------------------
         for mt in MATRIX_FLAVORS:
