@@ -557,7 +557,52 @@ class TestMatrices(unittest.TestCase):
 
         self.assert_(comp.norm_2(y-analytic_solution) < 1e-5)
 
+    def test_assign_size_errors(self):
+        u = num.zeros((10,10), num.Float)
 
+        try:
+            u[1] = num.ones((9,), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
+
+        try:
+            u[1:3] = num.ones((9,), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
+
+        try:
+            u[1:3] = num.ones((9,), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
+
+        try:
+            u[1:2, 1:2] = num.ones((1,2), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
+
+        try:
+            u[1:2, 1:2] = num.ones((2,1), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
+
+        v = num.zeros((10,10), num.Float)
+
+        try:
+            v[1:2] = num.ones((2,), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
+
+        try:
+            v[1:2] = num.ones((2,1), num.Float)
+            self.assert_(False)
+        except ValueError:
+            pass
 
             
 if __name__ == '__main__':

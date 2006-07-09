@@ -1,8 +1,6 @@
 document solve_upper
 array interface
-Throw exceptions for non-matching slice assigns
 Documentation fallout of comp/op split
-ones?
 
 --------------------------------------------------------------------------
 Old notes:

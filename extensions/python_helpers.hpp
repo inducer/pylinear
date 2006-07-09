@@ -37,5 +37,13 @@ inline PyObject *pyobject_from_rvalue(const T &val)
 
 
 
+#define PYTHON_ERROR(TYPE, REASON) \
+{ \
+  PyErr_SetString(PyExc_##TYPE, REASON); \
+  throw python::error_already_set(); \
+}
+
+
+
 
 #endif

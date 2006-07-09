@@ -266,7 +266,7 @@ static PyObject *getElement(const MatrixType &m, PyObject *index)
   {
     // we have a tuple
     if (PyTuple_GET_SIZE(index) != 2)
-      throw std::out_of_range("expected tuple of size 2");
+      PYTHON_ERROR(IndexError, "expected tuple of size 2");
 
     slice_info si1, si2;
     translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
@@ -344,7 +344,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
   {
     // we have a tuple
     if (PyTuple_GET_SIZE(index) != 2)
-      throw std::out_of_range("expected tuple of size 2");
+      PYTHON_ERROR(IndexError, "expected tuple of size 2");
 
     slice_info si1, si2;
     translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
@@ -384,7 +384,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       {
 	// replace row
         if (new_vec.size() != m.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
+          PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
         row(m,si1.m_start) = new_vec;
       }
@@ -392,7 +392,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       {
 	// replace column
         if (new_vec.size() != m.size1())
-          throw std::out_of_range("submatrix is wrong size for assignment");
+          PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
         column(m,si2.m_start) = new_vec;
       }
@@ -404,7 +404,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
               ublas::basic_slice<typename MatrixType::size_type>(si2.m_start, si2.m_step, si2.m_sliceLength));
 
         if (new_vec.size() != my_slice.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
+          PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
         for (unsigned i = 0; i < my_slice.size1(); ++i)
           row(my_slice, i) = new_vec;
@@ -415,7 +415,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       // no broadcast
       const MatrixType &new_mat = new_matrix();
       if (int(new_mat.size1()) != si1.m_sliceLength || int(new_mat.size2()) != si2.m_sliceLength)
-        throw std::out_of_range("submatrix is wrong size for assignment");
+        PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
       project(
         m,
@@ -426,10 +426,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
         = new_mat;
     }
     else
-    {
-      PyErr_SetString(PyExc_ValueError, "Unknown type in element or slice assignment");
-      throw python::error_already_set();
-    }
+      PYTHON_ERROR(ValueError, "unknown type in element or slice assignment");
   }
   else
   {
@@ -463,7 +460,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       if (si.m_sliceLength == 1)
       {
         if (new_vec.size() != m.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
+          PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
         row(m,si.m_start) = new_vec;
       }
@@ -471,7 +468,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       {
         // broadcast vector across matrix
         if (new_vec.size() != m.size2())
-          throw std::out_of_range("submatrix is wrong size for assignment");
+          PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
         for (int i = si.m_start; i < si.m_end; i += si.m_step)
           row(m, i) = new_vec;
@@ -482,17 +479,14 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
       const MatrixType &new_mat = new_matrix();
 
       if (int(new_mat.size1()) != si.m_sliceLength || new_mat.size2() != m.size2())
-        throw std::out_of_range("submatrix is wrong size for assignment");
+        PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
       project(m,
           ublas::basic_slice<typename MatrixType::size_type>(si.m_start, si.m_step, si.m_sliceLength),
           ublas::basic_slice<typename MatrixType::size_type>(0, 1, m.size2())) = new_mat;
     }
     else
-    {
-      PyErr_SetString(PyExc_ValueError, "Unknown type in element or slice assignment");
-      throw python::error_already_set();
-    }
+      PYTHON_ERROR(ValueError, "unknown type in element or slice assignment");
   }
 }
 
@@ -521,13 +515,14 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
     }
   }
   else if (new_vector.check())
+  {
+    if (new_vector().size() != si.m_sliceLength)
+      PYTHON_ERROR(ValueError, "subvector is wrong size for assignment");
     project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength)) = 
       new_vector();
-  else
-  {
-    PyErr_SetString(PyExc_ValueError, "Unknown type in element or slice assignment");
-    throw python::error_already_set();
   }
+  else
+    PYTHON_ERROR(ValueError, "Unknown type in element or slice assignment");
 }
 
 
