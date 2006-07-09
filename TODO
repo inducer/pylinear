@@ -1,6 +1,7 @@
 document solve_upper
 array interface
 Documentation fallout of comp/op split
+pydoc-ability
 
 --------------------------------------------------------------------------
 Old notes:

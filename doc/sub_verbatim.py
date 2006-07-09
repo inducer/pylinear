@@ -31,11 +31,14 @@ while idx < len(lines):
             line = lines[idx][:-1]
             statement += "\n" + line[3+strip_spaces:]
             print>>outf, line
+        place = "%s:%d" % (doc_fn, idx)
         try:
-            code = compile(statement+"\n", doc_fn, "eval")
+            code = compile(statement+"\n", place, "eval")
         except SyntaxError:
-            code = compile(statement+"\n", doc_fn, "single")
+            code = compile(statement+"\n", place, "single")
+
         result = eval(code)
+
         if result is not None:
             s = pre_strip_spaces*" " +\
                 str(result).replace("\n", "%s\n" % (pre_strip_spaces*" "))

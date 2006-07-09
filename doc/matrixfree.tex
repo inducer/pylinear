@@ -74,15 +74,15 @@ there are more--and they do not necessarily correspond to a stored matrix
 representation.
 
 All the ways to generate \class{Operator} instances are contained 
-in the \module{pylinear.operation}. Let's import it:
+in the \module{pylinear.operator}. Let's import it:
 \begin{verbatim}
   >>> from pylinear.array import *
-  >>> import pylinear.operation as op
+  >>> import pylinear.operator as op
 \end{verbatim}
 
 Each type of operator comes with a constructor class. For example,
 matrix operators are constructed by calling the method \method{make}
-on the object called \var{MatrixOperator} in the \module{operation} 
+on the object called \var{MatrixOperator} in the \module{operator} 
 module. Consider this example:
 \begin{verbatim}
   >>> a = array([[1,2],[3,4]])
@@ -231,7 +231,7 @@ available as part of NumPy:
 
 \section{Implementing your own \class{Operator}s}
 
-TO BE WRITTEN. Refer to the source in \file{src/operation.py}, 
+TO BE WRITTEN. Refer to the source in \file{src/operator.py}, 
 class \class{LUInverseOperator} for an example. FIXME
 
 For information on implementing your own operators in C++, please

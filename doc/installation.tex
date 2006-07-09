@@ -212,9 +212,7 @@ Then, type
   python setup.py build
 \end{verbatim}
 and wait what happens. This will compile PyLinear, which, depending on
-your compiler, will take around 400 MB of your computers memory. If you
-do not have this much physical memory, this might be quite slow due to
-swapping. Once this step completes, type
+your compiler, will take a little while. Once this step completes, type
 \begin{verbatim}
   su -c "python setup.py install"
 \end{verbatim}
@@ -224,9 +222,8 @@ and execute
 \begin{verbatim}
   python test_matrices.py
 \end{verbatim}
-This will execute PyLinear's unit test suite. A few failures here
-are ok, since the matrices for which we perform computations are
-randomly generated. If you run the tests multiple times, there
-should however be no tests that fail consistently every time.
+This will execute PyLinear's unit test suite. All tests should
+run fine, outputting a long line of dots and "OK" as the last line
+of output.
 
 Congratulations! You have now successfully installed PyLinear.

@@ -459,6 +459,10 @@ def asarray(data, typecode=None, flavor=None):
     except TypeError:
         return array(data, typecode, flavor)
   
+
+
+
+
 def _get_filled_matrix(shape, typecode, matrix_type, fill_value):
     matrix_class = _get_matrix_class(len(shape), typecode, matrix_type)
     if len(shape) == 1:
@@ -467,6 +471,7 @@ def _get_filled_matrix(shape, typecode, matrix_type, fill_value):
         return matrix_class._get_filled_matrix(shape[0], shape[1], fill_value)
 
 def zeros(shape, typecode, flavor=None):
+    """Return the (off-)diagonal of a given matrix."""
     matrix_class = _get_matrix_class(len(shape), typecode, flavor)
     if len(shape) == 1:
         result = matrix_class(shape[0])
@@ -476,15 +481,18 @@ def zeros(shape, typecode, flavor=None):
     return result
 
 def ones(shape, typecode, flavor=None):
+    """Return a matrix filled with ones."""
     return _get_filled_matrix(shape, typecode, flavor, 1)
 
 def identity(n, typecode, flavor=None):
+    """Return an identity matrix."""
     result = zeros((n,n), typecode, flavor)
     for i in range(n):
         result[i,i] = 1
     return result
 
 def diagonal_matrix(vec_or_mat, typecode=None, flavor=DenseMatrix):
+    """Return the (off-)diagonal of a given matrix."""
     if len(vec_or_mat.shape) == 1:
         vec = vec_or_mat
         n = vec.shape[0]
@@ -572,6 +580,16 @@ def innerproduct(vec1, vec2):
 def outerproduct(vec1, vec2):
     return vec1._outerproduct(vec2)
 
+def crossproduct(vec1, vec2):
+    (v1len,) = vec1.shape
+    (v2len,) = vec2.shape
+    if v1len != 3 or v2len != 3:
+        raise ValueError, "cross product requires two vectors of dimension 3"
+    return array([
+        vec1[1]*vec2[2]-vec1[2]*vec2[1],
+        vec1[2]*vec2[0]-vec1[0]*vec2[2],
+        vec1[0]*vec2[1]-vec1[1]*vec2[0]])
+
 def transpose(mat):
     return mat.T
 
@@ -651,11 +669,10 @@ minimum = _BinaryMinimum()
 
 # fake infix operators --------------------------------------------------------
 class _InfixOperator:
-    """Following a recipe from
-
+    """Pseudo-infix operators that allow syntax of the kind `op1 <<operator>> op2'.
+    
+    Following a recipe from
     http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/384122
-
-    This allows, for example, vec1 <<outer>> vec2
     """
     def __init__(self, function):
         self.function = function
@@ -665,6 +682,7 @@ class _InfixOperator:
         return self.function(other)
 
 outer = _InfixOperator(outerproduct)
+cross = _InfixOperator(crossproduct)
 
 def _solve_operator(mat, rhs):
     import pylinear.computation as comp

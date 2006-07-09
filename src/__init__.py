@@ -1,3 +1,8 @@
+"""PyLinear -- linear algebra in Python.
+
+See http://news.tiker.net/software/pylinear for details.
+"""
+
 import _operation as _op
 
 has_blas = _op.has_blas

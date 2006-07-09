@@ -117,11 +117,9 @@ the creation of new \class{Array}s:
    useful when, for example, one wants an array contains complex numbers even
    though all of its input elements are reals:
 \begin{verbatim}
->>> x,y,z = 1,2,3
->>> a = array([x,y,z]) # reals are enough for 1, 2 and 3
->>> print a
->>> a = array([x,y,z], typecode=Complex64) # not the default type
->>> print a
+>>> array([1,2,3]) # reals are enough for 1, 2 and 3
+>>> array([1,2,3], typecode=Complex64) # not the default type
+>>> array([1,2,3+0j]) # same effect
 \end{verbatim}
     Note that in NumPy, \function{array} takes a few more arguments, such as
     \code{copy}, \code{savespace}, and \code{shape}. These are not supported.
@@ -139,34 +137,47 @@ the creation of new \class{Array}s:
   the largest row and column indices seen in examining the \code{mapping}.
   If the \code{typecode} is unspecified, \function{sparse} uses the same
   logic as \function{data} to determine it.
+\begin{verbatim}
+>>> sparse({0:{4:17, 3:1+2j},3:{2:15}})
+>>> sparse({0:{4:17, 3:1+2j},3:{2:15}}, flavor=SparseExecuteMatrix)
+\end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{asarray}{seq, typecode, flavor = None}
+\begin{funcdesc}{asarray}{seq, typecode, flavor=None}
   This function converts scalars, lists and tuples to an
   \class{Array} type, if possible. It passes \class{Array}s through,
   making copies only to convert types.  In any other case a
   \class{TypeError} is raised.
 \end{funcdesc}
 
-\begin{funcdesc}{zeros}{shape, typecode, flavor = None}
+\begin{funcdesc}{zeros}{shape, typecode, flavor=None}
   \function{zeros} creates an \class{Array} of the given \var{shape},
   \var{typecode} and \var{flavor} which is filled with zeros. See the
   \member{shape} attribute in Section \ref{sec:arrayproperties} for
   information on the \var{shape} parameter.
+\begin{verbatim}
+>>> zeros((2,5), Float)
+\end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{ones}{shape, typecode, flavor = None}
+\begin{funcdesc}{ones}{shape, typecode, flavor=None}
   \function{ones} creates an \class{Array} of the given \var{shape},
   \var{typecode} and \var{flavor} which is filled with ones. See the
   \member{shape} attribute in Section \ref{sec:arrayproperties} for
   information on the \var{shape} parameter.
+\begin{verbatim}
+>>> ones((3,7), Float)
+\end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{identity}{n, typecode, flavor = None}
+\begin{funcdesc}{identity}{n, typecode, flavor=None}
   \function{identity} creates a \class{Matrix} of shape \code{(n,n)} and
   the given \var{typecode} and \var{flavor} which is filled with
   zeros and has ones on the diagonal, a type of matrix otherwise
   known as an identity matrix.
+\begin{verbatim}
+>>> identity(4, Complex)
+\end{verbatim}
 \end{funcdesc}
 
 \class{Array}s also have efficient support for pickling. So, unpickling
@@ -187,6 +198,14 @@ An \class{Array} has the following meta-data attributes:
 
   Assigning a value to the \member{shape} attribute will destructively
   resize the array.
+
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.shape
+>>> x.T.shape
+>>> x.shape = (4,2)
+>>> x # typically random garbage
+\end{verbatim}
 \end{memberdesc}
 
 \begin{memberdesc}[Array]{flavor}
@@ -198,6 +217,12 @@ An \class{Array} has the following meta-data-returning methods:
 
 \begin{methoddesc}[Array]{typecode}{}
   Returns the typecode of the matrix.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.typecode()
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x.typecode()
+\end{verbatim}
 \end{methoddesc}
 
 % --------------------------------------------------------------------------
@@ -210,6 +235,11 @@ An \class{Array} has the following data attributes:
   For real matrices, the matrix is simply copied.
 
   In NumPy, this method does not return a copy, but a view.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.real
+\end{verbatim}
 \end{memberdesc}
 
 \begin{memberdesc}[Array]{imaginary}
@@ -217,6 +247,11 @@ An \class{Array} has the following data attributes:
   For real matrices, a zero matrix of the same size is returned.
 
   In NumPy, this method does not return a copy, but a view.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.imaginary
+\end{verbatim}
 \end{memberdesc}
 
 In addition to the \class{Array} data attributes, \class{Matrix} types
@@ -226,6 +261,11 @@ offer the following:
   Returns a real-transpose copy of the matrix.
 
   Does not exist in NumPy.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x
+>>> x.T
+\end{verbatim}
 \end{memberdesc}
 
 \begin{memberdesc}[Matrix]{H}
@@ -233,6 +273,11 @@ offer the following:
   Identical to \member{T} for real matrices.
 
   Does not exist in NumPy.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.H
+\end{verbatim}
 \end{memberdesc}
 
 Naturally, PyLinear will also support indexing for reading and writing
@@ -253,6 +298,12 @@ The following methods are available on PyLinear's \class{Array} types:
   only non-zero elements are considered, and thus represents a guarantee
   with respect to asymptotic complexity of the operation.)
   Returns the sum of all elements in the array.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.sum()
+>>> v = array([1,2,3])
+>>> v.sum()
+\end{verbatim}
 \end{methoddesc}
 %\begin{methoddesc}{abs_square_sum}{} INTENTIONALLY LEFT OUT
 %  Returns the sum of the squared absolute values of all elements in
@@ -285,7 +336,12 @@ The following methods are available on PyLinear's \class{Array} types:
   of the \class{Array} for which the corresponding value is
   potentially non-zero. (That is, for dense matrices, it returns
   each element's index, while for sparse matrices, only non-zero
-  elements are enumerated.
+  elements are enumerated.)
+\begin{verbatim}
+>>> x = sparse({0:{4:17, 3:1+2j},3:{2:15}})
+>>> for index in x.indices():
+...   print index
+\end{verbatim}
 \end{methoddesc}
 \begin{methoddesc}{add_scattered}{row_indices, column_indices, little_matrix}
   Modifies the called matrix in-place by adding a the entries of a
@@ -308,6 +364,37 @@ The following methods are available on PyLinear's \class{Array} types:
 >>> b[0] = 15
 >>> a
 >>> b
+\end{verbatim}
+\end{methoddesc}
+\begin{methoddesc}{solve_upper}{vector}
+  If the matrix is an non-singular upper triangular matrix, then a vector
+  \code{result} is returned that satisfies \code{matrix*result=vector}, i.e.
+  this routine solves the linear system given by the matrix.
+
+  If the matrix is not regular upper triangular, then the result of this routine
+  is still a vector, but of undefined meaning.
+\begin{verbatim}
+>>> a = array([[1,2],[0,3]])
+>>> b = array([17,12])
+>>> v = a.solve_upper(b)
+>>> v
+>>> a*v
+\end{verbatim}
+\end{methoddesc}
+\begin{methoddesc}{solve_lower}{vector}
+  If the matrix is an non-singular lower triangular matrix, then a vector
+  \code{result} is returned that satisfies \code{matrix*result=vector}, i.e.
+  this routine solves the linear system given by the matrix.
+
+  If the matrix is not regular upper triangular, then the result of this routine
+  is still a vector, but of undefined meaning.
+  
+\begin{verbatim}
+>>> a = array([[1,0],[3,4]])
+>>> b = array([17,12])
+>>> v = a.solve_lower(b)
+>>> v
+>>> a*v
 \end{verbatim}
 \end{methoddesc}
 
@@ -384,6 +471,12 @@ different matrix libraries:
 \begin{funcdesc}{diagonal}{matrix, offset=0}
   Returns the diagonal of \var{matrix} as a vector, or the \var{offset}th
   super- (for \code{offset>0}) or sub-diagonal (for \code{offset<0}).
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> diagonal(a)
+>>> diagonal(a,1)
+\end{verbatim}
 \end{funcdesc}
 \begin{funcdesc}{take}{matrix, indices, axis=0}
   Assembles an \class{Array} from the entries of the \class{Array}
@@ -408,6 +501,12 @@ different matrix libraries:
 \begin{funcdesc}{trace}{matrix, offset=0}
   Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
   for details of the meaning of \var{offset}.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> trace(a)
+>>> trace(a,1)
+\end{verbatim}
 \end{funcdesc}
 % --------------------------------------------------------------------------
 \section{Elementary computations with matrices}
@@ -421,11 +520,11 @@ intricate meanings, as discussed in Section
 \subsection{Type promotion}
 \label{subsec:arraypromotion}
 
-If binary operators or ufuncs (see Section \ref{subsec:ufuncs})
-are applied to arrays of non-matching flavor or typecode,
-the operands are promoted to a common type. (For the case of
-non-matching dimension, see Section \ref{subsec:arraybroadcast}
-for broadcasting rules.)
+If binary operators or elementwise functions (see Section
+\ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
+typecode, the operands are promoted to a common type. (For the case of
+non-matching dimension, see Section \ref{subsec:arraybroadcast} for
+broadcasting rules.)
 
 If the only mismatch is in typecode, one argument array
 is cast upward in the type hierarchy (e.g. from integer to real,
@@ -438,152 +537,150 @@ result.
 \subsection{Broadcasting}
 \label{subsec:arraybroadcast}
 
-The binary elementwise operators as well as all the binary ufuncs (see
-Section \ref{subsec:ufuncs}) accept argument pairs where one argument
-has lesser dimension than the other. In this case, the missing dimensions
-are \index{broadcasting}\dfn{broadcast} across the remainder of the
-matrix. If the lesser-dimension argument is a scalar, this is easy to
-explain: It is treated like an array of the right size filled with
-that scalar. If it is a vector, it is treated like a matrix filled
-with rows consisting of the given vector.
+The binary elementwise operators as well as all the binary elementwise
+functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
+where one argument has lesser dimension than the other. In this case, the
+missing dimensions are \index{broadcasting}\dfn{broadcast} across the remainder
+of the matrix. If the lesser-dimension argument is a scalar, this is easy to
+explain: It is treated like an array of the right size filled with that scalar.
+If it is a vector, it is treated like a matrix filled with rows consisting of
+the given vector.
 
 All of this can only work if the corresponding \class{Array} sizes 
 match.
 
-\subsection{Universal Functions}
-\label{subsec:ufuncs}
+\subsection{Elementwise Functions}
+\label{subsec:elementwise-funcs}
 
-PyLinear sports a few so-called \dfn{Universal Functions},
-\indexii{Universal}{Function} some of which are \emph{unary},
-while others are \emph{binary}. (The lengthy term universal function is
-often abbreviated to \dfn{ufunc}\index{ufunc}.) Universal functions
-generally apply a certain functionality to each element in an
-array. For example, the \function{sin} universal function computes the
-sine of each of the given array's entries, and returns the processed
-matrix, which will be of the same size, flavor, and typecode. Binary
-universal functions receive two \class{Array}s of equal size as
-arguments, apply a binary function (such as, for example, addition or
-multiplication) to each pair of entries of the two \class{Array}s,
-pairing the entries at the same location in each \class{Array}, and
-return an \class{Array} with the results. Binary universal functions
-obey type promotion laws as laid out in section
-\ref{subsec:arraypromotion}.
+PyLinear sports a few so-called \dfn{Elementwise Functions},
+\indexii{Universal}{Function}\indexii{Elementwise}{Function} some of which are
+\emph{unary}, while others are \emph{binary}. (In NumPy, this kind of function
+is called a ufunc, or ``Universal Function''.) Elementwise functions generally
+apply a certain functionality to each element in an array. For example, the
+\function{sin} elementwise function computes the sine of each of the given
+array's entries, and returns the processed matrix, which will be of the same
+size, flavor, and typecode. Binary elementwise functions receive two
+\class{Array}s of equal size as arguments, apply a binary function (such as,
+for example, addition or multiplication) to each pair of entries of the two
+\class{Array}s, pairing the entries at the same location in each \class{Array},
+and return an \class{Array} with the results. Binary elementwise functions obey
+type promotion laws as laid out in section \ref{subsec:arraypromotion}.
 
-The following unary universal functions exist:
+The following unary elementwise functions exist:
 
 \begin{funcdesc}{conjugate}{array}
   Returns the complex-conjugate of the given \class{Array}. Simply
   copies real matrices.
 \end{funcdesc}
 \begin{funcdesc}{cos}{array}
-  Returns the element-wise cosine of the given \class{Array}.
+  Returns the elementwise cosine of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{cosh}{array}
-  Returns the element-wise hyperbolic cosine of the given
+  Returns the elementwise hyperbolic cosine of the given
   \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{exp}{array}
-  Returns the element-wise natural exponential of the given
+  Returns the elementwise natural exponential of the given
   \class{Array}. 
 
   \emph{WARNING:} This is not matrix exponentiation.
 \end{funcdesc}
 \begin{funcdesc}{log}{array}
-  Returns the element-wise natural logarithm of the given
+  Returns the elementwise natural logarithm of the given
   \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{log10}{array}
-  Returns the element-wise base-10 logarithm of the given
+  Returns the elementwise base-10 logarithm of the given
   \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{sin}{array}
-  Returns the element-wise sine of the given \class{Array}.
+  Returns the elementwise sine of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{sinh}{array}
-  Returns the element-wise hyperbolic sine of the given \class{Array}.
+  Returns the elementwise hyperbolic sine of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{sqrt}{array}
-  Returns the element-wise square root of the given \class{Array}.
+  Returns the elementwise square root of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{tan}{array}
-  Returns the element-wise tangent of the given \class{Array}.
+  Returns the elementwise tangent of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{tanh}{array}
-  Returns the element-wise hyperbolic tangent of the given \class{Array}.
+  Returns the elementwise hyperbolic tangent of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{floor}{array}
-  Returns the element-wise floor of the given \class{Array}.
+  Returns the elementwise floor of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{ceil}{array}
-  Returns the element-wise ceiling of the given \class{Array}.
+  Returns the elementwise ceiling of the given \class{Array}.
 \end{funcdesc}
 \begin{funcdesc}{argument}{array}
-  Returns the element-wise complex argument of the given \class{Array}.
+  Returns the elementwise complex argument of the given \class{Array}.
   Resulting matrix consists of values of zero and $\pi$ for real matrices.
 \end{funcdesc}
 \begin{funcdesc}{absolute}{array}
-  Returns the element-wise absolute value of the given \class{Array}.
+  Returns the elementwise absolute value of the given \class{Array}.
 \end{funcdesc}
 
-The following binary universal functions exist:
+The following binary elementwise functions exist:
 
 \begin{funcdesc}{add}{op1, op2}
-  Returns the element-wise sum of the given \class{Array}s. Obeys
-  broadcasting (see Section \ref{subsec:arraybroadcasting}) and type
+  Returns the elementwise sum of the given \class{Array}s. Obeys
+  broadcasting (see Section \ref{subsec:arraybroadcast}) and type
   promotion (see Section \ref{subsec:arraypromotion}) laws.
 
   Equivalent to the \code{+} operator.
 \end{funcdesc}
 \begin{funcdesc}{subtract}{op1, op2}
-  Returns the element-wise difference of the given \class{Array}s. Obeys
-  broadcasting (see Section \ref{subsec:arraybroadcasting}) and type
+  Returns the elementwise difference of the given \class{Array}s. Obeys
+  broadcasting (see Section \ref{subsec:arraybroadcast}) and type
   promotion (see Section \ref{subsec:arraypromotion}) laws.
 
   Equivalent to the \code{-} operator.
 \end{funcdesc}
 \begin{funcdesc}{multiply}{op1, op2}
-  Returns the element-wise product of the given \class{Array}s. Obeys
-  broadcasting (see Section \ref{subsec:arraybroadcasting}) and type
+  Returns the elementwise product of the given \class{Array}s. Obeys
+  broadcasting (see Section \ref{subsec:arraybroadcast}) and type
   promotion (see Section \ref{subsec:arraypromotion}) laws.
 
   \emph{NOT} equivalent to the \code{*} operator, except in the scalar
   case.
 \end{funcdesc}
 \begin{funcdesc}{divide}{op1, op2}
-  Returns the element-wise quotient of the given \class{Array}s. Obeys
-  broadcasting (see Section \ref{subsec:arraybroadcasting}) and type
+  Returns the elementwise quotient of the given \class{Array}s. Obeys
+  broadcasting (see Section \ref{subsec:arraybroadcast}) and type
   promotion (see Section \ref{subsec:arraypromotion}) laws.
 
   \emph{NOT} equivalent to the \code{/} operator, except in the scalar
   case.
 \end{funcdesc}
 \begin{funcdesc}{power}{op1, op2}
-  Returns the element-wise power \code{op1[i]**op2[i]} of the given
+  Returns the elementwise power \code{op1[i]**op2[i]} of the given
   \class{Array}s. Obeys broadcasting (see Section
-  \ref{subsec:arraybroadcasting}) and type promotion (see Section
+  \ref{subsec:arraybroadcast}) and type promotion (see Section
   \ref{subsec:arraypromotion}) laws.
 
   \emph{NOT} equivalent to the \code{**} operator, except in the scalar
   case.
 \end{funcdesc}
 \begin{funcdesc}{maximum}{op1, op2}
-  Returns the element-wise maximum of the given
+  Returns the elementwise maximum of the given
   \class{Array}s. Obeys broadcasting (see Section
-  \ref{subsec:arraybroadcasting}) and type promotion (see Section
+  \ref{subsec:arraybroadcast}) and type promotion (see Section
   \ref{subsec:arraypromotion}) laws.
 
   For complex matrices, the maximum is found based on the real part.
 \end{funcdesc}
 \begin{funcdesc}{minimum}{op1, op2}
-  Returns the element-wise minimum of the given
+  Returns the elementwise minimum of the given
   \class{Array}s. Obeys broadcasting (see Section
-  \ref{subsec:arraybroadcasting}) and type promotion (see Section
+  \ref{subsec:arraybroadcast}) and type promotion (see Section
   \ref{subsec:arraypromotion}) laws.
 
   For complex matrices, the minimum is found based on the real part.
 \end{funcdesc}
 
-Additional universal function methods, such as \member{reduce}, as they are
+Additional elementwise function methods, such as \member{reduce}, as they are
 found in NumPy, are not (yet) supported in PyLinear.
 
 \subsection{Multiplication semantics}
@@ -593,7 +690,12 @@ This section explains the value of the expression\code{a*b}, where at
 least one of \code{a} and \code{b} is an \class{Array}.
 
 If the other operand is a scalar (it doesn't matter which), the
-result will be the element-wise product of the array with that scalar.
+result will be the elementwise product of the array with that scalar.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a*2
+>>> 2j*a
+\end{verbatim}
 
 If both operands are \class{Vector}s, \code{a*b} computes the inner
 product of both vectors. Note that in the complex case no complex
@@ -606,6 +708,15 @@ c\not=a\cdot(b\cdot c)$.  PyLinear has no way of rejecting
 unparenthesized expressions such as \code{a*b*c}, but their meaning is
 uncertain since the order of evaluation is not explicitly specified.
 
+\begin{verbatim}
+>>> a = array([1,2,3])
+>>> b = array([4,5,6])
+>>> c = array([7,8,9])
+>>> (a*b)*c
+>>> a*(b*c)
+>>> a*b*c # RANDOM RESULT!
+\end{verbatim}
+
 If \code{a} is a \class{Vector} and \code{b} is a \class{Matrix},
 \code{a*b} will result in $b^Ta$, using the conventional matrix-vector
 product.
@@ -614,9 +725,22 @@ If \code{a} is a \class{Matrix} and \code{b} is a \class{Vector},
 \code{a*b} will result in $a b$, using the conventional matrix-vector
 product.
 
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> b = array([1,3,5])
+>>> a*b
+>>> b*a
+>>> a.T*b # less efficient!
+\end{verbatim}
+
 If both \code{a} and \code{b} are \class{Matrix} types,
 \code{a*b} will result in $a b$, using the conventional matrix-matrix
 product.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> b = array([[1,2,1,2],[3,4,3,4],[5,6,5,6]])
+>>> a*b
+\end{verbatim}
 
 All these explanations also apply to the inplace multiplication
 operator \code{*=}.
@@ -633,6 +757,13 @@ The following expressions are also valid:
   Computes the \var{n}th power of \var{matrix}. \var{n} must be
   integer, but may be negative. Only for dense matrices.
 
+\begin{verbatim}
+>>> a = array([[1,2,3],[3,2,1],[1,3,2]])
+>>> a
+>>> a**2
+>>> a**3
+>>> a**3 * (1/a)
+\end{verbatim}
 \item \code{scalar/matrix}
 
   Computes the \var{scalar} multiple of the inverse of
@@ -645,15 +776,102 @@ The following expressions are also valid:
   Use of this operator will fail unless the module
   \module{pylinear.operation} is available.
 
+\begin{verbatim}
+>>> a = array([[1,2,3],[3,2,1],[1,3,2]])
+>>> a
+>>> 1/a
+>>> 1/a * a
+\end{verbatim}
+
+  Observe that the results are likely useless if the matrix
+  is singular:
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> a
+>>> 1/a
+>>> 1/a * a
+>>> from pylinear.computation import determinant
+>>> determinant(a)
+\end{verbatim}
+
 \item \code{matrix <<solve>> vector}
 
   Returns the solution of the linear system of equations \code{matrix*x=vector}.
   Available for dense and sparse execute matrix types of \var{matrix}.
 
   Use of this operator will fail unless the module
-  \module{pylinear.operation} is available.
+  \module{pylinear.computation} is available.
+
+  Since this is not built using actual Python syntax, but rather cheaply
+  composed of a special-purpose \code{solve} object with left and right
+  shift operators, some care needs to be exercised regarding operator
+  precedence. When in doubt, just use parentheses.
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[3,2,1],[1,3,2]])
+>>> b = array([9,1,1])
+>>> v = a <<solve>> b
+>>> v
+>>> a * v
+\end{verbatim}
+
+  Note that you need to qualify \code{<<solve>>} with the module name if you
+  do not import \module{pylinear.array} using \samp{from ... import *}:
+
+\begin{verbatim}
+>>> import pylinear.array as num
+>>> a = num.array([[1,2,3],[3,2,1],[1,3,2]])
+>>> b = num.array([9,1,1])
+>>> v = a <<num.solve>> b
+>>> v
+>>> a * v
+\end{verbatim}
+
+  Observe that the results are likely useless if the matrix
+  is singular:
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> b = array([9,1,1])
+>>> v = a <<solve>> b
+>>> v
+>>> a * v
+>>> from pylinear.computation import determinant
+>>> determinant(a)
+\end{verbatim}
 
 \item \code{vector1 <<outer>> vector2}
   
-  Computes the outer product of \code{vector1} and \code{vector2}.
+  Computes the outer product of \code{vector1} and \code{vector2},
+  whose result is the matrix $v_1 \cdot v_2^T$.
+
+\begin{verbatim}
+>>> v = array([1,2,3])
+>>> w = array([3,2,1])
+>>> v <<outer>> w
+>>> w <<outer>> v
+\end{verbatim}
+
+  Please see the section on \code{<<solve>>} above for important
+  considerations on operator precedence and module qualification
+  that also apply here.
+
+\item \code{vector1 <<cross>> vector2}
+  
+  Computes the cross product of \code{vector1} and \code{vector2}.
+  Both \code{vector1} and \code{vector2} must be of dimension 3.
+
+\begin{verbatim}
+>>> v = array([1,2,3])
+>>> w = array([3,2,1])
+>>> v <<cross>> w
+>>> w <<cross>> v
+>>> (v <<cross>> w) * v
+\end{verbatim}
+
+  Please see the section on \code{<<solve>>} above for important
+  considerations on operator precedence and module qualification
+  that also apply here.
+
 \end{itemize}
