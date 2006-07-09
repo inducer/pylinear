@@ -1,3 +1,10 @@
+"""
+PyLinear's module for generalized iteration stopping and control.
+"""
+
+
+
+
 import os
 
 

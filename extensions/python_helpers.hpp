@@ -9,6 +9,11 @@
 
 
 
+using boost::python::args;
+
+
+
+
 template <typename T>
 inline PyObject *pyobject_from_new_ptr(T *ptr)
 {

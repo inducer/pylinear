@@ -1,3 +1,11 @@
+"""
+PyLinear's Python wrapper module for creating/manipulating Arrays.
+(Array here means Matrix or Vector)
+"""
+
+
+
+
 import sys
 from pylinear._array import *
 
@@ -5,6 +13,7 @@ from pylinear._array import *
 
 
 def version():
+    """Return a 3-tuple with the PyLinear version."""
     return (0,92,0)
 
 
@@ -51,6 +60,12 @@ def _max_typecode(list):
 
 
 class TypecodeParameterizedType(object):
+    """
+    A base class for "types" that depend on a typecode.
+
+    This is a rather internal class.
+    """
+
     def __init__(self, name, use_dict = None):
         if use_dict is None:
             use_dict = globals()
@@ -358,6 +373,14 @@ def _get_matrix_class(dim, typecode, flavor):
 
 # construction functions ------------------------------------------------------
 def array(data, typecode=None, flavor=None):
+    """Create an Array from a (potentially nested) list of data values.
+
+    Takes into account the given typecode and flavor. If None are specified,
+    the minimum that will accomodate the given data are used.
+    
+    typecode can be one of Float,Complex, Float64, Complex64.
+    flavor can be one of Vector, DenseMatrix, SparseBuildMatrix, SparseExecuteMatrix.
+    """
     # slow, but that doesn't matter so much
     def get_dim(data):
         try:
@@ -409,6 +432,15 @@ def array(data, typecode=None, flavor=None):
 
 
 def sparse(mapping, shape=None, typecode=None, flavor=SparseBuildMatrix):
+    """Create a sparse Array from (two-level) nested mappings (e.g. dictionaries).
+
+    Takes into account the given typecode and flavor. If None are specified,
+    the minimum that will accomodate the given data are used.
+    If shape is unspecified, the smallest size that can accomodate the data
+    is used.
+
+    See array() for valid typecodes and flavors.
+    """
     def get_biggest_type(mapping, prev_biggest_type = Float64):
         for row in mapping.values():
             for val in row.values():
@@ -437,6 +469,10 @@ def sparse(mapping, shape=None, typecode=None, flavor=SparseBuildMatrix):
 
 
 def asarray(data, typecode=None, flavor=None):
+    """Construct an array from data.
+    
+    Same as array(), except that a copy is made only when necessary.
+    """
     try:
         given_flavor = data.flavor
         given_tc = data.typecode()
@@ -471,7 +507,7 @@ def _get_filled_matrix(shape, typecode, matrix_type, fill_value):
         return matrix_class._get_filled_matrix(shape[0], shape[1], fill_value)
 
 def zeros(shape, typecode, flavor=None):
-    """Return the (off-)diagonal of a given matrix."""
+    """Return a zero-filled array."""
     matrix_class = _get_matrix_class(len(shape), typecode, flavor)
     if len(shape) == 1:
         result = matrix_class(shape[0])
@@ -492,7 +528,13 @@ def identity(n, typecode, flavor=None):
     return result
 
 def diagonal_matrix(vec_or_mat, typecode=None, flavor=DenseMatrix):
-    """Return the (off-)diagonal of a given matrix."""
+    """Return a given Array as a diagonal matrix.
+    
+    If vec_or_mat is a vector, return a diagonal matrix of the same size
+    with the vector on the diagonal.
+    
+    If vec_or_mat is a matrix, return only its diagonal, but still in matrix
+    shape."""
     if len(vec_or_mat.shape) == 1:
         vec = vec_or_mat
         n = vec.shape[0]
@@ -514,6 +556,7 @@ def diagonal_matrix(vec_or_mat, typecode=None, flavor=DenseMatrix):
 
 # other functions -------------------------------------------------------------
 def diagonal(mat, offset=0):
+    """Return the (off-) diagonal of a matrix as a vector."""
     h,w = mat.shape
 
     result = []
@@ -542,6 +585,7 @@ def diagonal(mat, offset=0):
         return result
 
 def lower_left(mat, include_diagonal=False):
+    """Return the lower left half of a matrix."""
     result = zeros(mat.shape, mat.typecode(), mat.flavor)
     if include_diagonal:
         for i,j in mat.indices():
@@ -554,6 +598,7 @@ def lower_left(mat, include_diagonal=False):
     return result
 
 def upper_right(mat, include_diagonal=False):
+    """Return the upper right half of a matrix."""
     result = zeros(mat.shape, mat.typecode(), mat.flavor)
     if include_diagonal:
         for i,j in mat.indices():
@@ -572,15 +617,19 @@ def take(mat, indices, axis=0):
         return array([mat[i] for i in indices], mat.typecode())
   
 def matrixmultiply(mat1, mat2):
+    """Multiply mat1 and mat2. For compatibility with NumPy."""
     return mat1 * mat2
 
 def innerproduct(vec1, vec2):
+    """Multiply vec1 and vec2. For compatibility with NumPy."""
     return vec1 * vec2
 
 def outerproduct(vec1, vec2):
+    """Return the (matrix) outer product of vec1 and vec2."""
     return vec1._outerproduct(vec2)
 
 def crossproduct(vec1, vec2):
+    """Return the cross product of vec1 and vec2."""
     (v1len,) = vec1.shape
     (v2len,) = vec2.shape
     if v1len != 3 or v2len != 3:
@@ -591,37 +640,70 @@ def crossproduct(vec1, vec2):
         vec1[0]*vec2[1]-vec1[1]*vec2[0]])
 
 def transpose(mat):
+    """Return the transpose of mat. For compatibility with NumPy."""
     return mat.T
 
 def hermite(mat):
+    """Return the complex-conjugate transpose of mat. For compatibility with NumPy."""
     return mat.H
 
 def trace(mat, offset=0):
+    """Return the trace of a matrix."""
     diag = diagonal(mat, offset)
     return sum(diag)
 
 def sum(arr):
+    """Return the sum of arr's entries."""
     return arr.sum()
 
 
 
 
 # ufuncs ----------------------------------------------------------------------
-def conjugate(m): return m._ufunc_conjugate()
-def cos(m): return m._ufunc_cos()
-def cosh(m): return m._ufunc_cosh()
-def exp(m): return m._ufunc_exp()
-def log(m): return m._ufunc_log()
-def log10(m): return m._ufunc_log10()
-def sin(m): return m._ufunc_sin()
-def sinh(m): return m._ufunc_sinh()
-def sqrt(m): return m._ufunc_sqrt()
-def tan(m): return m._ufunc_tan()
-def tanh(m): return m._ufunc_tanh()
-def floor(m): return m._ufunc_floor()
-def ceil(m): return m._ufunc_ceil()
-def arg(m): return m._ufunc_arg()
-def absolute(m): return m._ufunc_absolute()
+def conjugate(m): 
+    return m._ufunc_conjugate()
+def cos(m): 
+    """Return the elementwise cosine of the argument Array."""
+    return m._ufunc_cos()
+def cosh(m): 
+    """Return the elementwise hyperbolic cosine of the argument Array."""
+    return m._ufunc_cosh()
+def exp(m): 
+    """Return the elementwise base-e exponential of the argument Array."""
+    return m._ufunc_exp()
+def log(m): 
+    """Return the elementwise base-e logarithm of the argument Array."""
+    return m._ufunc_log()
+def log10(m): 
+    """Return the elementwise base-10 logarithm of the argument Array."""
+    return m._ufunc_log10()
+def sin(m): 
+    """Return the elementwise sine of the argument Array."""
+    return m._ufunc_sin()
+def sinh(m): 
+    """Return the elementwise hyperbolic sine of the argument Array."""
+    return m._ufunc_sinh()
+def sqrt(m): 
+    """Return the elementwise square root of the argument Array."""
+    return m._ufunc_sqrt()
+def tan(m): 
+    """Return the elementwise tangent of the argument Array."""
+    return m._ufunc_tan()
+def tanh(m): 
+    """Return the elementwise hyperbolic tangent of the argument Array."""
+    return m._ufunc_tanh()
+def floor(m): 
+    """Return the elementwise floor of the argument Array."""
+    return m._ufunc_floor()
+def ceil(m): 
+    """Return the elementwise ceiling of the argument Array."""
+    return m._ufunc_ceil()
+def arg(m): 
+    """Return the elementwise complex argument of the argument Array."""
+    return m._ufunc_arg()
+def absolute(m): 
+    """Return the elementwise absolute value of the argument Array."""
+    return m._ufunc_absolute()
 
 class _BinaryUfunc:
     def __call__(self, op1, op2):

@@ -1,3 +1,10 @@
+"""
+PyLinear's module for random matrices.
+"""
+
+
+
+
 import random
 import pylinear.array as num
 import pylinear.computation as comp

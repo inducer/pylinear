@@ -1,3 +1,10 @@
+"""
+PyLinear's Python wrapper/functionality module for computational routines.
+"""
+
+
+
+
 import math, types
 import pylinear
 import pylinear.array as num

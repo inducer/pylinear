@@ -68,7 +68,7 @@ python::object getPythonIndexTuple(const generic_ublas::minilist<unsigned> &ml)
 template <typename MatrixType>
 inline unsigned getLength(const MatrixType &m)
 { 
-  return m.size1() * m.size2();
+  return m.size1();
 }
 
 
@@ -1348,8 +1348,10 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
   pyc
     .def("_ufunc_conjugate", conjugateWrapper<WrappedClass>::apply,
 	python::return_value_policy<python::manage_new_object>())
-    .add_property("real", realWrapper<WrappedClass>::apply)
-    .add_property("imaginary", imagWrapper<WrappedClass>::apply);
+    .add_property("real", realWrapper<WrappedClass>::apply,
+        "Return real part of the Array.")
+    .add_property("imaginary", imagWrapper<WrappedClass>::apply,
+        "Return imaginary part of the Array.");
 
 #define MAKE_UNARY_UFUNC(f) \
   pyc.def("_ufunc_" #f, ufuncs::unary_ufunc_applicator<WrappedClass, \
@@ -1406,17 +1408,21 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
   typedef typename WrappedClass::value_type value_type;
   pyc
     .def("copy", copyNew<WrappedClass>, 
-        python::return_value_policy<python::manage_new_object>())
-    .def("clear", &WrappedClass::clear)
+        python::return_value_policy<python::manage_new_object>(),
+        "Return an exact copy of the given Array.")
+    .def("clear", &WrappedClass::clear,
+        "Discard Array content and fill with zeros, if necessary.")
 
     .add_property(
       "shape", 
       (python::object (*)(const WrappedClass &)) getShape, 
-      (void (*)(WrappedClass &, const python::tuple &)) setShape)
+      (void (*)(WrappedClass &, const python::tuple &)) setShape,
+      "Return a shape tuple for the Array.")
     .add_property(
       "__array_shape__", 
       (python::object (*)(const WrappedClass &)) getShape)
-    .def("__len__", (unsigned (*)(const WrappedClass &)) getLength)
+    .def("__len__", (unsigned (*)(const WrappedClass &)) getLength,
+        "Return the length of the leading dimension of the Array.")
     .def("swap", &WrappedClass::swap)
 
     .def("__getitem__", (PyObject *(*)(const WrappedClass &, PyObject *)) getElement)
@@ -1429,7 +1435,8 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("__iadd__", plusAssignOp<WrappedClass>, python::return_self<>())
     .def("__isub__", minusAssignOp<WrappedClass>, python::return_self<>())
 
-    .def("sum", sum<WrappedClass>)
+    .def("sum", sum<WrappedClass>,
+        "Return the sum of the Array's entries.")
     .def("abs_square_sum", abs_square_sum<WrappedClass>)
     ;
 
@@ -1652,8 +1659,10 @@ static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
   exposeElementWiseBehavior(pyc, WrappedClass());
 
   pyc
-    .add_property("H", hermiteVector<WrappedClass>)
-    .add_property("T", transposeVector<WrappedClass>)
+    .add_property("H", hermiteVector<WrappedClass>,
+        "The complex-conjugate transpose of the Array.")
+    .add_property("T", transposeVector<WrappedClass>,
+        "The transpose of the Array.")
 
     // products
     .def("__mul__", multiplyVector<WrappedClass>)
@@ -1936,8 +1945,10 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
   exposeElementWiseBehavior(pyclass, WrappedClass());
 
   pyclass
-    .add_property("H", hermiteMatrix<WrappedClass>)
-    .add_property("T", transposeMatrix<WrappedClass>)
+    .add_property("H", hermiteMatrix<WrappedClass>,
+        "The complex-conjugate transpose of the Array.")
+    .add_property("T", transposeMatrix<WrappedClass>,
+        "The transpose of the Array.")
 
     // products
     .def("__mul__", multiplyMatrix<WrappedClass>)
@@ -1952,11 +1963,15 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
     .def("__idiv__", divideByScalarInPlace<WrappedClass>)
     .def("_nocast_idiv", divideByScalarInPlaceWithoutCoercion<WrappedClass>)
 
-    .def("add_scattered", addScattered<WrappedClass>)
+    .def("add_scattered", addScattered<WrappedClass>,
+        "(self, row_indices, column_indices, little_mat)"
+        "Add little_matrix at intersections of rows and columns.")
     .def("solve_lower", solveLower<WrappedClass>,
-	 python::return_value_policy<python::manage_new_object>())
+	 python::return_value_policy<python::manage_new_object>(),
+         "Solve A*x=b with this matrix lower-triangular. Return x.")
     .def("solve_upper", solveUpper<WrappedClass>,
-	 python::return_value_policy<python::manage_new_object>())
+	 python::return_value_policy<python::manage_new_object>(),
+         "Solve A*x=b with this matrix upper-triangular. Return x.")
     ;
 }
 
@@ -1999,9 +2014,12 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::matrix<VT, L, A>)
   typedef ublas::matrix<VT, L, A> matrix_type;
 
   pyc
-    .def("set_element", matrixSimplePushBack<matrix_type>)
-    .def("set_element_past_end", matrixSimplePushBack<matrix_type>)
-    .def("add_element", matrixSimpleAppendElement<matrix_type>);
+    .def("set_element", matrixSimplePushBack<matrix_type>,
+        "(i,j,x) Set a[i,j] = x.")
+    .def("set_element_past_end", matrixSimplePushBack<matrix_type>,
+        "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
+    .def("add_element", matrixSimpleAppendElement<matrix_type>,
+        "(i,j,x) Set a[i,j] += x.");
 }
 
 
@@ -2013,8 +2031,10 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB
   typedef ublas::compressed_matrix<VT, L, IB, IA, TA> matrix_type;
 
   pyc
-    .def("complete_index1_data", &matrix_type::complete_index1_data)
-    .def("set_element_past_end", &matrix_type::push_back);
+    .def("complete_index1_data", &matrix_type::complete_index1_data,
+        "Fill up index data of compressed row storage.")
+    .def("set_element_past_end", &matrix_type::push_back,
+        "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.");
 }
 
 
@@ -2026,10 +2046,14 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::coordinate_matrix<VT, L, IB
   typedef ublas::coordinate_matrix<VT, L, IB, IA, TA> matrix_type;
 
   pyc
-    .def("sort", &matrix_type::sort)
-    .def("set_element", insertElementWrapper<matrix_type>)
-    .def("set_element_past_end", &matrix_type::push_back)
-    .def("add_element", &matrix_type::append_element);
+    .def("sort", &matrix_type::sort,
+        "Make sure coordinate representation is sorted.")
+    .def("set_element", insertElementWrapper<matrix_type>,
+        "(i,j,x) Set a[i,j] = x.")
+    .def("set_element_past_end", &matrix_type::push_back,
+        "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
+    .def("add_element", &matrix_type::append_element,
+        "(i,j,x) Set a[i,j] += x.");
 }
 
 

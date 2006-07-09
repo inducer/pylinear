@@ -1,3 +1,10 @@
+"""
+PyLinear's Python module for matrix-free methods.
+"""
+
+
+
+
 import pylinear
 import pylinear.array as num
 import pylinear.computation as comp

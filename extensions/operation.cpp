@@ -820,9 +820,15 @@ BOOST_PYTHON_MODULE(_operation)
           &wrapped_type::set_init_consistency)
       .add_property("want_return_with_ic", 
           &wrapped_type::want_return_with_ic,
-          &wrapped_type::set_want_return_with_ic)
+          &wrapped_type::set_want_return_with_ic,
+          "Whether the integrator will return after consistent initial conditions"
+          "have been computed.")
 
-      .def("step", daskr_step_wrapper<ublas::vector<double> >)
+      .def("step", daskr_step_wrapper<ublas::vector<double> >,
+              "(self,t,tout,y,yprime) -> (state, t) Integrate the DAE by one step.\n\n"
+              "Return a tuple (state, t) containing exit status and ending"
+              "time of integration."
+              )
       ;
   }
 #endif // USE_DASKR
@@ -832,11 +838,16 @@ BOOST_PYTHON_MODULE(_operation)
 
   exposeForAllMatrices(cholesky_exposer());
 
-  python::def("has_blas", has_blas);
-  python::def("has_lapack", has_lapack);
-  python::def("has_arpack", has_arpack);
-  python::def("has_umfpack", has_umfpack);
-  python::def("has_daskr", has_daskr);
+  python::def("has_blas", has_blas, 
+          "Return a bool indicating whether BLAS is available.");
+  python::def("has_lapack", has_lapack,
+          "Return a bool indicating whether LAPACK is available.");
+  python::def("has_arpack", has_arpack,
+          "Return a bool indicating whether ARPACK is available.");
+  python::def("has_umfpack", has_umfpack,
+          "Return a bool indicating whether UMFPACK is available.");
+  python::def("has_daskr", has_daskr,
+          "Return a bool indicating whether DASKR is available.");
 }
 
 

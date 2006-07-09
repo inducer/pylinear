@@ -1,3 +1,13 @@
+"""
+PyLinear's module with experimental functionality.
+
+There are many valuable capabilities in here, but they are either
+still experimental or just not an official part of PyLinear yet.
+"""
+
+
+
+
 import pylinear
 import pylinear.array as num
 import pylinear.operator as op

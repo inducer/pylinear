@@ -1,3 +1,13 @@
+"""
+PyLinear's compability wrapper with NumPy's LinearAlgebra.
+
+Do not use this for code written for PyLinear, use pylinear.computation
+instead.
+"""
+
+
+
+
 import pylinear.array as num
 import pylinear.computation as comp
 
