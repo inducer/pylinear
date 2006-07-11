@@ -1,49 +1,26 @@
-document solve_upper
-array interface
+--------------------------------------------------------------------------
+Current
+--------------------------------------------------------------------------
 Documentation fallout of comp/op split
-pydoc-ability
+tri[ul]?,eye, hstack, vstack, vsplit, hsplit, ravel, kron, dot,
+more norms
+pseudo_inverse
 
---------------------------------------------------------------------------
-Old notes:
---------------------------------------------------------------------------
+document diagonal_matrix, lower_left, upper_right, take
 
+document computation
 
-as_numeric method
-documentation
-2x2 block composite matrix operator
-array_type interface more complete
-inplace broadcast? macht das sinn?
+operator algebra examples
 license note
-to_numpy with shared memory
-to_complex operator?
-cholesky sparsity
-
-TODO:
 --------------------------------------------------------------------------
-product (?)
-put
-concatenate?
+Future
+--------------------------------------------------------------------------
+gradient, convolve
+replace typecode by dtype?
+array interface
 more ufuncs
   - with their different methods?
   - comparison ufuncs (convert to what if not bool?)
-from/to numeric conversion
-UMFPACK crash with *really* singular matrix
-
-save time in arpack:
-  avoid copies for multiplication
-  make it possible to take advantage of difference IDO=+/- 1
-
-QUESTIONS:
-UBLAS: unify indexing, provide multidimensional arrays
-UBLAS: managed_XXX_adaptor
-UBLAS: doc bug: h/s_adaptors don't have expression constructors
-UBLAS: traits cannot be included by itself (?)
-UBLAS: matrix_proxy cannot be included by itself
-UBLAS: casts needed in cholesky
-UBLAS: Permutation matrices
-UBLAS: Toeplitz matrices
-UBLAS: Vandermonde matrices
-UBLAS: lu doesn't have any headers included
-UBLAS: insert discrepance: coordinate_matrix vs. everybody else.
-UBLAS: Warum ist end2 nicht das Ende der Matrix?
-UBLAS: Was ist rank bei find1/2?
+use blas for dot, matrix-matrix, matrix-vector
+block composite matrix operator
+cholesky sparsity

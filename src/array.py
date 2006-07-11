@@ -506,7 +506,7 @@ def _get_filled_matrix(shape, typecode, matrix_type, fill_value):
     else:
         return matrix_class._get_filled_matrix(shape[0], shape[1], fill_value)
 
-def zeros(shape, typecode, flavor=None):
+def zeros(shape, typecode=Float, flavor=None):
     """Return a zero-filled array."""
     matrix_class = _get_matrix_class(len(shape), typecode, flavor)
     if len(shape) == 1:
@@ -516,18 +516,18 @@ def zeros(shape, typecode, flavor=None):
     result.clear()
     return result
 
-def ones(shape, typecode, flavor=None):
+def ones(shape, typecode=Float, flavor=None):
     """Return a matrix filled with ones."""
     return _get_filled_matrix(shape, typecode, flavor, 1)
 
-def identity(n, typecode, flavor=None):
+def identity(n, typecode=Float, flavor=None):
     """Return an identity matrix."""
     result = zeros((n,n), typecode, flavor)
     for i in range(n):
         result[i,i] = 1
     return result
 
-def diagonal_matrix(vec_or_mat, typecode=None, flavor=DenseMatrix):
+def diagonal_matrix(vec_or_mat, shape=None, typecode=None, flavor=DenseMatrix):
     """Return a given Array as a diagonal matrix.
     
     If vec_or_mat is a vector, return a diagonal matrix of the same size
@@ -538,9 +538,11 @@ def diagonal_matrix(vec_or_mat, typecode=None, flavor=DenseMatrix):
     if len(vec_or_mat.shape) == 1:
         vec = vec_or_mat
         n = vec.shape[0]
-        result = zeros((n, n), typecode or vec.typecode(),
+        if shape is None:
+            shape = (n,n)
+        result = zeros(shape, typecode or vec.typecode(),
                     flavor)
-        for i in range(n):
+        for i in range(min((n,)+shape)):
             result[i,i] = vec[i]
         return result
     else:
@@ -632,12 +634,15 @@ def crossproduct(vec1, vec2):
     """Return the cross product of vec1 and vec2."""
     (v1len,) = vec1.shape
     (v2len,) = vec2.shape
-    if v1len != 3 or v2len != 3:
-        raise ValueError, "cross product requires two vectors of dimension 3"
-    return array([
+    if v1len == 3 and v2len == 3:
+        return array([
         vec1[1]*vec2[2]-vec1[2]*vec2[1],
         vec1[2]*vec2[0]-vec1[0]*vec2[2],
         vec1[0]*vec2[1]-vec1[1]*vec2[0]])
+    elif v1len == 2 and v2len == 2:
+        return vec1[0]*vec2[1]-vec1[1]*vec2[0]
+    else:
+        raise ValueError, "cross product requires two vectors of dimension 2 or 3"
 
 def transpose(mat):
     """Return the transpose of mat. For compatibility with NumPy."""
@@ -656,6 +661,12 @@ def sum(arr):
     """Return the sum of arr's entries."""
     return arr.sum()
 
+def product(arr, axis):
+    """Return the product of arr's entries."""
+
+    if axis is not None:
+        raise ValueError, "product only supports axis=None."
+    return arr._product_nonzeros()
 
 
 
@@ -677,6 +688,10 @@ def log(m):
 def log10(m): 
     """Return the elementwise base-10 logarithm of the argument Array."""
     return m._ufunc_log10()
+def log2(m): 
+    """Return the elementwise base-2 of the argument Array."""
+    import math
+    return m._ufunc_log10() / math.log10(2)
 def sin(m): 
     """Return the elementwise sine of the argument Array."""
     return m._ufunc_sin()
@@ -701,6 +716,7 @@ def ceil(m):
 def arg(m): 
     """Return the elementwise complex argument of the argument Array."""
     return m._ufunc_arg()
+angle = arg
 def absolute(m): 
     """Return the elementwise absolute value of the argument Array."""
     return m._ufunc_absolute()
@@ -762,6 +778,8 @@ class _InfixOperator:
         return _InfixOperator(lambda x: self.function(other, x))
     def __rshift__(self, other):
         return self.function(other)
+    def call(self, a, b):
+        return self.function(a, b)
 
 outer = _InfixOperator(outerproduct)
 cross = _InfixOperator(crossproduct)

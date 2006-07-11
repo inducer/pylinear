@@ -8,6 +8,14 @@
 
 \section{The \class{Operator} concept}
 
+Everything that has to do with \class{Operator} instances is contained in the
+module \module{pylinear.operator}. Let's import it:
+
+\begin{verbatim}
+  >>> from pylinear.array import *
+  >>> import pylinear.operator as op
+\end{verbatim}
+
 \begin{classdesc*}{Operator}
   An \class{Operator}\index{Operator} is a (typically linear) mapping
   of one vector to another. A matrix is a particularly prominent
@@ -45,9 +53,9 @@ simple interface:
 
 \section{\class{Operator}s Form an Algebra}
 
-On top of this simple interface of an \class{Operator}, PyLinear 
+On top of the simple interface of an \class{Operator}, PyLinear 
 provides a layer of convenience functions that facilitate the
-creation of derived instances, among other things.
+creation of derived instances.
 
 \opindex{()}For an \class{Operator} \code{A}, saying \code{A(x)}
 with a properly sized and typed \class{Vector} \code{x} will
@@ -72,13 +80,6 @@ operator.
 Matrix-generated operators are the most obvious kind of \class{Operator}, but
 there are more--and they do not necessarily correspond to a stored matrix
 representation.
-
-All the ways to generate \class{Operator} instances are contained 
-in the \module{pylinear.operator}. Let's import it:
-\begin{verbatim}
-  >>> from pylinear.array import *
-  >>> import pylinear.operator as op
-\end{verbatim}
 
 Each type of operator comes with a constructor class. For example,
 matrix operators are constructed by calling the method \method{make}

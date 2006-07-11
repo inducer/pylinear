@@ -180,8 +180,25 @@ the creation of new \class{Array}s:
 \end{verbatim}
 \end{funcdesc}
 
-\class{Array}s also have efficient support for pickling. So, unpickling
-a previously pickled \class{Array} is another way to create one.
+\subsection{Pickle support}
+\class{Array}s also have efficient support for pickling. Pickling is a
+convenient way to store complicated data structures in a platform-independent
+byte stream. Unless you need human-readable output, pickling makes an
+excellent way of saving PyLinear arrays to disk.
+
+Unpickling a previously pickled \class{Array} is another way to create one:
+
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> import pickle
+>>> string_rep = pickle.dumps(x)
+>>> isinstance(string_rep, str)
+>>> y = pickle.loads(string_rep)
+>>> y
+\end{verbatim}
+
+Pickling also works on arbitrarily larger data structures of which
+\class{Array}s are only a part.
 
 % --------------------------------------------------------------------------
 \section{Accessing \class{Array} properties}
@@ -860,7 +877,9 @@ The following expressions are also valid:
 \item \code{vector1 <<cross>> vector2}
   
   Computes the cross product of \code{vector1} and \code{vector2}.
-  Both \code{vector1} and \code{vector2} must be of dimension 3.
+  Both \code{vector1} and \code{vector2} must be of dimension 2 or 3.
+  For dimension 2, the $z$ component of the corresponding 3-dimensional
+  cross product is returned as a scalar.
 
 \begin{verbatim}
 >>> v = array([1,2,3])

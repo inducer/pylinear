@@ -1338,6 +1338,23 @@ abs_square_sum(MatrixType &mat)
 
 
 
+template <typename MatrixType>
+typename MatrixType::value_type
+product(MatrixType &mat)
+{
+  generic_ublas::matrix_iterator<MatrixType>
+    first = generic_ublas::begin(mat),
+    last = generic_ublas::end(mat);
+    
+  typename MatrixType::value_type result = 1;
+  while (first != last)
+    result *= *first++;
+  return result;
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
 static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 {
@@ -1437,6 +1454,8 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 
     .def("sum", sum<WrappedClass>,
         "Return the sum of the Array's entries.")
+    .def("_product_nonzeros", sum<WrappedClass>,
+        "Return the product of the Array's entries, excluding zeros in sparse Arrays.")
     .def("abs_square_sum", abs_square_sum<WrappedClass>)
     ;
 
@@ -1464,7 +1483,8 @@ static void exposeIterator(PythonClass &pyc, const std::string &python_typename,
         python::return_internal_reference<> >())
     .def("indices", &key_iterator::obtain,
         python::return_value_policy<python::manage_new_object,
-        python::return_internal_reference<> >())
+        python::return_internal_reference<> >(),
+        "Return an iterator over all non-zero index pairs of the Array.")
     ;
 
   class_<key_iterator>

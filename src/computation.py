@@ -85,6 +85,18 @@ if pylinear.has_lapack():
     def diagonalize_hermitian(mat, upper = True):
         return _op.Heigenvectors(True, upper, mat)
 
+    def pseudo_inverse(mat):
+        "Compute the Moore-Penrose Pseudo-Inverse of the argument."
+        u, s_vec, vt = svd(mat)
+        def inv_if_can(x):
+            if x != 0:
+                return 1./x
+            else:
+                return 0.
+        s_vec_inv = num.array([inv_if_can(x) for x in s_vec])
+        return vt.H * num.diagonal_matrix(s_vec_inv, shape=mat.shape[::-1]) * u.H
+
+
 
 
 

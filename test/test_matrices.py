@@ -284,12 +284,22 @@ class TestMatrices(unittest.TestCase):
 
     def do_test_svd(self, typecode):
         size = 100
-        mat = make_random_full_matrix(size, num.Complex)
+        mat = make_random_full_matrix(size, typecode)
         u, s_vec, vt = comp.svd(mat)
         self.assert_small(u * num.diagonal_matrix(s_vec) * vt - mat)
 
     def test_svd(self):
         self.for_all_typecodes(self.do_test_svd)
+
+    def do_test_pseudo_inverse(self, typecode):
+        size = 100
+        mat = make_random_full_matrix(size, typecode)[0:size,0:size-17]
+        pi = comp.pseudo_inverse(mat)
+        resid = pi * mat * pi - pi
+        self.assert_small(resid)
+
+    def test_pseudo_inverse(self):
+        self.for_all_typecodes(self.do_test_pseudo_inverse)
 
     def do_test_jacobi(self, typecode):
         size = 10
