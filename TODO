@@ -2,9 +2,7 @@
 Current
 --------------------------------------------------------------------------
 Documentation fallout of comp/op split
-tri[ul]?,eye, hstack, vstack, vsplit, hsplit, ravel, kron, dot,
-more norms
-pseudo_inverse
+tri[ul]?,eye, hstack, vstack, vsplit, hsplit, ravel, dot,
 
 document diagonal_matrix, lower_left, upper_right, take
 
@@ -12,6 +10,8 @@ document computation
 
 operator algebra examples
 license note
+C++ extension sample
+rethink structure of arraytypes.tex
 --------------------------------------------------------------------------
 Future
 --------------------------------------------------------------------------
@@ -24,3 +24,4 @@ more ufuncs
 use blas for dot, matrix-matrix, matrix-vector
 block composite matrix operator
 cholesky sparsity
+more norms

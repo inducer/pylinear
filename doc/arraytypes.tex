@@ -307,6 +307,376 @@ resized using slice assignments. Like in the rest of Python, yet
 unlike NumPy, slices return copies, not views of the corresponding
 data.
 
+\section{Matrix flavor particulars}
+
+The following methods tie into the particulars of the sparse matrices'
+memory layouts.
+
+\begin{methoddesc}[SparseBuildMatrix]{sort}{}
+  The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
+  can become unsorted, depending on the order of insertions into the
+  matrix.  This is rectified by the \method{sort} method. During
+  normal usage, you don't have to worry about sorting your matrices,
+  since this action is triggered automatically whenever it is
+  necessary.
+\end{methoddesc}
+\begin{methoddesc}{set_element}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}. If used, the user guarantees that for all
+  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if 
+  it is available, whereas the alternative notation will always
+  work, but may be exceedingly slow. (Consider the case of a
+  \class{SparseBuildMatrix}, which might have to be resorted.)
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{add_element}{i, j, number}
+  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
+  column.
+
+  Why would you want this if you could easily say \code{A[i,j] +=
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
+\end{methoddesc}
+\begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
+  This is a rather internal method, but it is explained here
+  nonetheless.
+
+  The \class{SparseExecuteMatrix} class uses a list to indicate the
+  column starts in a linear field of numbers. This list of column
+  starts, in its original state, is usually incomplete, i.e. does not
+  cover all rows, which allows $O(1)$ insertion at the end of the
+  number field. This method makes sure that the column start list is
+  complete. This is required by certain third-party sparse matrix
+  libraries that directly read the structure of your sparse
+  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
+  call this method automatically, however, so that you don't have to
+  worry about this here. But if you are binding to other sparse matrix
+  libraries, this call might come in useful.
+\end{methoddesc}
+
+Some of them resemble NumPy's functionality and ease the porting between
+different matrix libraries:
+
+\begin{funcdesc}{diagonal}{matrix, offset=0}
+  Returns the diagonal of \var{matrix} as a vector, or the \var{offset}th
+  super- (for \code{offset>0}) or sub-diagonal (for \code{offset<0}).
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> diagonal(a)
+>>> diagonal(a,1)
+\end{verbatim}
+\end{funcdesc}
+\begin{funcdesc}{take}{matrix, indices, axis=0}
+  Assembles an \class{Array} from the entries of the \class{Array}
+  listed in \var{indices}, which must be simple numbers. \var{axis}
+  specifies the axis along which the indices are taken.
+\end{funcdesc}
+\begin{funcdesc}{matrixmultiply}{op1, op2}
+  Equivalent to \code{op1*op2}.
+\end{funcdesc}
+\begin{funcdesc}{innerproduct}{op1, op2}
+  Equivalent to \code{op1*op2}.
+\end{funcdesc}
+\begin{funcdesc}{outerproduct}{op1, op2}
+  Equivalent to \code{op1 <<outer>> op2}.
+\end{funcdesc}
+\begin{funcdesc}{transpose}{op1}
+  Equivalent to \code{op1.T}.
+\end{funcdesc}
+\begin{funcdesc}{hermite}{op1}
+  Equivalent to \code{op1.H}.
+\end{funcdesc}
+\begin{funcdesc}{trace}{matrix, offset=0}
+  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
+  for details of the meaning of \var{offset}.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> trace(a)
+>>> trace(a,1)
+\end{verbatim}
+\end{funcdesc}
+% --------------------------------------------------------------------------
+\section{Matrix algebra}
+\class{Array}s support the operators \code{+} (binary), \code{+=},
+\code{-} (binary), \code{-=}, as well as \code{+} (unary) and \code{-}
+(unary) with their elementwise meanings as you would expect them.
+Multiplication and division are also supplied, but have slightly more
+intricate meanings, as discussed in Section
+\ref{subsec:arraymultiplication}.
+
+\subsection{Type promotion}
+\label{subsec:arraypromotion}
+
+If binary operators or elementwise functions (see Section
+\ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
+typecode, the operands are promoted to a common type. (For the case of
+non-matching dimension, see Section \ref{subsec:arraybroadcast} for
+broadcasting rules.)
+
+If the only mismatch is in typecode, one argument array
+is cast upward in the type hierarchy (e.g. from integer to real,
+from real to complex) in order to match the other.
+
+If there is also a mismatch in flavor, the matrix with the typecode
+which is higher up in the type hierarchy determines the flavor of the
+result.
+
+\subsection{Broadcasting}
+\label{subsec:arraybroadcast}
+
+The binary elementwise operators as well as all the binary elementwise
+functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
+where one argument has lesser dimension than the other. In this case, the
+missing dimensions are \index{broadcasting}\dfn{broadcast} across the remainder
+of the matrix. If the lesser-dimension argument is a scalar, this is easy to
+explain: It is treated like an array of the right size filled with that scalar.
+If it is a vector, it is treated like a matrix filled with rows consisting of
+the given vector.
+
+All of this can only work if the corresponding \class{Array} sizes 
+match.
+
+
+\subsection{Multiplication semantics}
+\label{subsec:arraymultiplication}
+
+This section explains the value of the expression\code{a*b}, where at
+least one of \code{a} and \code{b} is an \class{Array}.
+
+If the other operand is a scalar (it doesn't matter which), the
+result will be the elementwise product of the array with that scalar.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a*2
+>>> 2j*a
+\end{verbatim}
+
+If both operands are \class{Vector}s, \code{a*b} computes the inner
+product of both vectors. Note that in the complex case no complex
+conjugates are taken. If you require them, use the expression
+\code{a*b.H}. \emph{WARNING:} This notation is convenient, but
+slightly dangerous, mathematically. The inner product, if simply
+written as a ``dot product'', is \emph{not} associative, meaning that
+for vectors $a$, $b$ and $c$, typically $(a\cdot b)\cdot
+c\not=a\cdot(b\cdot c)$.  PyLinear has no way of rejecting
+unparenthesized expressions such as \code{a*b*c}, but their meaning is
+uncertain since the order of evaluation is not explicitly specified.
+
+\begin{verbatim}
+>>> a = array([1,2,3])
+>>> b = array([4,5,6])
+>>> c = array([7,8,9])
+>>> (a*b)*c
+>>> a*(b*c)
+>>> a*b*c # RANDOM RESULT!
+\end{verbatim}
+
+If \code{a} is a \class{Vector} and \code{b} is a \class{Matrix},
+\code{a*b} will result in $b^Ta$, using the conventional matrix-vector
+product.
+
+If \code{a} is a \class{Matrix} and \code{b} is a \class{Vector},
+\code{a*b} will result in $a b$, using the conventional matrix-vector
+product.
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> b = array([1,3,5])
+>>> a*b
+>>> b*a
+>>> a.T*b # less efficient!
+\end{verbatim}
+
+If both \code{a} and \code{b} are \class{Matrix} types,
+\code{a*b} will result in $a b$, using the conventional matrix-matrix
+product.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> b = array([[1,2,1,2],[3,4,3,4],[5,6,5,6]])
+>>> a*b
+\end{verbatim}
+
+All these explanations also apply to the inplace multiplication
+operator \code{*=}.
+
+All multiplication operators obey type promotion rules as laid out
+in Section \ref{subsec:arraypromotion}.
+
+\section{More \class{Matrix} operators}
+
+The following expressions are also valid:
+\begin{itemize} 
+\item \code{matrix**n}
+
+  Computes the \var{n}th power of \var{matrix}. \var{n} must be
+  integer, but may be negative. Only for dense matrices.
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[3,2,1],[1,3,2]])
+>>> a
+>>> a**2
+>>> a**3
+>>> a**3 * (1/a)
+\end{verbatim}
+\item \code{scalar/matrix}
+
+  Computes the \var{scalar} multiple of the inverse of
+  \var{matrix}. Only for dense matrices.
+
+  Do not use code like \code{1/a*b} to solve the linear system
+  $Ax=b$; besides being slow, this tends to yield imprecise
+  results. Instead, use the \code{<<solve>>} pseudo-operator.
+
+  Use of this operator will fail unless the module
+  \module{pylinear.operation} is available.
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[3,2,1],[1,3,2]])
+>>> a
+>>> 1/a
+>>> 1/a * a
+\end{verbatim}
+
+  Observe that the results are likely useless if the matrix
+  is singular:
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> a
+>>> 1/a
+>>> 1/a * a
+>>> from pylinear.computation import determinant
+>>> determinant(a)
+\end{verbatim}
+
+\item \code{matrix <<solve>> vector}
+
+  Returns the solution of the linear system of equations \code{matrix*x=vector}.
+  Available for dense and sparse execute matrix types of \var{matrix}.
+
+  Use of this operator will fail unless the module
+  \module{pylinear.computation} is available.
+
+  Since this is not built using actual Python syntax, but rather cheaply
+  composed of a special-purpose \code{solve} object with left and right
+  shift operators, some care needs to be exercised regarding operator
+  precedence. When in doubt, just use parentheses.
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[3,2,1],[1,3,2]])
+>>> b = array([9,1,1])
+>>> v = a <<solve>> b
+>>> v
+>>> a * v
+\end{verbatim}
+
+  Note that you need to qualify \code{<<solve>>} with the module name if you
+  do not import \module{pylinear.array} using \samp{from ... import *}:
+
+\begin{verbatim}
+>>> import pylinear.array as num
+>>> a = num.array([[1,2,3],[3,2,1],[1,3,2]])
+>>> b = num.array([9,1,1])
+>>> v = a <<num.solve>> b
+>>> v
+>>> a * v
+\end{verbatim}
+
+  Observe that the results are likely useless if the matrix
+  is singular:
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> b = array([9,1,1])
+>>> v = a <<solve>> b
+>>> v
+>>> a * v
+>>> from pylinear.computation import determinant
+>>> determinant(a)
+\end{verbatim}
+
+\item \code{vector1 <<outer>> vector2}
+  
+  Computes the outer product of \code{vector1} and \code{vector2},
+  whose result is the matrix $v_1 \cdot v_2^T$.
+
+\begin{verbatim}
+>>> v = array([1,2,3])
+>>> w = array([3,2,1])
+>>> v <<outer>> w
+>>> w <<outer>> v
+\end{verbatim}
+
+  Please see the section on \code{<<solve>>} above for important
+  considerations on operator precedence and module qualification
+  that also apply here.
+
+\item \code{vector1 <<cross>> vector2}
+  
+  Computes the cross product of \code{vector1} and \code{vector2}.
+  Both \code{vector1} and \code{vector2} must be of dimension 2 or 3.
+  For dimension 2, the $z$ component of the corresponding 3-dimensional
+  cross product is returned as a scalar. \indexii{cross}{product}
+
+\begin{verbatim}
+>>> v = array([1,2,3])
+>>> w = array([3,2,1])
+>>> v <<cross>> w
+>>> w <<cross>> v
+>>> (v <<cross>> w) * v
+\end{verbatim}
+
+  Please see the section on \code{<<solve>>} above for important
+  considerations on operator precedence and module qualification
+  that also apply here.
+
+\item \code{matrix1 <<kron>> matrix2}
+  
+  Computes the Kronecker product \indexii{Kronecker}{product}
+  (sometimes called the tensor product) \indexii{Tensor}{product}
+  of \code{matrix1} and \code{matrix2}:
+  \[% Thanks, Wikipedia!
+    A \otimes B = 
+    \begin{bmatrix} a_{11} B & \cdots & a_{1n}B \\ \vdots & 
+    \ddots & \vdots \\ a_{m1} B & \cdots & a_{mn} B \end{bmatrix}
+  \]
+
+\begin{verbatim}
+>>> v = array([[1,4],[4,8]])
+>>> w = array([[1,2],[2,1]])
+>>> v <<kron>> w
+\end{verbatim}
+
+  Please see the section on \code{<<solve>>} above for important
+  considerations on operator precedence and module qualification
+  that also apply here.
+
+\end{itemize}
+
+\section{Simple computational routines}
+
 The following methods are available on PyLinear's \class{Array} types:
 
 \begin{methoddesc}{sum}{}
@@ -415,158 +785,7 @@ The following methods are available on PyLinear's \class{Array} types:
 \end{verbatim}
 \end{methoddesc}
 
-The following methods tie into the particulars of the sparse matrices'
-memory layouts.
-
-\begin{methoddesc}[SparseBuildMatrix]{sort}{}
-  The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
-  can become unsorted, depending on the order of insertions into the
-  matrix.  This is rectified by the \method{sort} method. During
-  normal usage, you don't have to worry about sorting your matrices,
-  since this action is triggered automatically whenever it is
-  necessary.
-\end{methoddesc}
-\begin{methoddesc}{set_element}{i, j, entry}
-  Sets the entry in the \var{i}th row and \var{j}th column to the
-  value \var{entry}.
-
-  Why would you want this if you could easily say \code{A[i,j] =
-  entry}? This method is guaranteed to be an O(1) operation if it is
-  available, whereas the alternative notation will always work, but
-  may be exceedingly slow. (Consider the case of a
-  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
-  move to accomodate a new element.)
-
-  Available on all but \class{SparseExecuteMatrix} objects.
-\end{methoddesc}
-\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
-  Sets the entry in the \var{i}th row and \var{j}th column to the
-  value \var{entry}. If used, the user guarantees that for all
-  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
-
-  Why would you want this if you could easily say \code{A[i,j] =
-  entry}? This method is guaranteed to be an O(1) operation if 
-  it is available, whereas the alternative notation will always
-  work, but may be exceedingly slow. (Consider the case of a
-  \class{SparseBuildMatrix}, which might have to be resorted.)
-\end{methoddesc}
-\begin{methoddesc}[Matrix]{add_element}{i, j, number}
-  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
-  column.
-
-  Why would you want this if you could easily say \code{A[i,j] +=
-  entry}? This method is guaranteed to be an O(1) operation if it is
-  available, whereas the alternative notation will always work, but
-  may be exceedingly slow. (Consider the case of a
-  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
-  move to accomodate a new element.)
-
-  Available on all but \class{SparseExecuteMatrix} objects.
-\end{methoddesc}
-\begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
-  This is a rather internal method, but it is explained here
-  nonetheless.
-
-  The \class{SparseExecuteMatrix} class uses a list to indicate the
-  column starts in a linear field of numbers. This list of column
-  starts, in its original state, is usually incomplete, i.e. does not
-  cover all rows, which allows $O(1)$ insertion at the end of the
-  number field. This method makes sure that the column start list is
-  complete. This is required by certain third-party sparse matrix
-  libraries that directly read the structure of your sparse
-  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
-  call this method automatically, however, so that you don't have to
-  worry about this here. But if you are binding to other sparse matrix
-  libraries, this call might come in useful.
-\end{methoddesc}
-
-PyLinear also supports a number of data access functions.
-
-Some of them resemble NumPy's functionality and ease the porting between
-different matrix libraries:
-
-\begin{funcdesc}{diagonal}{matrix, offset=0}
-  Returns the diagonal of \var{matrix} as a vector, or the \var{offset}th
-  super- (for \code{offset>0}) or sub-diagonal (for \code{offset<0}).
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> diagonal(a)
->>> diagonal(a,1)
-\end{verbatim}
-\end{funcdesc}
-\begin{funcdesc}{take}{matrix, indices, axis=0}
-  Assembles an \class{Array} from the entries of the \class{Array}
-  listed in \var{indices}, which must be simple numbers. \var{axis}
-  specifies the axis along which the indices are taken.
-\end{funcdesc}
-\begin{funcdesc}{matrixmultiply}{op1, op2}
-  Equivalent to \code{op1*op2}.
-\end{funcdesc}
-\begin{funcdesc}{innerproduct}{op1, op2}
-  Equivalent to \code{op1*op2}.
-\end{funcdesc}
-\begin{funcdesc}{outerproduct}{op1, op2}
-  Equivalent to \code{op1 <<outer>> op2}.
-\end{funcdesc}
-\begin{funcdesc}{transpose}{op1}
-  Equivalent to \code{op1.T}.
-\end{funcdesc}
-\begin{funcdesc}{hermite}{op1}
-  Equivalent to \code{op1.H}.
-\end{funcdesc}
-\begin{funcdesc}{trace}{matrix, offset=0}
-  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
-  for details of the meaning of \var{offset}.
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> trace(a)
->>> trace(a,1)
-\end{verbatim}
-\end{funcdesc}
-% --------------------------------------------------------------------------
-\section{Elementary computations with matrices}
-\class{Array}s support the operators \code{+} (binary), \code{+=},
-\code{-} (binary), \code{-=}, as well as \code{+} (unary) and \code{-}
-(unary) with their elementwise meanings as you would expect them.
-Multiplication and division are also supplied, but have slightly more
-intricate meanings, as discussed in Section
-\ref{subsec:arraymultiplication}.
-
-\subsection{Type promotion}
-\label{subsec:arraypromotion}
-
-If binary operators or elementwise functions (see Section
-\ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
-typecode, the operands are promoted to a common type. (For the case of
-non-matching dimension, see Section \ref{subsec:arraybroadcast} for
-broadcasting rules.)
-
-If the only mismatch is in typecode, one argument array
-is cast upward in the type hierarchy (e.g. from integer to real,
-from real to complex) in order to match the other.
-
-If there is also a mismatch in flavor, the matrix with the typecode
-which is higher up in the type hierarchy determines the flavor of the
-result.
-
-\subsection{Broadcasting}
-\label{subsec:arraybroadcast}
-
-The binary elementwise operators as well as all the binary elementwise
-functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
-where one argument has lesser dimension than the other. In this case, the
-missing dimensions are \index{broadcasting}\dfn{broadcast} across the remainder
-of the matrix. If the lesser-dimension argument is a scalar, this is easy to
-explain: It is treated like an array of the right size filled with that scalar.
-If it is a vector, it is treated like a matrix filled with rows consisting of
-the given vector.
-
-All of this can only work if the corresponding \class{Array} sizes 
-match.
-
-\subsection{Elementwise Functions}
+\section{Elementwise Functions}
 \label{subsec:elementwise-funcs}
 
 PyLinear sports a few so-called \dfn{Elementwise Functions},
@@ -699,198 +918,3 @@ The following binary elementwise functions exist:
 
 Additional elementwise function methods, such as \member{reduce}, as they are
 found in NumPy, are not (yet) supported in PyLinear.
-
-\subsection{Multiplication semantics}
-\label{subsec:arraymultiplication}
-
-This section explains the value of the expression\code{a*b}, where at
-least one of \code{a} and \code{b} is an \class{Array}.
-
-If the other operand is a scalar (it doesn't matter which), the
-result will be the elementwise product of the array with that scalar.
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a*2
->>> 2j*a
-\end{verbatim}
-
-If both operands are \class{Vector}s, \code{a*b} computes the inner
-product of both vectors. Note that in the complex case no complex
-conjugates are taken. If you require them, use the expression
-\code{a*b.H}. \emph{WARNING:} This notation is convenient, but
-slightly dangerous, mathematically. The inner product, if simply
-written as a ``dot product'', is \emph{not} associative, meaning that
-for vectors $a$, $b$ and $c$, typically $(a\cdot b)\cdot
-c\not=a\cdot(b\cdot c)$.  PyLinear has no way of rejecting
-unparenthesized expressions such as \code{a*b*c}, but their meaning is
-uncertain since the order of evaluation is not explicitly specified.
-
-\begin{verbatim}
->>> a = array([1,2,3])
->>> b = array([4,5,6])
->>> c = array([7,8,9])
->>> (a*b)*c
->>> a*(b*c)
->>> a*b*c # RANDOM RESULT!
-\end{verbatim}
-
-If \code{a} is a \class{Vector} and \code{b} is a \class{Matrix},
-\code{a*b} will result in $b^Ta$, using the conventional matrix-vector
-product.
-
-If \code{a} is a \class{Matrix} and \code{b} is a \class{Vector},
-\code{a*b} will result in $a b$, using the conventional matrix-vector
-product.
-
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6],[7,8,9]])
->>> b = array([1,3,5])
->>> a*b
->>> b*a
->>> a.T*b # less efficient!
-\end{verbatim}
-
-If both \code{a} and \code{b} are \class{Matrix} types,
-\code{a*b} will result in $a b$, using the conventional matrix-matrix
-product.
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> b = array([[1,2,1,2],[3,4,3,4],[5,6,5,6]])
->>> a*b
-\end{verbatim}
-
-All these explanations also apply to the inplace multiplication
-operator \code{*=}.
-
-All multiplication operators obey type promotion rules as laid out
-in Section \ref{subsec:arraypromotion}.
-
-\subsection{Other \class{Array} operators}
-
-The following expressions are also valid:
-\begin{itemize} 
-\item \code{matrix**n}
-
-  Computes the \var{n}th power of \var{matrix}. \var{n} must be
-  integer, but may be negative. Only for dense matrices.
-
-\begin{verbatim}
->>> a = array([[1,2,3],[3,2,1],[1,3,2]])
->>> a
->>> a**2
->>> a**3
->>> a**3 * (1/a)
-\end{verbatim}
-\item \code{scalar/matrix}
-
-  Computes the \var{scalar} multiple of the inverse of
-  \var{matrix}. Only for dense matrices.
-
-  Do not use code like \code{1/a*b} to solve the linear system
-  $Ax=b$; besides being slow, this tends to yield imprecise
-  results. Instead, use the \code{<<solve>>} pseudo-operator.
-
-  Use of this operator will fail unless the module
-  \module{pylinear.operation} is available.
-
-\begin{verbatim}
->>> a = array([[1,2,3],[3,2,1],[1,3,2]])
->>> a
->>> 1/a
->>> 1/a * a
-\end{verbatim}
-
-  Observe that the results are likely useless if the matrix
-  is singular:
-
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6],[7,8,9]])
->>> a
->>> 1/a
->>> 1/a * a
->>> from pylinear.computation import determinant
->>> determinant(a)
-\end{verbatim}
-
-\item \code{matrix <<solve>> vector}
-
-  Returns the solution of the linear system of equations \code{matrix*x=vector}.
-  Available for dense and sparse execute matrix types of \var{matrix}.
-
-  Use of this operator will fail unless the module
-  \module{pylinear.computation} is available.
-
-  Since this is not built using actual Python syntax, but rather cheaply
-  composed of a special-purpose \code{solve} object with left and right
-  shift operators, some care needs to be exercised regarding operator
-  precedence. When in doubt, just use parentheses.
-
-\begin{verbatim}
->>> a = array([[1,2,3],[3,2,1],[1,3,2]])
->>> b = array([9,1,1])
->>> v = a <<solve>> b
->>> v
->>> a * v
-\end{verbatim}
-
-  Note that you need to qualify \code{<<solve>>} with the module name if you
-  do not import \module{pylinear.array} using \samp{from ... import *}:
-
-\begin{verbatim}
->>> import pylinear.array as num
->>> a = num.array([[1,2,3],[3,2,1],[1,3,2]])
->>> b = num.array([9,1,1])
->>> v = a <<num.solve>> b
->>> v
->>> a * v
-\end{verbatim}
-
-  Observe that the results are likely useless if the matrix
-  is singular:
-
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6],[7,8,9]])
->>> b = array([9,1,1])
->>> v = a <<solve>> b
->>> v
->>> a * v
->>> from pylinear.computation import determinant
->>> determinant(a)
-\end{verbatim}
-
-\item \code{vector1 <<outer>> vector2}
-  
-  Computes the outer product of \code{vector1} and \code{vector2},
-  whose result is the matrix $v_1 \cdot v_2^T$.
-
-\begin{verbatim}
->>> v = array([1,2,3])
->>> w = array([3,2,1])
->>> v <<outer>> w
->>> w <<outer>> v
-\end{verbatim}
-
-  Please see the section on \code{<<solve>>} above for important
-  considerations on operator precedence and module qualification
-  that also apply here.
-
-\item \code{vector1 <<cross>> vector2}
-  
-  Computes the cross product of \code{vector1} and \code{vector2}.
-  Both \code{vector1} and \code{vector2} must be of dimension 2 or 3.
-  For dimension 2, the $z$ component of the corresponding 3-dimensional
-  cross product is returned as a scalar.
-
-\begin{verbatim}
->>> v = array([1,2,3])
->>> w = array([3,2,1])
->>> v <<cross>> w
->>> w <<cross>> v
->>> (v <<cross>> w) * v
-\end{verbatim}
-
-  Please see the section on \code{<<solve>>} above for important
-  considerations on operator precedence and module qualification
-  that also apply here.
-
-\end{itemize}

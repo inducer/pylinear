@@ -668,6 +668,27 @@ def product(arr, axis):
         raise ValueError, "product only supports axis=None."
     return arr._product_nonzeros()
 
+def kroneckerproduct(a, b):
+    """Return the Kronecker product of the two arguments.
+
+    [[ a[ 0 ,0]*b, a[ 0 ,1]*b, ... , a[ 0 ,n-1]*b  ],
+     [ ...                                   ...   ],
+     [ a[m-1,0]*b, a[m-1,1]*b, ... , a[m-1,n-1]*b  ]]
+
+    The result has the correct typecode for a product of the
+    arguments and b's flavor.
+    """
+    ah, aw = a.shape
+    bh, bw = b.shape
+    tc = _max_typecode([a.typecode(), b.typecode()])
+    result = zeros((ah*bh,aw*bw), tc, flavor=b.flavor)
+    for i in range(ah):
+        for j in range(aw):
+            result[i*bh:(i+1)*bh,j*bw:(j+1)*bw] = a[i,j] * b
+    return result
+
+
+
 
 
 # ufuncs ----------------------------------------------------------------------
@@ -783,6 +804,7 @@ class _InfixOperator:
 
 outer = _InfixOperator(outerproduct)
 cross = _InfixOperator(crossproduct)
+kron = _InfixOperator(kroneckerproduct)
 
 def _solve_operator(mat, rhs):
     import pylinear.computation as comp
