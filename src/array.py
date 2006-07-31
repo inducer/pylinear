@@ -286,6 +286,26 @@ def _repr_sparse_matrix(array): return _stringify_sparse_matrix(array, repr)
 
 
 
+# equality testing ------------------------------------------------------------
+def _equal(a, b):
+    try:
+        if a.shape != b.shape:
+            return False
+        diff = a - b
+        for i in diff.indices():
+            if diff[i] != 0:
+                return False
+        return True
+    except AttributeError:
+        return False
+
+def _not_equal(a, b):
+    return not _equals(a, b)
+
+
+
+
+
 # array interface -------------------------------------------------------------
 def _typecode_to_array_typestr(tc):
     if sys.byteorder == "big":
@@ -320,6 +340,9 @@ def _add_array_behaviors():
             co.__radd__ = co._ufunc_add
             co.__sub__ = co._ufunc_subtract
             co.__rsub__ = co._reverse_ufunc_subtract
+
+            co.__eq__ = _equal
+            co.__ne__ = _not_equal
             
             co.flavor = property(get_returner(f))
             co.typecode = get_returner(tc)
@@ -520,12 +543,41 @@ def ones(shape, typecode=Float, flavor=None):
     """Return a matrix filled with ones."""
     return _get_filled_matrix(shape, typecode, flavor, 1)
 
-def identity(n, typecode=Float, flavor=None):
-    """Return an identity matrix."""
-    result = zeros((n,n), typecode, flavor)
-    for i in range(n):
-        result[i,i] = 1
+def eye(n, m=None, offset=0, typecode=Float, flavor=None):
+    """Return a matrix `n' rows and `m' columns with the `offset'-th
+    diagonal all ones, and everything else zeros.
+    
+    If `m' is None, it is assumed identical to `n'.
+    """
+    if m is None:
+        m = n
+    result = zeros((n,m), typecode, flavor)
+    for i in range(max(0,-offset), min(m-offset,n)):
+        result[i,i+offset] = 1
     return result
+
+def tri(n, m=None, offset=0, typecode=Float, flavor=None):
+    """Return a matrix `n' rows and `m' columns with the `offset'-th
+    diagonal and the entires below it all ones, and everything else zeros.
+    
+    If `m' is None, it is assumed identical to `n'.
+    """
+    if m is None:
+        m = n
+    result = zeros((n,m), typecode, flavor)
+    min_idx = max(0,-offset)
+    for col in range(0,min_idx+offset):
+        result[:,col] = 1
+    for i in range(min_idx, min(m-offset,n)):
+        result[i:,i+offset] = 1
+    return result
+
+def identity(n, typecode=Float, flavor=None):
+    """Return an identity matrix.
+    
+    Deprecated in favor of the more powerful eye().
+    """
+    return eye(n, typecode=typecode, flavor=flavor)
 
 def diagonal_matrix(vec_or_mat, shape=None, typecode=None, flavor=DenseMatrix):
     """Return a given Array as a diagonal matrix.
@@ -553,63 +605,194 @@ def diagonal_matrix(vec_or_mat, shape=None, typecode=None, flavor=DenseMatrix):
             result[i,i] = mat[i,i]
         return result
 
+def hstack(tup, flavor=DenseMatrix):
+    """Stack arrays in sequence horizontally (column wise)
+     
+    Description:
+        Take a sequence of arrays and stack them horizontally
+        to make a single array.  All arrays in the sequence
+        must have the same shape along all but the second axis.
+        hstack will rebuild arrays divided by hsplit.
+    Arguments:
+        tup -- sequence of arrays.  All arrays must have the same
+               shape.
+    """
+    # don't check other array's height--the assignment will catch it if it's
+    # wrong.
+    h = tup[0].shape[0]
+    w = sum([arr.shape[1] for arr in tup])
+
+    result = zeros((h,w), _max_typecode(tup), flavor=flavor)
+
+    index = 0
+    for arr in tup:
+        result[:,index:index+arr.shape[1]] = arr
+        index += arr.shape[1]
+    return result
+
+def vstack(tup, flavor=DenseMatrix):
+    """Stack arrays in sequence vertically (row wise)
+ 
+    Description:
+        Take a sequence of arrays and stack them veritcally
+        to make a single array.  All arrays in the sequence
+        must have the same shape along all but the first axis.
+        vstack will rebuild arrays divided by vsplit.
+    Arguments:
+        tup -- sequence of arrays.  All arrays must have the same
+               shape.
+    """
+    # don't check other array's width--the assignment will catch it if it's
+    # wrong.
+    w = tup[0].shape[1]
+    h = sum([arr.shape[0] for arr in tup])
+
+    result = zeros((h,w), _max_typecode(tup), flavor=flavor)
+
+    index = 0
+    for arr in tup:
+        result[index:index+arr.shape[0]] = arr
+        index += arr.shape[0]
+    return result
+    
+def vsplit(ary, indices_or_sections):
+    """Split ary into multiple rows of sub-arrays
+ 
+    Description:
+        Split a single array into multiple sub arrays.  The array is
+        divided into groups of rows.  If indices_or_sections is
+        an integer, ary is divided into that many equally sized sub arrays.
+        If it is impossible to make the sub-arrays equally sized, the
+        operation throws a ValueError exception. See array_split and
+        split for other options on indices_or_sections.
+    Arguments:
+       ary -- N-D array.
+          Array to be divided into sub-arrays.
+       indices_or_sections -- integer or 1D array.
+          If integer, defines the number of (close to) equal sized
+          sub-arrays.  If it is a 1D array of sorted indices, it
+          defines the indexes at which ary is divided.  Any empty
+          list results in a single sub-array equal to the original
+          array.
+    Returns:
+        sequence of sub-arrays.  The returned arrays have the same
+        number of dimensions as the input array.
+    """
+    try:
+        indices = indices_or_sections
+        result = []
+        last_end_index = 0
+        for i, index in enumerate(indices):
+            result.append(ary[last_end_index:index,:])
+            last_end_index = index
+
+        result.append(ary[last_end_index:])
+        return result
+    except TypeError:
+        sections = indices_or_sections
+
+        h,w = ary.shape
+
+        if h % sections != 0:
+            raise ValueError, "partitions are not of equal size"
+
+        section_size = h/sections
+
+        return vsplit(ary, range(section_size,h,section_size))
+
+def hsplit(ary, indices_or_sections):
+    """Split ary into multiple columns of sub-arrays
+     
+    Description:
+        Split a single array into multiple sub arrays.  The array is
+        divided into groups of columns.  If indices_or_sections is
+        an integer, ary is divided into that many equally sized sub arrays.
+        If it is impossible to make the sub-arrays equally sized, the
+        operation throws a ValueError exception. See array_split and
+        split for other options on indices_or_sections.
+    Arguments:
+       ary -- N-D array.
+          Array to be divided into sub-arrays.
+       indices_or_sections -- integer or 1D array.
+          If integer, defines the number of (close to) equal sized
+          sub-arrays.  If it is a 1D array of sorted indices, it
+          defines the indexes at which ary is divided.  Any empty
+          list results in a single sub-array equal to the original
+          array.
+    Returns:
+        sequence of sub-arrays.  The returned arrays have the same
+        number of dimensions as the input array.
+    """
+    try:
+        indices = indices_or_sections
+        result = []
+        last_end_index = 0
+        for i, index in enumerate(indices):
+            result.append(ary[:,last_end_index:index])
+            last_end_index = index
+
+        result.append(ary[:,last_end_index:])
+        return result
+    except TypeError:
+        sections = indices_or_sections
+
+        h,w = ary.shape
+
+        if w % sections != 0:
+            raise ValueError, "partitions are not of equal size"
+
+        section_size = w/sections
+
+        return hsplit(ary, range(section_size,w,section_size))
+
+
+
 
 
 
 # other functions -------------------------------------------------------------
 def diagonal(mat, offset=0):
     """Return the (off-) diagonal of a matrix as a vector."""
-    h,w = mat.shape
+    n,m = mat.shape
 
-    result = []
-    if offset >= 0:
-        # upwards offset, i.e. to the right
-        post_end_row = min(offset+h, w)
-        length = post_end_row - offset
-        result = zeros((length,),  mat.typecode())
-        if length < 0:
-            raise ValueError, "diagonal: invalid offset"
-        
-        for i in range(length):
-            result[i] = mat[i, i+offset]
-        return result
-    else:
-        # downwards offset
-        offset = - offset
-        post_end_col = min(offset+w, h)
-        length = post_end_col - offset
-        result = zeros((length,),  mat.typecode())
-        if length < 0:
-            raise ValueError, "diagonal: invalid offset"
-        
-        for i in range(length):
-            result[i] = mat[i+offset, i]
-        return result
+    min_idx = max(0, -offset)
+    max_idx = min(n, m-offset)
+    length = max_idx - min_idx
 
-def lower_left(mat, include_diagonal=False):
-    """Return the lower left half of a matrix."""
-    result = zeros(mat.shape, mat.typecode(), mat.flavor)
-    if include_diagonal:
-        for i,j in mat.indices():
-            if i >= j:
-                result.set_element_past_end(i, j, mat[i,j])
-    else:
-        for i,j in mat.indices():
-            if i > j:
-                result.set_element_past_end(i, j, mat[i,j])
+    if length < 0:
+        raise ValueError, "diagonal: invalid offset"
+
+    result = zeros((length,),  mat.typecode())
+    for i in range(min_idx, max_idx):
+        result[i-min_idx] = mat[i, i+offset]
     return result
 
-def upper_right(mat, include_diagonal=False):
-    """Return the upper right half of a matrix."""
+def triu(mat, offset=0):
+    """Return the upper right part of a matrix, up to the `offset'th super-diagonal.
+    
+    `offset' may be negative, indicating subdiagonals.
+    """
     result = zeros(mat.shape, mat.typecode(), mat.flavor)
-    if include_diagonal:
-        for i,j in mat.indices():
-            if i <= j:
-                result.set_element_past_end(i, j, mat[i,j])
-    else:
-        for i,j in mat.indices():
-            if i < j:
-                result.set_element_past_end(i, j, mat[i,j])
+    m, n = mat.shape 
+    max_idx = min(m-offset,n)
+    for i in range(max(0,-offset), max_idx):
+        result[i,i+offset:] = mat[i,i+offset:]
+    for col in range(max_idx, m):
+        result[:,col] = 1
+    return result
+
+def tril(mat, offset=0):
+    """Return the lower left part of a matrix, up to the `offset'th super-diagonal.
+    
+    `offset' may be negative, indicating subdiagonals.
+    """
+    result = zeros(mat.shape, mat.typecode(), mat.flavor)
+    m, n = mat.shape 
+    min_idx = max(0,-offset)
+    for col in range(0,min_idx+offset):
+        result[:,col] = 1
+    for i in range(min_idx, min(m-offset,n)):
+        result[i:,i+offset] = mat[i:,i+offset]
     return result
 
 def take(mat, indices, axis=0):
@@ -621,6 +804,10 @@ def take(mat, indices, axis=0):
 def matrixmultiply(mat1, mat2):
     """Multiply mat1 and mat2. For compatibility with NumPy."""
     return mat1 * mat2
+
+def dot(ary1, ary2):
+    """Multiply ary1 and ary2. For compatibility with NumPy."""
+    return ary1 * ary2
 
 def innerproduct(vec1, vec2):
     """Multiply vec1 and vec2. For compatibility with NumPy."""
@@ -657,9 +844,14 @@ def trace(mat, offset=0):
     diag = diagonal(mat, offset)
     return sum(diag)
 
+_original_sum = sum
 def sum(arr):
     """Return the sum of arr's entries."""
-    return arr.sum()
+    try:
+        return arr.sum()
+    except AttributeError:
+        return _original_sum(arr)
+
 
 def product(arr, axis):
     """Return the product of arr's entries."""

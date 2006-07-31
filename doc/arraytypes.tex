@@ -150,7 +150,7 @@ the creation of new \class{Array}s:
   \class{TypeError} is raised.
 \end{funcdesc}
 
-\begin{funcdesc}{zeros}{shape, typecode, flavor=None}
+\begin{funcdesc}{zeros}{shape, typecode=Float, flavor=None}
   \function{zeros} creates an \class{Array} of the given \var{shape},
   \var{typecode} and \var{flavor} which is filled with zeros. See the
   \member{shape} attribute in Section \ref{sec:arrayproperties} for
@@ -160,7 +160,7 @@ the creation of new \class{Array}s:
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{ones}{shape, typecode, flavor=None}
+\begin{funcdesc}{ones}{shape, typecode=Float, flavor=None}
   \function{ones} creates an \class{Array} of the given \var{shape},
   \var{typecode} and \var{flavor} which is filled with ones. See the
   \member{shape} attribute in Section \ref{sec:arrayproperties} for
@@ -170,13 +170,118 @@ the creation of new \class{Array}s:
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{identity}{n, typecode, flavor=None}
-  \function{identity} creates a \class{Matrix} of shape \code{(n,n)} and
+\begin{funcdesc}{eye}{n, m=None, offset=0, typecode=Float, flavor=None}
+  \function{eye} creates a \class{Matrix} of shape \code{(n,m)} and
   the given \var{typecode} and \var{flavor} which is filled with
-  zeros and has ones on the diagonal, a type of matrix otherwise
-  known as an identity matrix.
+  zeros and has ones on the \code{offset}th super-diagonal. 
+
+  \code{offset} may also be negative, thus pointing to a sub-diagonal.
+
+  If \code{offset} is 0, you get an $n\times m$ identity matrix.
+
 \begin{verbatim}
->>> identity(4, Complex)
+>>> eye(4, 3, offset=1, typecode=Complex)
+\end{verbatim}
+\end{funcdesc}
+
+\begin{funcdesc}{tri}{n, m=None, offset=0, typecode=Float, flavor=None}
+  \function{tri} creates a \class{Matrix} of shape \code{(n,m)} and
+  the given \var{typecode} and \var{flavor} which has ones on the 
+  \code{offset}th super-diagonal and below, and zeros elsewhere.
+
+  \code{offset} may also be negative, thus pointing to a sub-diagonal.
+
+\begin{verbatim}
+>>> tri(4, 3, offset=1, typecode=Complex)
+\end{verbatim}
+\end{funcdesc}
+
+\begin{funcdesc}{hstack}{tup}
+  Take a sequence of arrays and stack them horizontally to make a single array.
+  All arrays in the sequence must have the same shape along all but the second
+  axis. \function{hstack} will rebuild arrays divided by \function{hsplit}.
+  
+\begin{verbatim}
+>>> a = identity(3)[:,:2]
+>>> a
+>>> hstack((a,2*a,3*a))
+\end{verbatim}
+\end{funcdesc}
+
+\begin{funcdesc}{vstack}{tup}
+  Take a sequence of arrays and stack them vertically to make a single array.
+  All arrays in the sequence must have the same shape along all but the first
+  axis. \function{vstack} will rebuild arrays divided by \function{vsplit}.
+  
+\begin{verbatim}
+>>> a = identity(3)[:2]
+>>> a
+>>> vstack((a,2*a,3*a))
+\end{verbatim}
+\end{funcdesc}
+
+\section{Extracting parts of \class{Array}s}
+
+PyLinear supports indexing for reading and writing on \class{Array}s, in nearly
+the same way as you might be used to it from either Python sequences or Matlab
+matrices.
+
+\class{Matrix} objects are indexed by 2-tuples, whereas vectors are indexed by
+single values. As all indices in Python, PyLinear's indices are 0-based.
+
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> a
+>>> a[0,2]
+>>> a[0,1:]
+>>> v = array([1,2,3])
+>>> v[1]
+>>> v[1:]
+\end{verbatim}
+
+Indexing a matrix with a single value will return entire rows: 
+
+\begin{verbatim}
+>>> a[0]
+>>> a[1:]
+\end{verbatim}
+
+As you might already have gathered above, regular Python slice syntax is
+supported, so that you can write \code{a[3:17]}, \code{a[1:3,5:9]}, or even
+\code{a[::-1]} to obtain the reverse of a \class{Vector}. Unlike Python lists,
+\class{Array}s may not be resized using slice assignments. Like in the rest of
+Python, yet unlike NumPy, slices return copies, not views of the corresponding
+data.
+
+\begin{funcdesc}{hsplit}{ary, indices_or_sections}
+  Split a single \class{Matrix} array into multiple sub-\class{Matrix}
+  instances.  The array is divided into groups of columns.  If
+  \code{indices_or_sections} is an integer, \code{ary} is divided into that
+  many equally sized sub-arrays.  If it is impossible to make the sub-arrays
+  equally sized, the operation throws a ValueError exception. 
+  
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> hsplit(a.T, 2)
+>>> hsplit(a, [1])
+>>> hstack(hsplit(a, [1])) == a
+\end{verbatim}
+\end{funcdesc}
+
+\begin{funcdesc}{vsplit}{ary, indices_or_sections}
+  Split a single \class{Matrix} array into multiple sub-\class{Matrix}
+  instances.  The array is divided into groups of rows.  If
+  \code{indices_or_sections} is an integer, \code{ary} is divided into that
+  many equally sized sub-arrays.  If it is impossible to make the sub-arrays
+  equally sized, the operation throws a ValueError exception. 
+  
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> vsplit(a, 2)
+>>> vsplit(a, [1])
+>>> vstack(vsplit(a, [1])) == a
 \end{verbatim}
 \end{funcdesc}
 
@@ -297,16 +402,6 @@ offer the following:
 \end{verbatim}
 \end{memberdesc}
 
-Naturally, PyLinear will also support indexing for reading and writing
-on \class{Array}s. Typically, matrices are indexed by 2-tuples,
-whereas vectors are indexed by single values. Indexing a matrix with a
-single value will return the entire row. Regular Python slice syntax
-is supported, so that you can write \code{a[3:17]}, \code{a[1:3,5:9]},
-or even \code{a[::-1]}. Unlike Python lists, \class{Array}s may not be
-resized using slice assignments. Like in the rest of Python, yet
-unlike NumPy, slices return copies, not views of the corresponding
-data.
-
 \section{Matrix flavor particulars}
 
 The following methods tie into the particulars of the sparse matrices'
@@ -348,7 +443,7 @@ memory layouts.
   Adds \var{number} to the entry in the \var{i}th row and \var{j}th
   column.
 
-  Why would you want this if you could easily say \code{A[i,j] +=
+  Why would you want this if you could easily say \samp{A[i,j] +=
   entry}? This method is guaranteed to be an O(1) operation if it is
   available, whereas the alternative notation will always work, but
   may be exceedingly slow. (Consider the case of a
@@ -392,20 +487,8 @@ different matrix libraries:
   listed in \var{indices}, which must be simple numbers. \var{axis}
   specifies the axis along which the indices are taken.
 \end{funcdesc}
-\begin{funcdesc}{matrixmultiply}{op1, op2}
-  Equivalent to \code{op1*op2}.
-\end{funcdesc}
-\begin{funcdesc}{innerproduct}{op1, op2}
-  Equivalent to \code{op1*op2}.
-\end{funcdesc}
 \begin{funcdesc}{outerproduct}{op1, op2}
   Equivalent to \code{op1 <<outer>> op2}.
-\end{funcdesc}
-\begin{funcdesc}{transpose}{op1}
-  Equivalent to \code{op1.T}.
-\end{funcdesc}
-\begin{funcdesc}{hermite}{op1}
-  Equivalent to \code{op1.H}.
 \end{funcdesc}
 \begin{funcdesc}{trace}{matrix, offset=0}
   Returns the sum of the \var{offset}th diagonal. See \function{diagonal}

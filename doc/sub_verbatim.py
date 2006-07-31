@@ -31,7 +31,7 @@ while idx < len(lines):
             line = lines[idx][:-1]
             statement += "\n" + line[3+strip_spaces:]
             print>>outf, line
-        place = "%s:%d" % (doc_fn, idx)
+        place = "%s:%d" % (doc_fn, idx+1)
         try:
             code = compile(statement+"\n", place, "eval")
         except SyntaxError:
