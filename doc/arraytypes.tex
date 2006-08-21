@@ -398,13 +398,50 @@ side of the assignment may have lesser rank than the left hand side. In this
 case, the right hand side is \dfn{broadcast}\index{broadcast} across the missing
 rank. Observe:
 \begin{verbatim}
->>> a = num.ones((10,10))
->>> b = num.arange(10)
->>> a+b
+>>> a = ones((5,5))
+>>> b = arange(5)
+>>> a[:,:] = b
+>>> a
+>>> a[:,:] = 10
+>>> a
 \end{verbatim}
+The same trick works for vectors as well.
 % -----------------------------------------------------------------------------
-\subsection{Simple \class{Matrix} Decompositions}
+\subsection{Simple Decomposition}
 % -----------------------------------------------------------------------------
+The following operations return only parts of the data contained in a
+\class{Array} object:
+
+\begin{memberdesc}[Array]{real}
+  Reading this attribute obtains a copy of the real part of the matrix.
+  For real matrices, the matrix is simply copied.
+
+  In NumPy, this method does not return a copy, but a view.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.real
+\end{verbatim}
+\end{memberdesc}
+
+\begin{memberdesc}[Array]{imaginary}
+  Reading this attribute obtains a copy of the imaginary part of the matrix.
+  For real matrices, a zero matrix of the same size is returned.
+
+  In NumPy, this method does not return a copy, but a view.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.imaginary
+\end{verbatim}
+\end{memberdesc}
+
+\begin{funcdesc}{take}{matrix, indices, axis=0}
+  Assembles an \class{Array} from the entries of the \class{Array}
+  listed in \var{indices}, which must be simple numbers. \var{axis}
+  specifies the axis along which the indices are taken.
+\end{funcdesc}
+
 Next, we will discuss a few functions that return just parts of \class{Matrix}
 objects.
 
@@ -450,36 +487,6 @@ objects.
 >>> diagonal(a,1)
 \end{verbatim}
 \end{funcdesc}
-
-\begin{memberdesc}[Array]{real}
-  Reading this attribute obtains a copy of the real part of the matrix.
-  For real matrices, the matrix is simply copied.
-
-  In NumPy, this method does not return a copy, but a view.
-\begin{verbatim}
->>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
->>> x
->>> x.real
-\end{verbatim}
-\end{memberdesc}
-
-\begin{memberdesc}[Array]{imaginary}
-  Reading this attribute obtains a copy of the imaginary part of the matrix.
-  For real matrices, a zero matrix of the same size is returned.
-
-  In NumPy, this method does not return a copy, but a view.
-\begin{verbatim}
->>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
->>> x
->>> x.imaginary
-\end{verbatim}
-\end{memberdesc}
-
-\begin{funcdesc}{take}{matrix, indices, axis=0}
-  Assembles an \class{Array} from the entries of the \class{Array}
-  listed in \var{indices}, which must be simple numbers. \var{axis}
-  specifies the axis along which the indices are taken.
-\end{funcdesc}
 % --------------------------------------------------------------------------
 \section{\class{Array} Math}
 % --------------------------------------------------------------------------
@@ -493,15 +500,15 @@ If you are an expert, then you may recognize the functionality of this
 module as roughly what's provided by the FORTRAN Basic Linear Algebra Subroutines,
 or BLAS\index{BLAS}.
 % --------------------------------------------------------------------------
-\subsection{Binary operations}
+\subsection{Generalities on Binary Operations}
 % --------------------------------------------------------------------------
 \class{Array}s provide all the operators you would expect, like sums,
 differences, products and such. There are, however, a couple of fine points
 that are worth noting:
-
+% --------------------------------------------------------------------------
 \subsubsection{Type promotion}
-\label{subsec:arraypromotion}
-
+\label{sssec:arraypromotion}
+% --------------------------------------------------------------------------
 If binary operators or elementwise functions (see Section
 \ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
 dtype, the operands are promoted to a common type. (For the case of
@@ -530,9 +537,10 @@ of the first operand:
 >>> b+a
 \end{verbatim}
 
+% --------------------------------------------------------------------------
 \subsubsection{Broadcasting}
-\label{subsec:arraybroadcast}
-
+\label{sssec:arraybroadcast}
+% --------------------------------------------------------------------------
 The binary elementwise operators as well as all the binary elementwise
 functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
 where one argument has lesser dimension than the other. In this case, the
@@ -541,134 +549,31 @@ of the matrix. If the lesser-dimension argument is a scalar, this is easy to
 explain: It is treated like an array of the right size filled with that scalar.
 If it is a vector, it is treated like a matrix filled with rows consisting of
 the given vector.
-
+\begin{verbatim}
+>>> a = ones((4,4))
+>>> b = arange(4)
+>>> a
+>>> b
+>>> b+5
+>>> a+b
+>>> a+b+5
+\end{verbatim}
 All of this can, of course, only work if the corresponding \class{Array} sizes 
 match.
-XXX Is outerproduct documented?
-\begin{memberdesc}[Matrix]{T}
-  This object property a real-transpose copy of the matrix.
-
-  Does not exist in NumPy.
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> x
->>> x.T
-\end{verbatim}
-\end{memberdesc}
-
-\begin{memberdesc}[Matrix]{H}
-  This object property returns a conjugate-transpose copy of the matrix.
-  Identical to \member{T} for real matrices.
-
-  Does not exist in NumPy.
-\begin{verbatim}
->>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
->>> x
->>> x.H
-\end{verbatim}
-\end{memberdesc}
-
-\begin{funcdesc}{trace}{matrix, offset=0}
-  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
-  for details of the meaning of \var{offset}.
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> trace(a)
->>> trace(a,1)
-\end{verbatim}
-\end{funcdesc}
-% -----------------------------------------------------------------------------
-\section{Flavor-specific Functionality}
-% -----------------------------------------------------------------------------
-
-The following methods tie into the particulars of the sparse matrices'
-memory layouts.
-
-\begin{methoddesc}[SparseBuildMatrix]{sort}{}
-  The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
-  can become unsorted, depending on the order of insertions into the
-  matrix.  This is rectified by the \method{sort} method. During
-  normal usage, you don't have to worry about sorting your matrices,
-  since this action is triggered automatically whenever it is
-  necessary.
-\end{methoddesc}
-\begin{methoddesc}{set_element}{i, j, entry}
-  Sets the entry in the \var{i}th row and \var{j}th column to the
-  value \var{entry}.
-
-  Why would you want this if you could easily say \code{A[i,j] =
-  entry}? This method is guaranteed to be an O(1) operation if it is
-  available, whereas the alternative notation will always work, but
-  may be exceedingly slow. (Consider the case of a
-  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
-  move to accomodate a new element.)
-
-  Available on all but \class{SparseExecuteMatrix} objects.
-\end{methoddesc}
-\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
-  Sets the entry in the \var{i}th row and \var{j}th column to the
-  value \var{entry}. If used, the user guarantees that for all
-  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
-
-  Why would you want this if you could easily say \code{A[i,j] =
-  entry}? This method is guaranteed to be an O(1) operation if 
-  it is available, whereas the alternative notation will always
-  work, but may be exceedingly slow. (Consider the case of a
-  \class{SparseBuildMatrix}, which might have to be resorted.)
-\end{methoddesc}
-\begin{methoddesc}[Matrix]{add_element}{i, j, number}
-  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
-  column.
-
-  Why would you want this if you could easily say \samp{A[i,j] +=
-  entry}? This method is guaranteed to be an O(1) operation if it is
-  available, whereas the alternative notation will always work, but
-  may be exceedingly slow. (Consider the case of a
-  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
-  move to accomodate a new element.)
-
-  Available on all but \class{SparseExecuteMatrix} objects.
-\end{methoddesc}
-\begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
-  This is a rather internal method, but it is explained here
-  nonetheless.
-
-  The \class{SparseExecuteMatrix} class uses a list to indicate the
-  column starts in a linear field of numbers. This list of column
-  starts, in its original state, is usually incomplete, i.e. does not
-  cover all rows, which allows $O(1)$ insertion at the end of the
-  number field. This method makes sure that the column start list is
-  complete. This is required by certain third-party sparse matrix
-  libraries that directly read the structure of your sparse
-  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
-  call this method automatically, however, so that you don't have to
-  worry about this here. But if you are binding to other sparse matrix
-  libraries, this call might come in useful.
-\end{methoddesc}
-
-Some of them resemble NumPy's functionality and ease the porting between
-different matrix libraries:
-
 % --------------------------------------------------------------------------
-\section{Matrix algebra}
-\class{Array}s support the operators \code{+} (binary), \code{+=},
-\code{-} (binary), \code{-=}, as well as \code{+} (unary) and \code{-}
-(unary) with their elementwise meanings as you would expect them.
-Multiplication and division are also supplied, but have slightly more
-intricate meanings, as discussed in Section
-\ref{subsec:arraymultiplication}.
-
-
-
-\subsection{Multiplication semantics}
+\subsection{Multiplicative (and related) Operators}
 \label{subsec:arraymultiplication}
-
+% --------------------------------------------------------------------------
 This section explains the value of the expression\code{a*b}, where at
-least one of \code{a} and \code{b} is an \class{Array}.
+least one of \code{a} and \code{b} is an \class{Array}. Since multiplication
+is probably the most significant element of linear algebra, there's quite
+a bit to know here. Also, we will touch upon other related notions such as outer,
+inner and Kronecker products as well as inversion and exponentiation.
 
-If the other operand is a scalar (it doesn't matter which), the
-result will be the elementwise product of the array with that scalar.
+If the one operand in the expression \code{a*b} is a scalar (it doesn't matter
+which), the result will be the elementwise product of the array with that
+scalar.
+
 \begin{verbatim}
 >>> a = array([[1,2,3],[4,5,6]])
 >>> a*2
@@ -726,9 +631,10 @@ operator \code{*=}.
 All multiplication operators obey type promotion rules as laid out
 in Section \ref{subsec:arraypromotion}.
 
-\section{More \class{Matrix} operators}
+\subsubsection{Related operators}
+The following operators are not invoked as \code{a*b}, but are still
+related to multiplication:
 
-The following expressions are also valid:
 \begin{itemize} 
 \item \code{matrix**n}
 
@@ -876,6 +782,127 @@ The following expressions are also valid:
   that also apply here.
 
 \end{itemize}
+XXX Is outerproduct documented?
+% --------------------------------------------------------------------------
+\subsection{Linear Algebra}
+% --------------------------------------------------------------------------
+The following operations are related to the theory of linear algebra.
+
+\begin{memberdesc}[Matrix]{T}
+  This object property a real-transpose copy of the matrix.
+
+  Does not exist in NumPy.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x
+>>> x.T
+\end{verbatim}
+\end{memberdesc}
+
+\begin{memberdesc}[Matrix]{H}
+  This object property returns a conjugate-transpose copy of the matrix.
+  Identical to \member{T} for real matrices.
+
+  Does not exist in NumPy.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.H
+\end{verbatim}
+\end{memberdesc}
+
+\begin{funcdesc}{trace}{matrix, offset=0}
+  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
+  for details of the meaning of \var{offset}.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> trace(a)
+>>> trace(a,1)
+\end{verbatim}
+\end{funcdesc}
+% -----------------------------------------------------------------------------
+\section{Flavor-specific Functionality}
+% -----------------------------------------------------------------------------
+
+The following methods tie into the particulars of the sparse matrices'
+memory layouts.
+
+\begin{methoddesc}[SparseBuildMatrix]{sort}{}
+  The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
+  can become unsorted, depending on the order of insertions into the
+  matrix.  This is rectified by the \method{sort} method. During
+  normal usage, you don't have to worry about sorting your matrices,
+  since this action is triggered automatically whenever it is
+  necessary.
+\end{methoddesc}
+\begin{methoddesc}{set_element}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}. If used, the user guarantees that for all
+  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if 
+  it is available, whereas the alternative notation will always
+  work, but may be exceedingly slow. (Consider the case of a
+  \class{SparseBuildMatrix}, which might have to be resorted.)
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{add_element}{i, j, number}
+  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
+  column.
+
+  Why would you want this if you could easily say \samp{A[i,j] +=
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
+\end{methoddesc}
+\begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
+  This is a rather internal method, but it is explained here
+  nonetheless.
+
+  The \class{SparseExecuteMatrix} class uses a list to indicate the
+  column starts in a linear field of numbers. This list of column
+  starts, in its original state, is usually incomplete, i.e. does not
+  cover all rows, which allows $O(1)$ insertion at the end of the
+  number field. This method makes sure that the column start list is
+  complete. This is required by certain third-party sparse matrix
+  libraries that directly read the structure of your sparse
+  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
+  call this method automatically, however, so that you don't have to
+  worry about this here. But if you are binding to other sparse matrix
+  libraries, this call might come in useful.
+\end{methoddesc}
+
+Some of them resemble NumPy's functionality and ease the porting between
+different matrix libraries:
+
+% --------------------------------------------------------------------------
+\section{Matrix algebra}
+\class{Array}s support the operators \code{+} (binary), \code{+=},
+\code{-} (binary), \code{-=}, as well as \code{+} (unary) and \code{-}
+(unary) with their elementwise meanings as you would expect them.
+Multiplication and division are also supplied, but have slightly more
+intricate meanings, as discussed in Section
+
+
+
 
 \section{Simple computational routines}
 

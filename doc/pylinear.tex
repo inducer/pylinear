@@ -8,6 +8,7 @@
 \usepackage[latin1]{inputenc}
 \usepackage{textcomp}
 \usepackage{hyperref}
+\setcounter{tocdepth}{3}
 
 % mark internal comments
 % for any published version switch to the second (empty) definition of the macro!
@@ -37,17 +38,25 @@
 
 \begin{abstract}
   \noindent
-  For the Python langugage, there is no shortage of packages that
-  provide matrices and operations on those. Numerical Python and
-  numarray and the new NumPy (formerly SciPy Core) are good examples.
+  PyLinear provides a comprehensive and extensible environment for 
+  linear algebra in Python.
 
-  However, few of these packages focus exclusively on Linear Algebra,
-  and even fewer provide crucial tools for numerical analysis, such as
-  sparse matrices.
+  It is comprehensive in that it offers sparse and dense matrices
+  of real and complex types, along with a full set of operations
+  on them.
 
-  PyLinear comes in to fix this deficiency, and also, by using the 
-  Boost Python and UBlas libraries, aims for extremely easy extensibility
-  a (fast) compiled language.
+  It is extensible in that it can trivially be programmed in Python, but it may
+  just as trivially be extended in C++. If \texttt{mex} programming in Matlab
+  always sounded too cumbersome, PyLinear provides a refreshing new (and easy)
+  perspective. This allows a new type of hybrid numerical system, where
+  non-performance-critical parts may remain in the high-level language, while
+  inner loops may be easily moved to C++.
+
+  There is no shortage of Python packages that provide matrices and operations
+  on them. Numerical Python, numarray and the new NumPy (formerly SciPy Core)
+  are good examples.  However, few of these packages focus exclusively on
+  Linear Algebra, and even fewer provide crucial tools for numerical analysis,
+  such as sparse matrices. PyLinear fills this niche.
 \end{abstract}
 
 \tableofcontents
