@@ -1,18 +1,17 @@
-/*
- * Boost C++ ARPACK bindings.
- *
- * Copyright (c) Andreas Kloeckner 2005
- *
- * Permission to copy, modify, use and distribute this software 
- * for any non-commercial or commercial purpose is granted provided 
- * that this license appear on all copies of the software source code.
- *
- * Author assumes no responsibility whatsoever for its use and makes 
- * no guarantees about its quality, correctness or reliability.
- *
- * Author acknowledges the support of the Institut fuer Angewandte 
- * Mathematik II, Universitaet Karlsruhe, Germany.
- */
+//
+// Boost C++ ARPACK bindings.
+//
+// Copyright (c) 2004-2006
+// Andreas Kloeckner
+//
+// Permission to use, copy, modify, distribute and sell this software
+// and its documentation for any purpose is hereby granted without fee,
+// provided that the above copyright notice appear in all copies and
+// that both that copyright notice and this permission notice appear
+// in supporting documentation.  The authors make no representations
+// about the suitability of this software for any purpose.
+// It is provided "as is" without express or implied warranty.
+//
 
 /* 
  * For ARPACK Copyright, License and Availability see 

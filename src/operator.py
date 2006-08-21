@@ -1,3 +1,19 @@
+#
+#  Copyright (c) 2004-2006
+#  Andreas Kloeckner
+#
+#  Permission to use, copy, modify, distribute and sell this software
+#  and its documentation for any purpose is hereby granted without fee,
+#  provided that the above copyright notice appear in all copies and
+#  that both that copyright notice and this permission notice appear
+#  in supporting documentation.  The authors make no representations
+#  about the suitability of this software for any purpose.
+#  It is provided "as is" without express or implied warranty.
+#
+
+
+
+
 """
 PyLinear's Python module for matrix-free methods.
 """
@@ -11,60 +27,60 @@ import pylinear.computation as comp
 import pylinear._operation as _op
 
 # operator parameterized types ------------------------------------------------
-Operator = num.TypecodeParameterizedType(
+Operator = num.ParameterizedType(
   "MatrixOperator", _op.__dict__)
-IdentityOperator = num.TypecodeParameterizedType(
+IdentityOperator = num.ParameterizedType(
   "IdentityMatrixOperator", _op.__dict__)
-ScalarMultiplicationOperator = num.TypecodeParameterizedType(
+ScalarMultiplicationOperator = num.ParameterizedType(
   "ScalarMultiplicationMatrixOperator", _op.__dict__)
 
-class _MatrixOperatorTypecodeFlavorParameterizedType:
+class _MatrixOperatorParameterizedType(object):
     def is_a(self, instance):
         # FIXME
         raise NotImplementedError
 
-    def __call__(self, typecode, flavor):
+    def __call__(self, dtype, flavor):
         # FIXME
         raise NotImplementedError
 
     def make(self, matrix):
         return _op.makeMatrixOperator(matrix)
-MatrixOperator = _MatrixOperatorTypecodeFlavorParameterizedType()
+MatrixOperator = _MatrixOperatorParameterizedType()
 
-class _CGTypecodeParameterizedType(num.TypecodeParameterizedType):
+class _CGParameterizedType(num.ParameterizedType):
     def make(self, matrix_op, max_it=None, tolerance=1e-12, precon_op=None):
         if max_it is None:
             max_it = matrix_op.shape[0] * 10
         if precon_op is None:
             h,w = matrix_op.shape
-            precon_op = IdentityOperator.make(matrix_op.typecode(), w)
-        if matrix_op.typecode() is not precon_op.typecode():
-            raise TypeError, "matrix_op and precon_op must have matching typecodes"
-        return self.TypeDict[matrix_op.typecode()](matrix_op, precon_op, max_it, tolerance)
+            precon_op = IdentityOperator.make(matrix_op.dtype, w)
+        if matrix_op.dtype is not precon_op.dtype:
+            raise TypeError, "matrix_op and precon_op must have matching dtypes"
+        return self.TypeDict[matrix_op.dtype](matrix_op, precon_op, max_it, tolerance)
     
-CGOperator = _CGTypecodeParameterizedType("CGMatrixOperator", _op.__dict__)
+CGOperator = _CGParameterizedType("CGMatrixOperator", _op.__dict__)
 
-class _BiCGSTABTypecodeParameterizedType(num.TypecodeParameterizedType):
+class _BiCGSTABParameterizedType(num.ParameterizedType):
     def make(self, matrix_op, max_it=None, tolerance=1e-12, precon_op=None):
         if max_it is None:
             max_it = matrix_op.shape[0] * 10
         if precon_op is None:
             h,w = matrix_op.shape
-            precon_op = IdentityOperator.make(matrix_op.typecode(), w)
-        if matrix_op.typecode() is not precon_op.typecode():
-            raise TypeError, "matrix_op and precon_op must have matching typecodes"
-        return self.TypeDict[matrix_op.typecode()](matrix_op, precon_op, max_it, tolerance)
+            precon_op = IdentityOperator.make(matrix_op.dtype, w)
+        if matrix_op.dtype is not precon_op.dtype:
+            raise TypeError, "matrix_op and precon_op must have matching dtypes"
+        return self.TypeDict[matrix_op.dtype](matrix_op, precon_op, max_it, tolerance)
     
-BiCGSTABOperator = _BiCGSTABTypecodeParameterizedType(
+BiCGSTABOperator = _BiCGSTABParameterizedType(
     "BiCGSTABMatrixOperator", _op.__dict__)
 
 if pylinear.has_umfpack():
-    class _UMFPACKTypecodeParameterizedType(num.TypecodeParameterizedType):
+    class _UMFPACKParameterizedType(num.ParameterizedType):
         def make(self, matrix):
             matrix.complete_index1_data()
-            return self.TypeDict[matrix.typecode()](matrix)
+            return self.TypeDict[matrix.dtype](matrix)
 
-    UMFPACKOperator = _UMFPACKTypecodeParameterizedType("UMFPACKMatrixOperator", 
+    UMFPACKOperator = _UMFPACKParameterizedType("UMFPACKMatrixOperator", 
                                                         _op.__dict__)
 
 class _LUInverseOperator:
@@ -84,7 +100,7 @@ class _LUInverseOperator:
         return self.L.shape[1]
 
     def apply(self, before, after):
-        temp = num.zeros((len(before),), before.typecode())
+        temp = num.zeros((len(before),), before.dtype)
         for i in range(len(before)):
             temp[i] = before[self.Permutation[i]]
         after[:] = self.U.solve_upper(self.L.solve_lower(temp))
@@ -99,7 +115,7 @@ class _LUInverseOperatorComplex64(_LUInverseOperator, _op.MatrixOperatorComplex6
         _LUInverseOperator.__init__(self, l, u, perm)
         _op.MatrixOperatorComplex64.__init__(self)
 
-class _LUInverseTypecodeParameterizedType(num.TypecodeParameterizedType):
+class _LUInverseParameterizedType(num.ParameterizedType):
     def make(self, *args):
         if len(args) == 3:
             l, u, perm = args
@@ -108,17 +124,17 @@ class _LUInverseTypecodeParameterizedType(num.TypecodeParameterizedType):
         else:
             raise TypeError, "Invalid number of arguments"
 
-        return self.TypeDict[l.typecode()](l, u, perm)
+        return self.TypeDict[l.dtype](l, u, perm)
 
-LUInverseOperator = _LUInverseTypecodeParameterizedType("_LUInverseOperator", 
-                                                        globals())
+LUInverseOperator = _LUInverseParameterizedType("_LUInverseOperator", 
+        globals())
 
 class _SSORPreconditioner:
     def __init__(self, mat, omega=1):
         # mat needs to be symmetric
         assert mat.shape[0] == mat.shape[1]
 
-        l = num.lower_left(mat)
+        l = num.tril(mat, -1)
         d = num.diagonal_matrix(mat)
 
         self.L = d + omega*l
@@ -149,21 +165,21 @@ class _SSORPreconditionerComplex64(_SSORPreconditioner,
         _SSORPreconditioner.__init__(self, *args, **kwargs)
         _op.MatrixOperatorComplex64.__init__(self)
 
-class _SSORPreconditionerTypecodeParameterizedType(num.TypecodeParameterizedType):
+class _SSORPreconditionerParameterizedType(num.ParameterizedType):
     def make(self, mat, *args, **kwargs):
-        return num.TypecodeParameterizedType.make(
-            self, mat.typecode(), mat, *args, **kwargs)
+        return num.ParameterizedType.make(
+            self, mat.dtype, mat, *args, **kwargs)
 
-SSORPreconditioner = _SSORPreconditionerTypecodeParameterizedType(
+SSORPreconditioner = _SSORPreconditionerParameterizedType(
     "_SSORPreconditioner", globals())
 
 
 # operator operators ----------------------------------------------------------
-_SumOfOperators = num.TypecodeParameterizedType(
+_SumOfOperators = num.ParameterizedType(
   "SumOfMatrixOperators", _op.__dict__)
-_ScalarMultiplicationOperator = num.TypecodeParameterizedType(
+_ScalarMultiplicationOperator = num.ParameterizedType(
   "ScalarMultiplicationMatrixOperator", _op.__dict__)
-_CompositeOfOperators = num.TypecodeParameterizedType(
+_CompositeOfOperators = num.ParameterizedType(
   "CompositeMatrixOperator", _op.__dict__)
 
 
@@ -171,23 +187,23 @@ _CompositeOfOperators = num.TypecodeParameterizedType(
 
 def _neg_operator(op):
     return _compose_operators(
-        _ScalarMultiplicationOperator(op.typecode())(-1, op.shape[0]),
+        _ScalarMultiplicationOperator(op.dtype)(-1, op.shape[0]),
         op)
 
 def _add_operators(op1, op2):
-    return _SumOfOperators(op1.typecode())(op1, op2)
+    return _SumOfOperators(op1.dtype)(op1, op2)
 
 def _subtract_operators(op1, op2):
     return _add_operators(op1, _neg_operator(op2))
 
 def _compose_operators(outer, inner):
-    return _CompositeOfOperators(outer.typecode())(outer, inner)
+    return _CompositeOfOperators(outer.dtype)(outer, inner)
 
 def _multiply_operators(op1, op2):
     if num._is_number(op2):
         return _compose_operators(
             op1,
-            _ScalarMultiplicationOperator(op1.typecode())(op2, op1.shape[0]))
+            _ScalarMultiplicationOperator(op1.dtype)(op2, op1.shape[0]))
     else:
         return _compose_operators(op1, op2)
 
@@ -195,12 +211,12 @@ def _reverse_multiply_operators(op1, op2):
     # i.e. op2 * op1
     assert num._is_number(op2)
     return _compose_operators(
-        _ScalarMultiplicationOperator(op1.typecode())(op2, op1.shape[0]),
+        _ScalarMultiplicationOperator(op1.dtype)(op2, op1.shape[0]),
         op1)
 
 def _call_operator(op1, op2):
     try:
-        temp = num.zeros((op1.shape[0],), op2.typecode())
+        temp = num.zeros((op1.shape[0],), op2.dtype)
         op1.apply(op2, temp)
         return temp
     except TypeError:
@@ -220,22 +236,17 @@ def _add_operator_behaviors():
         # the top-level scope, whose variables change.
         return lambda self: value
 
-    for tc in num.TYPECODES:
-        Operator(tc).__neg__ = _neg_operator
-        Operator(tc).__add__ = _add_operators
-        Operator(tc).__sub__ = _subtract_operators
-        Operator(tc).__mul__ = _multiply_operators
-        Operator(tc).__rmul__ = _reverse_multiply_operators
-        Operator(tc).__call__ = _call_operator
-        Operator(tc).typecode = get_returner(tc)
+    for dtype in num.DTYPES:
+        Operator(dtype).__neg__ = _neg_operator
+        Operator(dtype).__add__ = _add_operators
+        Operator(dtype).__sub__ = _subtract_operators
+        Operator(dtype).__mul__ = _multiply_operators
+        Operator(dtype).__rmul__ = _reverse_multiply_operators
+        Operator(dtype).__call__ = _call_operator
+        Operator(dtype).typecode = get_returner(dtype)
+        Operator(dtype).dtype = property(get_returner(dtype))
 
 
 
 
 _add_operator_behaviors()
-
-
-
-
-
-

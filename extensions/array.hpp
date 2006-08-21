@@ -1,3 +1,19 @@
+//
+// Copyright (c) 2004-2006
+// Andreas Kloeckner
+//
+// Permission to use, copy, modify, distribute and sell this software
+// and its documentation for any purpose is hereby granted without fee,
+// provided that the above copyright notice appear in all copies and
+// that both that copyright notice and this permission notice appear
+// in supporting documentation.  The authors make no representations
+// about the suitability of this software for any purpose.
+// It is provided "as is" without express or implied warranty.
+//
+
+
+
+
 #include <complex>
 #include <string>
 #include <cmath>
@@ -217,8 +233,8 @@ struct slice_info
   bool m_was_slice;
   int m_start;
   int m_end;
-  int m_step;
-  int m_sliceLength;
+  int m_stride;
+  int m_length;
 };
 
 
@@ -229,9 +245,8 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
   si.m_was_slice = PySlice_Check(slice_or_constant);
   if (si.m_was_slice)
   {
-    PySliceObject *slice = reinterpret_cast<PySliceObject *>(slice_or_constant);
-    if (PySlice_GetIndicesEx(slice, my_length, &si.m_start, &si.m_end, 
-          &si.m_step, &si.m_sliceLength) != 0)
+    if (PySlice_GetIndicesEx(reinterpret_cast<PySliceObject *>(slice_or_constant), 
+          my_length, &si.m_start, &si.m_end, &si.m_stride, &si.m_length) != 0)
       throw python::error_already_set();
   }
   else if (PyInt_Check(slice_or_constant))
@@ -245,8 +260,8 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
       throw std::out_of_range("index out of bounds");
     si.m_start = index;
     si.m_end = index + 1;
-    si.m_step = 1;
-    si.m_sliceLength = 1;
+    si.m_stride = 1;
+    si.m_length = 1;
   }
   else
     throw std::out_of_range("invalid index object");
@@ -256,11 +271,17 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
 
 
 template <typename MatrixType>
-static PyObject *getElement(const MatrixType &m, PyObject *index)
+static PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
     vector_t;
+  typedef
+    typename MatrixType::value_type
+    value_t;
+  typedef 
+    ublas::basic_slice<typename MatrixType::size_type> slice_t;
+
   
   if (PyTuple_Check(index))
   {
@@ -273,21 +294,24 @@ static PyObject *getElement(const MatrixType &m, PyObject *index)
     translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
 
     if (!si1.m_was_slice && !si2.m_was_slice)
-      return pyobject_from_rvalue(m(si1.m_start, si2.m_start));
+      return pyobject_from_rvalue(value_t(m(si1.m_start, si2.m_start)));
     else if (!si1.m_was_slice)
-      return pyobject_from_new_ptr(new vector_t(row(m,si1.m_start)));
+      return pyobject_from_new_ptr(new vector_t(
+            ublas::matrix_vector_slice<MatrixType>(m, 
+              slice_t(si1.m_start, 0,            si2.m_length),
+              slice_t(si2.m_start, si2.m_stride, si2.m_length))));
     else if (!si2.m_was_slice)
-      return pyobject_from_new_ptr(new vector_t(column(m,si2.m_start)));
+      return pyobject_from_new_ptr(new vector_t(
+                  ublas::matrix_vector_slice<MatrixType>(m, 
+                      slice_t(si1.m_start, si1.m_stride, si1.m_length),
+                      slice_t(si2.m_start, 0,            si1.m_length))));
     else
     {
       return pyobject_from_new_ptr(
           new MatrixType(
-            project(
-              m,
-              ublas::basic_slice<typename MatrixType::size_type>
-              (si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::basic_slice<typename MatrixType::size_type>
-              (si2.m_start, si2.m_step, si2.m_sliceLength))));
+            subslice(m,
+                si1.m_start, si1.m_stride, si1.m_length,
+                si2.m_start, si2.m_stride, si2.m_length)));
     }
   }
   else
@@ -300,13 +324,10 @@ static PyObject *getElement(const MatrixType &m, PyObject *index)
     else
       return pyobject_from_new_ptr(
           new MatrixType(
-            project(
-              m,
-              ublas::basic_slice<typename MatrixType::size_type>
-              (si.m_start, si.m_step, si.m_sliceLength),
-              ublas::basic_slice<typename MatrixType::size_type>
-              (0, 1, m.size2())
-              )));
+            subslice(m,
+              si.m_start, si.m_stride, si.m_length,
+              0, 1, m.size2())
+              ));
   }
 }
 
@@ -314,7 +335,7 @@ static PyObject *getElement(const MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-static PyObject *getElement(const ublas::vector<ValueType> &m, PyObject *index)
+static PyObject *getElement(/*const*/ ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
   translateIndex(index, si, m.size());
@@ -323,7 +344,7 @@ static PyObject *getElement(const ublas::vector<ValueType> &m, PyObject *index)
     return pyobject_from_rvalue(m(si.m_start));
   else
     return pyobject_from_new_ptr(
-      new ublas::vector<ValueType>(project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength))));
+      new ublas::vector<ValueType>(subslice(m, si.m_start, si.m_stride, si.m_length)));
 }
 
 
@@ -334,10 +355,17 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
 { 
   typedef 
     typename get_corresponding_vector_type<MatrixType>::type
-    vector_type;
+    vector_t;
+  typedef 
+      typename MatrixType::value_type m_value_t;
+  typedef 
+      typename MatrixType::size_type m_size_t;
+  typedef 
+      ublas::basic_slice<m_size_t> slice_t;
+
 
   python::extract<typename MatrixType::value_type> new_scalar(new_value);
-  python::extract<vector_type> new_vector(new_value);
+  python::extract<const vector_t &> new_vector(new_value);
   python::extract<const MatrixType &> new_matrix(new_value);
 
   if (PyTuple_Check(index))
@@ -353,77 +381,59 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
     if (new_scalar.check())
     {
       // scalar broadcast 
-
-      // vector special cases are good because rows and columns are
-      // tremendously faster than slices - they use strides.
-      if (si1.m_sliceLength == 1 && si2.m_sliceLength == 1)
-        m(si1.m_start, si2.m_start) = new_scalar();
-      else if (si1.m_sliceLength == 1 && (unsigned) si2.m_sliceLength == m.size2())
-      {
-        ublas::matrix_row<MatrixType> my_row(m, si1.m_start);
-        helpers::fill_matrix(my_row, new_scalar());
-      }
-      else if (si2.m_sliceLength == 1 && (unsigned) si1.m_sliceLength == m.size1())
-      {
-        ublas::matrix_column<MatrixType> my_column(m, si2.m_start);
-        helpers::fill_matrix(my_column, new_scalar());
-      }
-      else
-      {
-        ublas::matrix_slice<MatrixType> my_slice(m,
-              ublas::basic_slice<typename MatrixType::size_type>(si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::basic_slice<typename MatrixType::size_type>(si2.m_start, si2.m_step, si2.m_sliceLength));
-        helpers::fill_matrix(my_slice, new_scalar());
-      }
+      subslice(m,
+            si1.m_start, si1.m_stride, si1.m_length,
+            si2.m_start, si2.m_stride, si2.m_length) =
+        ublas::scalar_matrix<m_value_t>(si1.m_length, si2.m_length, new_scalar());
     }
     else if (new_vector.check())
     {
-      vector_type new_vec = new_vector();
-
-      if (si1.m_sliceLength == 1)
+      const vector_t &new_vec(new_vector());
+      if (si1.m_length == 1)
       {
 	// replace row
-        if (new_vec.size() != m.size2())
+        if (new_vec.size() != si2.m_length)
           PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
-        row(m,si1.m_start) = new_vec;
+        ublas::matrix_vector_slice<MatrixType>(m,
+            slice_t(si1.m_start, 0,            si2.m_length),
+            slice_t(si2.m_start, si2.m_stride, si2.m_length)) = new_vec;
       }
-      else if (si2.m_sliceLength == 1)
+      else if (si2.m_length == 1)
       {
 	// replace column
-        if (new_vec.size() != m.size1())
+        if (new_vector().size() != si1.m_length)
           PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
-        column(m,si2.m_start) = new_vec;
+        ublas::matrix_vector_slice<MatrixType>(m,
+            slice_t(si1.m_start, si1.m_stride, si1.m_length),
+            slice_t(si2.m_start, 0,            si1.m_length)) = new_vec;
       }
       else
       {
         // broadcast vector across matrix
         ublas::matrix_slice<MatrixType> my_slice(m,
-              ublas::basic_slice<typename MatrixType::size_type>(si1.m_start, si1.m_step, si1.m_sliceLength),
-              ublas::basic_slice<typename MatrixType::size_type>(si2.m_start, si2.m_step, si2.m_sliceLength));
+              slice_t(si1.m_start, si1.m_stride, si1.m_length),
+              slice_t(si2.m_start, si2.m_stride, si2.m_length));
 
         if (new_vec.size() != my_slice.size2())
           PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
-        for (unsigned i = 0; i < my_slice.size1(); ++i)
-          row(my_slice, i) = new_vec;
+        for (m_size_t i = 0; i < my_slice.size1(); ++i)
+          row(my_slice, i) = new_vector();
       }
     }
     else if (new_matrix.check())
     {
       // no broadcast
       const MatrixType &new_mat = new_matrix();
-      if (int(new_mat.size1()) != si1.m_sliceLength || int(new_mat.size2()) != si2.m_sliceLength)
+      if (int(new_mat.size1()) != si1.m_length || 
+          int(new_mat.size2()) != si2.m_length)
         PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
-      project(
-        m,
-        ublas::basic_slice<typename MatrixType::size_type>
-        (si1.m_start, si1.m_step, si1.m_sliceLength),
-        ublas::basic_slice<typename MatrixType::size_type>
-        (si2.m_start, si2.m_step, si2.m_sliceLength)) 
-        = new_mat;
+      subslice(m,
+        si1.m_start, si1.m_stride, si1.m_length,
+        si2.m_start, si2.m_stride, si2.m_length) = new_mat;
     }
     else
       PYTHON_ERROR(ValueError, "unknown type in element or slice assignment");
@@ -434,30 +444,15 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
     translateIndex(index, si, m.size1());
 
     if (new_scalar.check())
-    {
-      // broadcast a scalar
-      if (si.m_sliceLength == 1)
-      {
-        // rows are much faster than generic slices
-        ublas::matrix_row<MatrixType> my_row(row(m, si.m_start));
-        helpers::fill_matrix(my_row, new_scalar());
-      }
-      else
-      {
-        ublas::matrix_slice<MatrixType> my_slice(
-          m,
-          ublas::basic_slice<typename MatrixType::size_type>
-          (si.m_start, si.m_step, si.m_sliceLength),
-          ublas::basic_slice<typename MatrixType::size_type>
-          (0, 1, m.size2()));
-        helpers::fill_matrix(my_slice, new_scalar());
-      }
-    }
+      subslice(m,
+          si.m_start, si.m_stride, si.m_length,
+          0, 1, m.size2()) = 
+        ublas::scalar_matrix<m_value_t>(si.m_length, m.size2(), new_scalar());
     else if (new_vector.check())
     {
-      vector_type new_vec = new_vector();
+      vector_t new_vec = new_vector();
 
-      if (si.m_sliceLength == 1)
+      if (si.m_length == 1)
       {
         if (new_vec.size() != m.size2())
           PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
@@ -470,7 +465,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
         if (new_vec.size() != m.size2())
           PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
-        for (int i = si.m_start; i < si.m_end; i += si.m_step)
+        for (m_size_t i = si.m_start; i < si.m_end; i += si.m_stride)
           row(m, i) = new_vec;
       }
     }
@@ -478,11 +473,12 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
     {
       const MatrixType &new_mat = new_matrix();
 
-      if (int(new_mat.size1()) != si.m_sliceLength || new_mat.size2() != m.size2())
+      if (int(new_mat.size1()) != si.m_length || 
+          int(new_mat.size2()) != m.size2())
         PYTHON_ERROR(ValueError, "submatrix is wrong size for assignment");
 
       project(m,
-          ublas::basic_slice<typename MatrixType::size_type>(si.m_start, si.m_step, si.m_sliceLength),
+          ublas::basic_slice<typename MatrixType::size_type>(si.m_start, si.m_stride, si.m_length),
           ublas::basic_slice<typename MatrixType::size_type>(0, 1, m.size2())) = new_mat;
     }
     else
@@ -503,22 +499,13 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
   translateIndex(index, si, m.size());
 
   if (new_scalar.check())
-  {
-    if (si.m_sliceLength == 1)
-      m(si.m_start) = new_scalar();
-    else
-    {
-      // broadcast a scalar
-      ublas::vector_slice<ublas::vector<ValueType> > my_slice(m,
-          ublas::slice(si.m_start, si.m_step, si.m_sliceLength));
-      helpers::fill_matrix(my_slice, new_scalar());
-    }
-  }
+    subslice(m, si.m_start, si.m_stride, si.m_length) =
+      ublas::scalar_vector<ValueType>(si.m_length, new_scalar());
   else if (new_vector.check())
   {
-    if (new_vector().size() != si.m_sliceLength)
+    if (new_vector().size() != si.m_length)
       PYTHON_ERROR(ValueError, "subvector is wrong size for assignment");
-    project(m, ublas::slice(si.m_start, si.m_step, si.m_sliceLength)) = 
+    subslice(m, si.m_start, si.m_stride, si.m_length) = 
       new_vector();
   }
   else
@@ -663,8 +650,10 @@ static MatrixType *getFilledMatrix(
     typename MatrixType::size_type size2, 
     const typename MatrixType::value_type &value)
 {
+  typedef typename MatrixType::value_type value_t;
+
   std::auto_ptr<MatrixType> mat(new MatrixType(size1, size2));
-  helpers::fill_matrix(*mat, value);
+  *mat = ublas::scalar_matrix<value_t>(size1, size2, value);
   return mat.release();
 }
 
@@ -676,8 +665,10 @@ static MatrixType *getFilledVector(
     typename MatrixType::size_type size1, 
     const typename MatrixType::value_type &value)
 {
+  typedef typename MatrixType::value_type value_t;
+
   std::auto_ptr<MatrixType> mat(new MatrixType(size1));
-  helpers::fill_matrix(*mat, value);
+  *mat = ublas::scalar_vector<value_t>(size1, value);
   return mat.release();
 }
 
@@ -1442,7 +1433,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
         "Return the length of the leading dimension of the Array.")
     .def("swap", &WrappedClass::swap)
 
-    .def("__getitem__", (PyObject *(*)(const WrappedClass &, PyObject *)) getElement)
+    .def("__getitem__", (PyObject *(*)(/*const*/ WrappedClass &, PyObject *)) getElement)
     .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
 
     // unary negation

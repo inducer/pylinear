@@ -1,3 +1,19 @@
+#
+#  Copyright (c) 2004-2006
+#  Andreas Kloeckner
+#
+#  Permission to use, copy, modify, distribute and sell this software
+#  and its documentation for any purpose is hereby granted without fee,
+#  provided that the above copyright notice appear in all copies and
+#  that both that copyright notice and this permission notice appear
+#  in supporting documentation.  The authors make no representations
+#  about the suitability of this software for any purpose.
+#  It is provided "as is" without express or implied warranty.
+#
+
+
+
+
 """
 PyLinear's module for random matrices.
 """
@@ -16,23 +32,23 @@ def write_random_vector(vec):
     size, = vec.shape
     for i in range(size):
         value = random.normalvariate(0,10)
-        if vec.typecode() == num.Complex64:
+        if vec.dtype == num.Complex64:
             value += 1j*random.normalvariate(0,10)
         vec[i] = value
 
 
 
 
-def make_random_vector(size, typecode):
-    vec = num.zeros((size,), typecode)
+def make_random_vector(size, dtype):
+    vec = num.zeros((size,), dtype)
     write_random_vector(vec)
     return vec
 
 
 
 
-def make_random_onb(size, typecode):
-    vectors = [ makeRandomVector(size, typecode) for i in range(size) ]
+def make_random_onb(size, dtype):
+    vectors = [ makeRandomVector(size, dtype) for i in range(size) ]
     vectors = comp.orthogonalize(vectors)
 
     for i in range(size):
@@ -44,16 +60,16 @@ def make_random_onb(size, typecode):
 
 
 
-def make_random_orthogonal_matrix(size, typecode):
+def make_random_orthogonal_matrix(size, dtype):
     vectors = []
     for i in range(size):
-        v = num.zeros((size,), typecode)
+        v = num.zeros((size,), dtype)
         write_random_vector(v)
         vectors.append(v)
 
     orth_vectors = comp.orthogonalize(vectors)
 
-    mat = num.zeros((size,size), typecode)
+    mat = num.zeros((size,size), dtype)
     for i in range(size):
         mat[:,i] = orth_vectors[i]
 
@@ -62,10 +78,10 @@ def make_random_orthogonal_matrix(size, typecode):
 
   
 
-def make_random_skewhermitian_matrix(size, typecode):
-    a = num.zeros((size, size), typecode)
+def make_random_skewhermitian_matrix(size, dtype):
+    a = num.zeros((size, size), dtype)
     # fill diagonal
-    if typecode is num.Complex:
+    if dtype is num.Complex:
         for i in range(size):
             a[i,i] = 1j*random.normalvariate(0,10)
 
@@ -79,7 +95,7 @@ def make_random_skewhermitian_matrix(size, typecode):
     for i in range(size):
         for j in range(i):
             value = random.normalvariate(0,10)
-            if typecode is num.Complex:
+            if dtype is num.Complex:
                 value += 1j*random.normalvariate(0,10)
             a[i,j] = value
             a[j,i] = -_conjugate(value)
@@ -88,25 +104,25 @@ def make_random_skewhermitian_matrix(size, typecode):
 
 
 
-def make_random_spd_matrix(size, typecode):
-    eigenvalues = make_random_vector(size, typecode)
-    eigenmat = num.zeros((size,size), typecode)
+def make_random_spd_matrix(size, dtype):
+    eigenvalues = make_random_vector(size, dtype)
+    eigenmat = num.zeros((size,size), dtype)
     for i in range(size):
         eigenmat[i,i] = abs(eigenvalues[i])
 
-    orthomat = make_random_orthogonal_matrix(size, typecode)
+    orthomat = make_random_orthogonal_matrix(size, dtype)
     return orthomat.H * eigenmat *orthomat
 
 
 
 
-def make_random_full_matrix(size, typecode):
-    result = num.zeros((size, size), typecode)
+def make_random_full_matrix(size, dtype):
+    result = num.zeros((size, size), dtype)
     
     for row in range(size):
         for col in range(size):
             value = random.normalvariate(0,10)
-            if typecode == num.Complex64:
+            if dtype == num.Complex64:
                 value += 1j*random.normalvariate(0,10)
 
             result[row,col] = value
@@ -115,8 +131,8 @@ def make_random_full_matrix(size, typecode):
 
 
 
-def make_random_matrix(size, typecode, flavor = num.DenseMatrix):
-    result = num.zeros((size, size), typecode, flavor)
+def make_random_matrix(size, dtype, flavor = num.DenseMatrix):
+    result = num.zeros((size, size), dtype, flavor)
     elements = size ** 2 / 10
 
     for i in range(elements):
@@ -124,7 +140,7 @@ def make_random_matrix(size, typecode, flavor = num.DenseMatrix):
         col = random.randrange(0, size)
     
         value = random.normalvariate(0,10)
-        if typecode == num.Complex64:
+        if dtype == num.Complex64:
             value += 1j*random.normalvariate(0,10)
 
         result[row,col] += value

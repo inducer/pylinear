@@ -1,3 +1,19 @@
+#
+#  Copyright (c) 2004-2006
+#  Andreas Kloeckner
+#
+#  Permission to use, copy, modify, distribute and sell this software
+#  and its documentation for any purpose is hereby granted without fee,
+#  provided that the above copyright notice appear in all copies and
+#  that both that copyright notice and this permission notice appear
+#  in supporting documentation.  The authors make no representations
+#  about the suitability of this software for any purpose.
+#  It is provided "as is" without express or implied warranty.
+#
+
+
+
+
 """
 PyLinear's module with experimental functionality.
 
@@ -22,8 +38,8 @@ import pylinear.iteration as iteration
 
 
 def adapt_real_to_complex_operator(real_part, imaginary_part):
-    if real_part.typecode() != imaginary_part.typecode():
-        raise TypeError, "outer and inner must have matching typecodes"
+    if real_part.dtype != imaginary_part.dtype:
+        raise TypeError, "outer and inner must have matching dtypes"
     return _op.ComplexMatrixOperatorAdaptorFloat64(real_part, imaginary_part)
 
 
@@ -34,7 +50,7 @@ def vandermonde(vector, degree = None):
     if degree is None:
         degree = len(vector)
 
-    mat = num.zeros((len(vector), degree+1), vector.typecode())
+    mat = num.zeros((len(vector), degree+1), vector.dtype)
     for i, v in enumerate(vector):
         for power in range(degree+1):
             mat[i,power] = v**power
@@ -89,7 +105,7 @@ def find_interpolation_coefficients(x_vector, to_x):
     polynomial interpolation.
     """
     vm = vandermonde(x_vector, degree = len(x_vector) - 1)
-    vm_x = vandermonde(num.array([to_x], x_vector.typecode()), len(x_vector)-1)[0]
+    vm_x = vandermonde(num.array([to_x], x_vector.dtype), len(x_vector)-1)[0]
     return vm.T <<num.solve>> vm_x
 
     
@@ -180,7 +196,7 @@ def diagonalize_jacobi(matrix, compute_vectors = True,
     # Simple Jacobi
 
     rows, columns = matrix.shape
-    tc = matrix.typecode()
+    tc = matrix.dtype
 
     def off_diag_norm_squared(a):
         result = 0
@@ -262,10 +278,10 @@ def codiagonalize(matrices, observer = iteration.make_observer(stall_thresh = 1e
     """
 
     rows, columns = matrices[0].shape
-    tc = matrices[0].typecode()
+    tc = matrices[0].dtype
     for mat in matrices[1:]:
         assert mat.shape == (rows, columns)
-        assert mat.typecode() == tc
+        assert mat.dtype == tc
 
     def off_diag_norm_squared(a):
         result = 0
@@ -347,7 +363,7 @@ def matrix_exp_by_series(a, eps = 1e-15):
 
     a_frob = comp.norm_frobenius(a)
     
-    last_result = num.identity(h, a.typecode())
+    last_result = num.identity(h, a.dtype)
     result = last_result.copy()
 
     current_power_of_a = a
@@ -411,7 +427,7 @@ def orthogonality_error(mat):
     return identity_error(mat.T * mat)
 
 def identity_error(mat):
-    id_mat = num.identity(mat.shape[0], mat.typecode())
+    id_mat = num.identity(mat.shape[0], mat.dtype)
     return comp.norm_frobenius(mat - id_mat)
 
 
@@ -480,8 +496,8 @@ def interpolate_vector_list(vectors, inbetween_points):
 
 
 
-def make_rotation_matrix(radians, n = 2, axis1 = 0, axis2 = 1, typecode = num.Float):
-    mat = num.identity(n, typecode)
+def make_rotation_matrix(radians, n = 2, axis1 = 0, axis2 = 1, dtype = num.Float):
+    mat = num.identity(n, dtype)
     mat[axis1,axis1] = math.cos(radians)
     mat[axis2,axis1] = math.sin(radians)
     mat[axis1,axis2] = -math.sin(radians)
@@ -500,8 +516,8 @@ def get_parallelogram_volume(vectors):
 
 
 
-def unit_vector(i, dim, typecode = num.Float):
-    uvec = num.zeros((dim,), typecode)
+def unit_vector(i, dim, dtype = num.Float):
+    uvec = num.zeros((dim,), dtype)
     uvec[i] = 1
     return uvec
 

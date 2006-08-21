@@ -1,3 +1,19 @@
+#
+#  Copyright (c) 2004-2006
+#  Andreas Kloeckner
+#
+#  Permission to use, copy, modify, distribute and sell this software
+#  and its documentation for any purpose is hereby granted without fee,
+#  provided that the above copyright notice appear in all copies and
+#  that both that copyright notice and this permission notice appear
+#  in supporting documentation.  The authors make no representations
+#  about the suitability of this software for any purpose.
+#  It is provided "as is" without express or implied warranty.
+#
+
+
+
+
 """
 PyLinear's Python wrapper module for creating/manipulating Arrays.
 (Array here means Matrix or Vector)
@@ -31,7 +47,7 @@ Complex = Complex64
 
 
 # type code-related -----------------------------------------------------------
-TYPECODES = [
+DTYPES = [
     Float64,
     Complex64
     ]
@@ -39,18 +55,18 @@ TYPECODES = [
 
 
 
-def _typecode_name(typecode):
-    if typecode == Float64:
+def _dtype_name(dtype):
+    if dtype == Float64:
         return "Float64"
-    elif typecode == Complex64:
+    elif dtype == Complex64:
         return "Complex64"
     else:
-        raise RuntimeError, "Invalid typecode specified"
+        raise RuntimeError, "Invalid dtype specified"
 
   
 
 
-def _max_typecode(list):
+def _max_dtype(list):
     if Complex in list:
         return Complex
     else:
@@ -59,9 +75,9 @@ def _max_typecode(list):
 
 
 
-class TypecodeParameterizedType(object):
+class ParameterizedType(object):
     """
-    A base class for "types" that depend on a typecode.
+    A base class for "types" that depend on a dtype.
 
     This is a rather internal class.
     """
@@ -72,21 +88,21 @@ class TypecodeParameterizedType(object):
         self.Name = name
 
         type_dict = {}
-        for tc in TYPECODES:
-            type_dict[tc] = use_dict[name + _typecode_name(tc)]
+        for tc in DTYPES:
+            type_dict[tc] = use_dict[name + _dtype_name(tc)]
         self.TypeDict = type_dict
 
     def is_a(self, object):
         try:
-            return isinstance(object, self(object.typecode()))
+            return isinstance(object, self(object.dtype))
         except NameError:
             return False
 
-    def __call__(self, typecode):
-        return self.TypeDict[typecode]
+    def __call__(self, dtype):
+        return self.TypeDict[dtype]
 
-    def make(self, typecode, *args, **kwargs):
-        return self.TypeDict[typecode](*args, **kwargs)
+    def make(self, dtype, *args, **kwargs):
+        return self.TypeDict[dtype](*args, **kwargs)
 
     def get_name(self):
         return self.Name
@@ -98,10 +114,10 @@ class TypecodeParameterizedType(object):
 
 
 # flavor-related --------------------------------------------------------------
-Vector = TypecodeParameterizedType("Vector")
-DenseMatrix = TypecodeParameterizedType("Matrix")
-SparseBuildMatrix = TypecodeParameterizedType("SparseBuildMatrix")
-SparseExecuteMatrix = TypecodeParameterizedType("SparseExecuteMatrix")
+Vector = ParameterizedType("Vector")
+DenseMatrix = ParameterizedType("Matrix")
+SparseBuildMatrix = ParameterizedType("SparseBuildMatrix")
+SparseExecuteMatrix = ParameterizedType("SparseExecuteMatrix")
 
 
 
@@ -143,7 +159,7 @@ def _is_matrix(value):
 
 def _matrix_cast_and_retry(matrix, operation, other):
     if _is_number(other):
-        if matrix.typecode() == Float:
+        if matrix.dtype == Float:
             m_cast = asarray(matrix, Complex)
             return getattr(m_cast, "_nocast_" + operation)(other)
         else:
@@ -155,7 +171,7 @@ def _matrix_cast_and_retry(matrix, operation, other):
     except AttributeError:
         return NotImplemented
 
-    tcmax = _max_typecode([matrix.typecode(), other.typecode()])
+    tcmax = _max_dtype([matrix.dtype, other.dtype])
     m_cast = asarray(matrix, tcmax)
     if other.flavor is Vector:
         o_cast = asarray(other, tcmax)
@@ -168,7 +184,7 @@ def _matrix_cast_and_retry(matrix, operation, other):
 
 def _vector_cast_and_retry(vector, operation, other):
     if _is_number(other):
-        if vector.typecode() == Float:
+        if vector.dtype == Float:
             v_cast = asarray(vector, Complex)
             return getattr(v_cast, "_nocast_" + operation)(other)
         else:
@@ -181,7 +197,7 @@ def _vector_cast_and_retry(vector, operation, other):
     except AttributeError:
         return NotImplemented
 
-    tcmax = _max_typecode([vector.typecode(), other.typecode()])
+    tcmax = _max_dtype([vector.dtype, other.dtype])
     m_cast = asarray(vector, tcmax)
     o_cast = asarray(other, tcmax)
     return getattr(m_cast, "_nocast_" + operation)(o_cast)
@@ -195,7 +211,7 @@ def _matrix_power(x, n):
         n *= -1
 
     # http://c2.com/cgi/wiki?IntegerPowerAlgorithm
-    aux = identity(x.shape[0], x.typecode())
+    aux = identity(x.shape[0], x.dtype)
     while n > 0:
         if n & 1: 
             aux *= x
@@ -307,7 +323,7 @@ def _not_equal(a, b):
 
 
 # array interface -------------------------------------------------------------
-def _typecode_to_array_typestr(tc):
+def _dtype_to_array_typestr(tc):
     if sys.byteorder == "big":
         indicator = ">"
     elif sys.byteorder == "little":
@@ -332,10 +348,10 @@ def _add_array_behaviors():
         # the top-level scope, whose variables change.
         return lambda self: value
 
-    for tc in TYPECODES:
-        tc_array_typestr = _typecode_to_array_typestr(tc)
+    for dtype in DTYPES:
+        dtype_array_typestr = _dtype_to_array_typestr(dtype)
         for f in FLAVORS:
-            co = f(tc)
+            co = f(dtype)
             co.__add__ = co._ufunc_add
             co.__radd__ = co._ufunc_add
             co.__sub__ = co._ufunc_subtract
@@ -345,32 +361,33 @@ def _add_array_behaviors():
             co.__ne__ = _not_equal
             
             co.flavor = property(get_returner(f))
-            co.typecode = get_returner(tc)
+            co.dtype = property(get_returner(dtype))
+            co.typecode = get_returner(dtype)
             
-            co.__array_typestr__ = property(get_returner(tc_array_typestr))
+            co.__array_typestr__ = property(get_returner(dtype_array_typestr))
 
 
-        DenseMatrix(tc).__pow__ = _matrix_power
-        DenseMatrix(tc).__rdiv__ = _divide_by_matrix
-        DenseMatrix(tc).__rtruediv__ = _divide_by_matrix
+        DenseMatrix(dtype).__pow__ = _matrix_power
+        DenseMatrix(dtype).__rdiv__ = _divide_by_matrix
+        DenseMatrix(dtype).__rtruediv__ = _divide_by_matrix
 
         # stringification -----------------------------------------------------
-        Vector(tc).__str__ = _str_vector
-        Vector(tc).__repr__ = _repr_vector
-        DenseMatrix(tc).__str__ = _str_dense_matrix
-        DenseMatrix(tc).__repr__ = _repr_dense_matrix
+        Vector(dtype).__str__ = _str_vector
+        Vector(dtype).__repr__ = _repr_vector
+        DenseMatrix(dtype).__str__ = _str_dense_matrix
+        DenseMatrix(dtype).__repr__ = _repr_dense_matrix
 
         for f in FLAVORS:
             if f not in [Vector, DenseMatrix]:
-                co = f(tc)
+                co = f(dtype)
                 co.__str__ = _str_sparse_matrix
                 co.__repr__ = _repr_sparse_matrix
 
         # cast_and_retry ------------------------------------------------------
         for mt in MATRIX_FLAVORS:
-            mt(tc)._cast_and_retry = _matrix_cast_and_retry
+            mt(dtype)._cast_and_retry = _matrix_cast_and_retry
         for vt in VECTOR_FLAVORS:
-            vt(tc)._cast_and_retry = _vector_cast_and_retry
+            vt(dtype)._cast_and_retry = _vector_cast_and_retry
 
 
 
@@ -381,7 +398,7 @@ _add_array_behaviors()
 
 
 # class getter ----------------------------------------------------------------
-def _get_matrix_class(dim, typecode, flavor):
+def _get_matrix_class(dim, dtype, flavor):
     if dim == 1:
         type_obj = Vector
     else:
@@ -389,21 +406,22 @@ def _get_matrix_class(dim, typecode, flavor):
             raise RuntimeError, "dim must be one or two"
 
         type_obj = flavor or DenseMatrix
-    return type_obj(typecode)
+    return type_obj(dtype)
 
 
 
 
 # construction functions ------------------------------------------------------
-def array(data, typecode=None, flavor=None):
+def array(data, dtype=None, flavor=None):
     """Create an Array from a (potentially nested) list of data values.
 
-    Takes into account the given typecode and flavor. If None are specified,
+    Takes into account the given dtype and flavor. If None are specified,
     the minimum that will accomodate the given data are used.
     
-    typecode can be one of Float,Complex, Float64, Complex64.
+    dtype can be one of Float,Complex, Float64, Complex64.
     flavor can be one of Vector, DenseMatrix, SparseBuildMatrix, SparseExecuteMatrix.
     """
+
     # slow, but that doesn't matter so much
     def get_dim(data):
         try:
@@ -425,13 +443,13 @@ def array(data, typecode=None, flavor=None):
 
     dim = get_dim(data)
 
-    if typecode is None:
-        typecode = get_biggest_type(data)
+    if dtype is None:
+        dtype = get_biggest_type(data)
     if flavor is None:
         flavor = DenseMatrix
 
     if dim == 2:
-        mat_class = flavor(typecode)
+        mat_class = flavor(dtype)
         h = len(data)
         if h == 0:
             return mat_class(0, 0)
@@ -442,7 +460,7 @@ def array(data, typecode=None, flavor=None):
                 result[i,j] = data[i][j]
         return result
     elif dim == 1:
-        mat_class = Vector(typecode)
+        mat_class = Vector(dtype)
         h = len(data)
         result = mat_class(h)
         for i in range(h):
@@ -454,16 +472,17 @@ def array(data, typecode=None, flavor=None):
 
 
 
-def sparse(mapping, shape=None, typecode=None, flavor=SparseBuildMatrix):
+def sparse(mapping, shape=None, dtype=None, flavor=SparseBuildMatrix):
     """Create a sparse Array from (two-level) nested mappings (e.g. dictionaries).
 
-    Takes into account the given typecode and flavor. If None are specified,
+    Takes into account the given dtype and flavor. If None are specified,
     the minimum that will accomodate the given data are used.
     If shape is unspecified, the smallest size that can accomodate the data
     is used.
 
-    See array() for valid typecodes and flavors.
+    See array() for valid dtype and flavors.
     """
+
     def get_biggest_type(mapping, prev_biggest_type = Float64):
         for row in mapping.values():
             for val in row.values():
@@ -471,8 +490,8 @@ def sparse(mapping, shape=None, typecode=None, flavor=SparseBuildMatrix):
                     prev_biggest_type = Complex
         return prev_biggest_type
 
-    if typecode is None:
-        typecode = get_biggest_type(mapping)
+    if dtype is None:
+        dtype = get_biggest_type(mapping)
 
     if shape is None:
         height = max(mapping.keys()) + 1
@@ -482,7 +501,7 @@ def sparse(mapping, shape=None, typecode=None, flavor=SparseBuildMatrix):
 
         shape = height, width
 
-    mat = flavor(typecode)(shape[0], shape[1])
+    mat = flavor(dtype)(shape[0], shape[1])
     for i, row in mapping.iteritems():
         for j, val in row.iteritems():
             mat[i,j] = val
@@ -491,59 +510,92 @@ def sparse(mapping, shape=None, typecode=None, flavor=SparseBuildMatrix):
 
 
 
-def asarray(data, typecode=None, flavor=None):
+def asarray(data, dtype=None, flavor=None):
     """Construct an array from data.
     
     Same as array(), except that a copy is made only when necessary.
     """
+
     try:
         given_flavor = data.flavor
-        given_tc = data.typecode()
+        given_dtype = data.dtype
     except NameError:
         given_flavor = None
-        given_tc = None
+        given_dtype = None
 
     if flavor is None:
         flavor = given_flavor
 
-    if given_tc == typecode and given_flavor == flavor:
+    if given_dtype == dtype and given_flavor == flavor:
         return data
 
-    if typecode is None and given_tc is not None:
-        typecode = given_tc
+    if dtype is None and given_dtype is not None:
+        dtype = given_dtype
 
     try:
-        mat_class = _get_matrix_class(len(data.shape), typecode, flavor)
+        mat_class = _get_matrix_class(len(data.shape), dtype, flavor)
         return mat_class(data)
     except TypeError:
-        return array(data, typecode, flavor)
+        return array(data, dtype, flavor)
   
 
 
 
 
-def _get_filled_matrix(shape, typecode, matrix_type, fill_value):
-    matrix_class = _get_matrix_class(len(shape), typecode, matrix_type)
+def _get_filled_matrix(shape, dtype, matrix_type, fill_value):
+    matrix_class = _get_matrix_class(len(shape), dtype, matrix_type)
     if len(shape) == 1:
         return matrix_class._get_filled_matrix(shape[0], fill_value)
     else:
         return matrix_class._get_filled_matrix(shape[0], shape[1], fill_value)
 
-def zeros(shape, typecode=Float, flavor=None):
-    """Return a zero-filled array."""
-    matrix_class = _get_matrix_class(len(shape), typecode, flavor)
+def empty(shape, dtype=Float, flavor=None):
+    """Return an uninitialized array.
+    
+    This is often faster than zeros().
+    """
+    matrix_class = _get_matrix_class(len(shape), dtype, flavor)
     if len(shape) == 1:
         result = matrix_class(shape[0])
     else:
         result = matrix_class(shape[0], shape[1])
+    return result
+
+def empty_like(ary):
+    """Return an uninitialized array with shape, flavor and dtype just
+    like `ary'.
+    
+    This is often faster than zeros_like().
+    """
+    result = empty(ary.shape, ary.dtype, ary.flavor)
     result.clear()
     return result
 
-def ones(shape, typecode=Float, flavor=None):
-    """Return a matrix filled with ones."""
-    return _get_filled_matrix(shape, typecode, flavor, 1)
+def zeros(shape, dtype=Float, flavor=None):
+    """Return a zero-filled array."""
+    result = empty(shape, dtype, flavor)
+    result.clear()
+    return result
 
-def eye(n, m=None, offset=0, typecode=Float, flavor=None):
+def zeros_like(ary):
+    """Return a zero-filled array with shape, flavor and dtype just
+    like `ary'.
+    """
+    result = zeros(shape, dtype, flavor)
+    result.clear()
+    return result
+
+def zeros_like(shape, dtype=Float, flavor=None):
+    """Return a zero-filled array."""
+    result = zeros(ary.shape, ary.dtype, ary.flavor)
+    result.clear()
+    return result
+
+def ones(shape, dtype=Float, flavor=None):
+    """Return a matrix filled with ones."""
+    return _get_filled_matrix(shape, dtype, flavor, 1)
+
+def eye(n, m=None, offset=0, dtype=Float, flavor=None):
     """Return a matrix `n' rows and `m' columns with the `offset'-th
     diagonal all ones, and everything else zeros.
     
@@ -551,12 +603,12 @@ def eye(n, m=None, offset=0, typecode=Float, flavor=None):
     """
     if m is None:
         m = n
-    result = zeros((n,m), typecode, flavor)
+    result = zeros((n,m), dtype, flavor)
     for i in range(max(0,-offset), min(m-offset,n)):
         result[i,i+offset] = 1
     return result
 
-def tri(n, m=None, offset=0, typecode=Float, flavor=None):
+def tri(n, m=None, offset=0, dtype=Float, flavor=None):
     """Return a matrix `n' rows and `m' columns with the `offset'-th
     diagonal and the entires below it all ones, and everything else zeros.
     
@@ -564,7 +616,7 @@ def tri(n, m=None, offset=0, typecode=Float, flavor=None):
     """
     if m is None:
         m = n
-    result = zeros((n,m), typecode, flavor)
+    result = zeros((n,m), dtype, flavor)
     min_idx = max(0,-offset)
     for col in range(0,min_idx+offset):
         result[:,col] = 1
@@ -572,14 +624,14 @@ def tri(n, m=None, offset=0, typecode=Float, flavor=None):
         result[i:,i+offset] = 1
     return result
 
-def identity(n, typecode=Float, flavor=None):
+def identity(n, dtype=Float, flavor=None):
     """Return an identity matrix.
     
     Deprecated in favor of the more powerful eye().
     """
-    return eye(n, typecode=typecode, flavor=flavor)
+    return eye(n, dtype=dtype, flavor=flavor)
 
-def diagonal_matrix(vec_or_mat, shape=None, typecode=None, flavor=DenseMatrix):
+def diagonal_matrix(vec_or_mat, shape=None, dtype=None, flavor=DenseMatrix):
     """Return a given Array as a diagonal matrix.
     
     If vec_or_mat is a vector, return a diagonal matrix of the same size
@@ -592,14 +644,14 @@ def diagonal_matrix(vec_or_mat, shape=None, typecode=None, flavor=DenseMatrix):
         n = vec.shape[0]
         if shape is None:
             shape = (n,n)
-        result = zeros(shape, typecode or vec.typecode(),
+        result = zeros(shape, dtype or vec.dtype,
                     flavor)
         for i in range(min((n,)+shape)):
             result[i,i] = vec[i]
         return result
     else:
         mat = vec_or_mat
-        result = zeros(mat.shape, mat.typecode(), mat.flavor)
+        result = zeros(mat.shape, mat.dtype, mat.flavor)
         n = mat.shape[0]
         for i in range(n):
             result[i,i] = mat[i,i]
@@ -622,7 +674,7 @@ def hstack(tup, flavor=DenseMatrix):
     h = tup[0].shape[0]
     w = sum([arr.shape[1] for arr in tup])
 
-    result = zeros((h,w), _max_typecode(tup), flavor=flavor)
+    result = zeros((h,w), _max_dtype(tup), flavor=flavor)
 
     index = 0
     for arr in tup:
@@ -647,7 +699,7 @@ def vstack(tup, flavor=DenseMatrix):
     w = tup[0].shape[1]
     h = sum([arr.shape[0] for arr in tup])
 
-    result = zeros((h,w), _max_typecode(tup), flavor=flavor)
+    result = zeros((h,w), _max_dtype(tup), flavor=flavor)
 
     index = 0
     for arr in tup:
@@ -762,7 +814,7 @@ def diagonal(mat, offset=0):
     if length < 0:
         raise ValueError, "diagonal: invalid offset"
 
-    result = zeros((length,),  mat.typecode())
+    result = zeros((length,),  mat.dtype)
     for i in range(min_idx, max_idx):
         result[i-min_idx] = mat[i, i+offset]
     return result
@@ -772,7 +824,7 @@ def triu(mat, offset=0):
     
     `offset' may be negative, indicating subdiagonals.
     """
-    result = zeros(mat.shape, mat.typecode(), mat.flavor)
+    result = zeros(mat.shape, mat.dtype, mat.flavor)
     m, n = mat.shape 
     max_idx = min(m-offset,n)
     for i in range(max(0,-offset), max_idx):
@@ -786,7 +838,7 @@ def tril(mat, offset=0):
     
     `offset' may be negative, indicating subdiagonals.
     """
-    result = zeros(mat.shape, mat.typecode(), mat.flavor)
+    result = zeros(mat.shape, mat.dtype, mat.flavor)
     m, n = mat.shape 
     min_idx = max(0,-offset)
     for col in range(0,min_idx+offset):
@@ -797,9 +849,9 @@ def tril(mat, offset=0):
 
 def take(mat, indices, axis=0):
     if axis == 1:
-        return array([mat[:,i] for i in indices], mat.typecode()).T
+        return array([mat[:,i] for i in indices], mat.dtype).T
     else:
-        return array([mat[i] for i in indices], mat.typecode())
+        return array([mat[i] for i in indices], mat.dtype)
   
 def matrixmultiply(mat1, mat2):
     """Multiply mat1 and mat2. For compatibility with NumPy."""
@@ -867,12 +919,12 @@ def kroneckerproduct(a, b):
      [ ...                                   ...   ],
      [ a[m-1,0]*b, a[m-1,1]*b, ... , a[m-1,n-1]*b  ]]
 
-    The result has the correct typecode for a product of the
+    The result has the correct dtype for a product of the
     arguments and b's flavor.
     """
     ah, aw = a.shape
     bh, bw = b.shape
-    tc = _max_typecode([a.typecode(), b.typecode()])
+    tc = _max_dtype([a.dtype, b.dtype])
     result = zeros((ah*bh,aw*bw), tc, flavor=b.flavor)
     for i in range(ah):
         for j in range(aw):

@@ -2,18 +2,14 @@
 Current
 --------------------------------------------------------------------------
 Documentation fallout of comp/op split
-empty,  zeros_like, empty_like
 
 document diagonal_matrix, take, tri[ul]
 
 document computation
 
 operator algebra examples
-license note
 C++ extension sample
 rethink structure of arraytypes.tex
-
-indexing example a[0,1:] not working!
 --------------------------------------------------------------------------
 Future
 --------------------------------------------------------------------------

@@ -4,3 +4,4 @@ include siteconf-template.py
 include fortran/daskr/*.{f,sh}
 include fortran/daskr/README
 include fortran/daskr/LICENSE
+include LICENSE

@@ -1,3 +1,19 @@
+//
+// Copyright (c) 2004-2006
+// Andreas Kloeckner
+//
+// Permission to use, copy, modify, distribute and sell this software
+// and its documentation for any purpose is hereby granted without fee,
+// provided that the above copyright notice appear in all copies and
+// that both that copyright notice and this permission notice appear
+// in supporting documentation.  The authors make no representations
+// about the suitability of this software for any purpose.
+// It is provided "as is" without express or implied warranty.
+//
+
+
+
+
 #ifndef HEADER_SEEN_HELPERS_HPP
 #define HEADER_SEEN_HELPERS_HPP
 
@@ -158,21 +174,6 @@ template <typename T2>
 inline T2 absolute_value_squared(const std::complex<T2> &x)
 {
   return norm(x);
-}
-
-
-
-
-// fill_matrix ----------------------------------------------------------------
-template <typename MatrixType>
-void fill_matrix(MatrixType &me, 
-    const typename MatrixType::value_type &value)
-{
-  generic_ublas::matrix_iterator<MatrixType>
-    first = generic_ublas::begin(me), last = generic_ublas::end(me);
-  
-  while (first != last)
-    *first++ = value;
 }
 
 

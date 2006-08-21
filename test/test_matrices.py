@@ -13,7 +13,7 @@ import test_matrices_data as tmd
 
 
 class TestMatrices(unittest.TestCase):
-    def for_all_typecodes(self, f):
+    def for_all_dtypes(self, f):
         f(num.Float)
         f(num.Complex)
 
@@ -29,7 +29,7 @@ class TestMatrices(unittest.TestCase):
             for j in matrix:
                 self.assert_(j == 0)
 
-    def do_test_elementary_stuff(self, typecode):
+    def do_test_elementary_stuff(self, dtype):
         mat = num.zeros((3, 3), num.Complex64)
         mat[1,2] += 5+3j
         mat[2,1] += 7-8j
@@ -56,30 +56,30 @@ class TestMatrices(unittest.TestCase):
         sum(vec)
         mat * mat
 
-        m = num.zeros((11,10), typecode)
+        m = num.zeros((11,10), dtype)
         self.assert_zero(m)
 
-        v = num.zeros((11,), typecode)
+        v = num.zeros((11,), dtype)
 
         # believe you me, this test failed at one time.
         # weird things happen :/
         self.assert_zero(v)
 
     def test_elementary_stuff(self):
-        self.for_all_typecodes(self.do_test_elementary_stuff)
+        self.for_all_dtypes(self.do_test_elementary_stuff)
 
-    def do_test_add_scattered(self,typecode):
-        a = num.zeros((10,10), typecode)
+    def do_test_add_scattered(self,dtype):
+        a = num.zeros((10,10), dtype)
         vec = num.array([3., 5.])
-        b = num.asarray(vec <<num.outer>> num.array([2., 4.]), typecode)
+        b = num.asarray(vec <<num.outer>> num.array([2., 4.]), dtype)
         a.add_scattered([5,7], [1,3], b)
 
     def test_add_scattered(self):
-        self.for_all_typecodes(self.do_test_add_scattered)
+        self.for_all_dtypes(self.do_test_add_scattered)
 
-    def do_test_broadcast(self, typecode):
+    def do_test_broadcast(self, dtype):
         size = 10
-        a = make_random_full_matrix(size, typecode)
+        a = make_random_full_matrix(size, dtype)
 
         def scalar_broadcast(a):
             a[3:7, 5:9] = 0
@@ -90,12 +90,12 @@ class TestMatrices(unittest.TestCase):
             self.assert_zero(a[3:7])
 
         def vec_broadcast(a):
-            v = num.zeros((size,), typecode)
+            v = num.zeros((size,), dtype)
             a[3:7] = v
             self.assert_zero(a[3:7])
 
         def vec_broadcast2(a):
-            v = num.zeros((2,), typecode)
+            v = num.zeros((2,), dtype)
             a[:,2:4] = v
             self.assert_zero(a[:, 2:4])
 
@@ -105,7 +105,7 @@ class TestMatrices(unittest.TestCase):
         vec_broadcast2(a.copy())
 
     def test_broadcast(self):
-        self.for_all_typecodes(self.do_test_broadcast)
+        self.for_all_dtypes(self.do_test_broadcast)
 
     def test_ufunc(self):
         vec = num.array([3., 5.])
@@ -122,14 +122,14 @@ class TestMatrices(unittest.TestCase):
         self.assert_small(num.multiply(a, 2) - num.multiply(2, a))
         self.assert_small(num.multiply(a, vec) - num.multiply(vec, a))
 
-    def do_test_cg(self, typecode):
+    def do_test_cg(self, dtype):
         size = 20
 
-        A = make_random_spd_matrix(size, typecode)
+        A = make_random_spd_matrix(size, dtype)
         Aop = op.MatrixOperator.make(A)
-        b = make_random_vector(size, typecode)
+        b = make_random_vector(size, dtype)
         cg_op = op.CGOperator.make(Aop, 4000, 1e-10)
-        x = num.zeros((size,), typecode)
+        x = num.zeros((size,), dtype)
 
         initial_resid = comp.norm_2(b - A*x)
         x = cg_op(b)
@@ -137,29 +137,29 @@ class TestMatrices(unittest.TestCase):
         self.assert_(end_resid/initial_resid < 1e-10)
 
     def test_cg(self):
-        self.for_all_typecodes(self.do_test_cg)
+        self.for_all_dtypes(self.do_test_cg)
 
-    def do_test_umfpack(self, typecode):
+    def do_test_umfpack(self, dtype):
         size = 100
-        #A = make_random_matrix(size, typecode, num.SparseExecuteMatrix)
-        #b = make_random_vector(size, typecode)
-        A = tmd.umf_a[typecode]
-        b = tmd.umf_b[typecode]
+        #A = make_random_matrix(size, dtype, num.SparseExecuteMatrix)
+        #b = make_random_vector(size, dtype)
+        A = tmd.umf_a[dtype]
+        b = tmd.umf_b[dtype]
 
         umf_op = op.UMFPACKOperator.make(A)
-        x = num.zeros((size,), typecode)
+        x = num.zeros((size,), dtype)
 
         umf_op.apply(b, x)
 
         self.assert_(comp.norm_2(b - A * x) < 1e-10)
 
     def test_umfpack(self):
-        self.for_all_typecodes(self.do_test_umfpack)
+        self.for_all_dtypes(self.do_test_umfpack)
 
-    def do_test_arpack_classic(self, typecode):
+    def do_test_arpack_classic(self, dtype):
         size = 10
-        #A = make_random_matrix(size, typecode)
-        A = tmd.aclassmat[typecode]
+        #A = make_random_matrix(size, dtype)
+        A = tmd.aclassmat[dtype]
         Aop = op.MatrixOperator.make(A)
 
         results = comp.operator_eigenvectors(Aop, 3)
@@ -168,14 +168,14 @@ class TestMatrices(unittest.TestCase):
             self.assert_(comp.norm_2(A*vector - value*vector) < 1e-7)
 
     def test_arpack_classic(self):
-        self.for_all_typecodes(self.do_test_arpack_classic)
+        self.for_all_dtypes(self.do_test_arpack_classic)
 
-    def do_test_arpack_generalized(self, typecode):
+    def do_test_arpack_generalized(self, dtype):
         size = 100
-        A = tmd.agen_a[typecode]
+        A = tmd.agen_a[dtype]
         Aop = op.MatrixOperator.make(A)
 
-        M = tmd.agen_m[typecode]
+        M = tmd.agen_m[dtype]
         Mop = op.MatrixOperator.make(M)
 
         Minvop = op.LUInverseOperator.make(M)
@@ -187,16 +187,16 @@ class TestMatrices(unittest.TestCase):
                                    M*vector) < 1e-7)
 
     def test_arpack_generalized(self):
-        self.for_all_typecodes(self.do_test_arpack_generalized)
+        self.for_all_dtypes(self.do_test_arpack_generalized)
 
-    def do_test_arpack_shift_invert(self, typecode):
+    def do_test_arpack_shift_invert(self, dtype):
         size = 100
         sigma = 1
 
-        #A = make_random_matrix(size, typecode)
-        #M = make_random_spd_matrix(size, typecode)
-        A = tmd.arpsi_a[typecode]
-        M = tmd.arpsi_m[typecode]
+        #A = make_random_matrix(size, dtype)
+        #M = make_random_spd_matrix(size, dtype)
+        A = tmd.arpsi_a[dtype]
+        M = tmd.arpsi_m[dtype]
         Mop = op.MatrixOperator.make(M)
 
         shifted_mat_invop = op.LUInverseOperator.make(A - sigma * M)
@@ -208,71 +208,71 @@ class TestMatrices(unittest.TestCase):
             self.assert_(comp.norm_2(A*vector - value*M*vector) < 1e-10)
 
     def test_arpack_shift_invert(self):
-        self.for_all_typecodes(self.do_test_arpack_shift_invert)
+        self.for_all_dtypes(self.do_test_arpack_shift_invert)
 
-    def do_test_cholesky(self, typecode):
+    def do_test_cholesky(self, dtype):
         size = 100
-        A = make_random_spd_matrix(size, typecode)
+        A = make_random_spd_matrix(size, dtype)
         L = comp.cholesky(A)
         self.assert_small(L*L.H-A)
 
     def test_cholesky(self):
-        self.for_all_typecodes(self.do_test_cholesky)
+        self.for_all_dtypes(self.do_test_cholesky)
 
-    def do_test_solve(self, typecode):
+    def do_test_solve(self, dtype):
         size = 200
-        #A = make_random_full_matrix(size, typecode)
-        #b = num.zeros((size,), typecode)
+        #A = make_random_full_matrix(size, dtype)
+        #b = num.zeros((size,), dtype)
         #write_random_vector(b)
-        A = tmd.solve_a[typecode]
-        b = tmd.solve_b[typecode]
+        A = tmd.solve_a[dtype]
+        b = tmd.solve_b[dtype]
         x = A <<num.solve>> b
         self.assert_(comp.norm_2(A*x - b) < 1e-10)
 
     def test_solve(self):
-        self.for_all_typecodes(self.do_test_solve)
+        self.for_all_dtypes(self.do_test_solve)
 
-    def do_test_lu(self, typecode):
+    def do_test_lu(self, dtype):
         size = 100
-        A = make_random_full_matrix(size, typecode)+10*num.identity(size, num.Float)
+        A = make_random_full_matrix(size, dtype)+10*num.identity(size, num.Float)
         L,U,permut,sign = comp.lu(A)
         permut_mat = comp.make_permutation_matrix(permut)
         self.assert_small(L * U - permut_mat * A)
 
     def test_lu(self):
-        #self.for_all_typecodes(self.do_test_lu)
+        #self.for_all_dtypes(self.do_test_lu)
         self.do_test_lu(num.Float)
 
-    def do_test_sparse(self, typecode):
-        def countElements(mat):
+    def do_test_sparse(self, dtype):
+        def count_elements(mat):
             count = 0
             for i in mat.indices():
                 count += 1
             return count
 
         size = 100
-        A1 = make_random_matrix(size, typecode, num.SparseBuildMatrix)
-        A2 = num.asarray(A1, typecode, num.SparseExecuteMatrix)
-        self.assert_(countElements(A1) == countElements(A2))
+        A1 = make_random_matrix(size, dtype, num.SparseBuildMatrix)
+        A2 = num.asarray(A1, dtype, num.SparseExecuteMatrix)
+        self.assert_(count_elements(A1) == count_elements(A2))
 
     def test_sparse(self):
-        self.for_all_typecodes(self.do_test_sparse)
+        self.for_all_dtypes(self.do_test_sparse)
 
-    def do_test_inverse(self,typecode):
+    def do_test_inverse(self,dtype):
         size = 100
-        A = make_random_full_matrix(size, typecode)
+        A = make_random_full_matrix(size, dtype)
         Ainv = la.inverse(A)
-        Id = num.identity(size, typecode)
+        Id = num.identity(size, dtype)
 
         self.assert_small(Ainv*A-Id)
         self.assert_small(A*Ainv-Id)
 
     def test_inverse(self):
-        self.for_all_typecodes(self.do_test_inverse)
+        self.for_all_dtypes(self.do_test_inverse)
 
-    def do_test_determinant(self, typecode):
+    def do_test_determinant(self, dtype):
         size = 10
-        A = make_random_full_matrix(size, typecode)
+        A = make_random_full_matrix(size, dtype)
         detA = comp.determinant(A)
         A2 = A*A
         detA2 = comp.determinant(A2)
@@ -280,28 +280,28 @@ class TestMatrices(unittest.TestCase):
         self.assert_(abs((detA**2-detA2) / detA2) < 1e-10)
 
     def test_determinant(self):
-        self.for_all_typecodes(self.do_test_determinant)
+        self.for_all_dtypes(self.do_test_determinant)
 
-    def do_test_svd(self, typecode):
+    def do_test_svd(self, dtype):
         size = 100
-        mat = make_random_full_matrix(size, typecode)
+        mat = make_random_full_matrix(size, dtype)
         u, s_vec, vt = comp.svd(mat)
         self.assert_small(u * num.diagonal_matrix(s_vec) * vt - mat)
 
     def test_svd(self):
-        self.for_all_typecodes(self.do_test_svd)
+        self.for_all_dtypes(self.do_test_svd)
 
-    def do_test_pseudo_inverse(self, typecode):
+    def do_test_pseudo_inverse(self, dtype):
         size = 100
-        mat = make_random_full_matrix(size, typecode)[0:size,0:size-17]
+        mat = make_random_full_matrix(size, dtype)[0:size,0:size-17]
         pi = comp.pseudo_inverse(mat)
         resid = pi * mat * pi - pi
         self.assert_small(resid)
 
     def test_pseudo_inverse(self):
-        self.for_all_typecodes(self.do_test_pseudo_inverse)
+        self.for_all_dtypes(self.do_test_pseudo_inverse)
 
-    def do_test_jacobi(self, typecode):
+    def do_test_jacobi(self, dtype):
         size = 10
         
         def off_diag_norm_squared(a):
@@ -311,8 +311,8 @@ class TestMatrices(unittest.TestCase):
                     result += abs(a[i,j])**2
             return result
 
-        #a = make_random_spd_matrix(size, typecode)
-        a = tmd.jacspd[typecode]
+        #a = make_random_spd_matrix(size, dtype)
+        a = tmd.jacspd[dtype]
         before = math.sqrt(off_diag_norm_squared(a))
         q, aprime = toybox.diagonalize_jacobi(a, iteration.make_observer(rel_goal = 1e-10))
         after = math.sqrt(off_diag_norm_squared(aprime))
@@ -327,15 +327,15 @@ class TestMatrices(unittest.TestCase):
 
 
     def test_jacobi(self):
-        self.for_all_typecodes(self.do_test_jacobi)
+        self.for_all_dtypes(self.do_test_jacobi)
 
-    def do_test_codiagonalization(self, typecode):
+    def do_test_codiagonalization(self, dtype):
         size = 10
         
         def off_diag_norm_squared(a):
             return comp.norm_frobenius_squared(a) - comp.norm_2_squared(num.diagonal(a))
 
-        a = make_random_spd_matrix(size, typecode)
+        a = make_random_spd_matrix(size, dtype)
         before = math.sqrt(off_diag_norm_squared(a))
         q, mats_post, achieved = toybox.codiagonalize(
             [a], iteration.make_observer(stall_thresh = 1e-5, rel_goal = 1e-10))
@@ -351,9 +351,9 @@ class TestMatrices(unittest.TestCase):
         self.assert_(after / before <= 1e-10)
 
     def test_codiagonalization(self):
-        self.for_all_typecodes(self.do_test_codiagonalization)
+        self.for_all_dtypes(self.do_test_codiagonalization)
 
-    def do_test_matrix_exp(self, typecode):
+    def do_test_matrix_exp(self, dtype):
         a = make_random_spd_matrix(20, num.Complex)
         e_a1 = toybox.matrix_exp_by_series(a)
         e_a2 = toybox.matrix_exp_by_diagonalization(a)
@@ -366,30 +366,30 @@ class TestMatrices(unittest.TestCase):
                      / comp.norm_frobenius(e_a3) <= 1e-15)
 
     def test_matrix_exp(self):
-        self.for_all_typecodes(self.do_test_matrix_exp)
+        self.for_all_dtypes(self.do_test_matrix_exp)
 
-    def do_test_eigenvectors_hermitian(self, typecode):
+    def do_test_eigenvectors_hermitian(self, dtype):
         size = 100
 
-        a = make_random_spd_matrix(size, typecode)
+        a = make_random_spd_matrix(size, dtype)
         q, w = comp.diagonalize_hermitian(a)
         w2 = comp.eigenvalues_hermitian(a)
 
         self.assert_(abs(sum(w) - sum(w2)) < 1e-12)
 
-        d = num.zeros(a.shape, a.typecode())
+        d = num.zeros(a.shape, a.dtype)
         for i in range(size):
             d[i,i] = w[i]
         self.assert_small(a - q*d*q.H)
 
     def test_eigenvectors_hermitian(self):
-        self.for_all_typecodes(self.do_test_eigenvectors_hermitian)
+        self.for_all_dtypes(self.do_test_eigenvectors_hermitian)
 
-    def do_test_eigenvectors(self, typecode):
+    def do_test_eigenvectors(self, dtype):
         size = 100
 
-        #a = make_random_full_matrix(size, typecode)
-        a = tmd.eigvmat[typecode]
+        #a = make_random_full_matrix(size, dtype)
+        a = tmd.eigvmat[dtype]
 
         evecs, evals = comp.diagonalize(a)
         evals2 = comp.eigenvalues(a)
@@ -402,25 +402,25 @@ class TestMatrices(unittest.TestCase):
         self.assert_small(a*evecs - evecs* d)
 
     def test_eigenvectors(self):
-        self.for_all_typecodes(self.do_test_eigenvectors)
+        self.for_all_dtypes(self.do_test_eigenvectors)
 
-    def do_test_bicgstab(self, typecode):
+    def do_test_bicgstab(self, dtype):
         # real case fails sometimes
         size = 30
 
-        #A = make_random_full_matrix(size, typecode)
-        #b = make_random_vector(size, typecode)
+        #A = make_random_full_matrix(size, dtype)
+        #b = make_random_vector(size, dtype)
         #print repr(A)
         #print repr(b)
 
         # bicgstab is prone to failing on bad matrices
-        A = tmd.bicgmat[typecode]
-        b = tmd.bicgvec[typecode]
+        A = tmd.bicgmat[dtype]
+        b = tmd.bicgvec[dtype]
 
         A_op = op.MatrixOperator.make(A)
         bicgstab_op = op.BiCGSTABOperator.make(A_op, 40000, 1e-10)
         #bicgstab_op.debug_level = 1
-        x = num.zeros((size,), typecode)
+        x = num.zeros((size,), dtype)
 
         initial_resid = comp.norm_2(b - A*x)
         bicgstab_op.apply(b, x)
@@ -428,7 +428,7 @@ class TestMatrices(unittest.TestCase):
         self.assert_(end_resid/initial_resid < 1e-10)
 
     def test_bicgstab(self):
-        self.for_all_typecodes(self.do_test_bicgstab)
+        self.for_all_dtypes(self.do_test_bicgstab)
 
     def test_complex_adaptor(self):
         size = 40
@@ -447,7 +447,7 @@ class TestMatrices(unittest.TestCase):
             a2_op.apply(b, result2)
             self.assert_(comp.norm_2(result1 - result2) < 1e-11)
 
-    def do_test_interpolation(self, typecode):
+    def do_test_interpolation(self, dtype):
         size = 4
 
         def eval_at(x):
@@ -459,24 +459,24 @@ class TestMatrices(unittest.TestCase):
 
         # generate random polynomial and random points
 
-        #abscissae = make_random_vector(size, typecode)
-        #coefficients = make_random_vector(size, typecode)
+        #abscissae = make_random_vector(size, dtype)
+        #coefficients = make_random_vector(size, dtype)
         #print repr(abscissae)
         #print repr(coefficients)
-        abscissae = tmd.interpabs[typecode]
-        coefficients = tmd.interpcoeff[typecode]
+        abscissae = tmd.interpabs[dtype]
+        coefficients = tmd.interpcoeff[dtype]
 
         # evaluate polynomial at abscissae
         values = num.array([eval_at(abscissa) for abscissa in abscissae])
 
-        for to_x in tmd.interpx[typecode]:
+        for to_x in tmd.interpx[dtype]:
             i_coeff = toybox.find_interpolation_coefficients(abscissae, to_x)
             f_x1 = eval_at(to_x)
 
             self.assert_(abs(i_coeff*values-f_x1) < 1e-7)
 
     def test_interpolation(self):
-        self.for_all_typecodes(self.do_test_interpolation)
+        self.for_all_dtypes(self.do_test_interpolation)
 
     def test_python_operator(self):
         class MyOperator(op.Operator(num.Float64)):
@@ -504,26 +504,26 @@ class TestMatrices(unittest.TestCase):
         end_resid = comp.norm_2(b - A*cg_op(b))
         self.assert_(end_resid/initial_resid < 1e-10)
 
-    def do_test_ssor(self, typecode):
+    def do_test_ssor(self, dtype):
         size = 200
         omega = 0.5
-        a = make_random_spd_matrix(size, typecode)
+        a = make_random_spd_matrix(size, dtype)
         d = num.diagonal_matrix(a)
-        l = d + omega * num.lower_left(a)
+        l = d + omega * num.tril(a, -1)
         u = l.H
         d_inv = num.divide(1, num.diagonal(a))
 
         ssor_a = op.SSORPreconditioner.make(a, omega=omega)
         for i in range(5):
-            vec = make_random_vector(size, typecode)
+            vec = make_random_vector(size, dtype)
             ssor_vec = ssor_a(vec)
             vec_2 = 1/(omega*(2-omega))*(l*num.multiply(d_inv, (u*ssor_vec)))
             self.assert_small(vec - vec_2)
 
     def test_ssor(self):
-        self.for_all_typecodes(self.do_test_ssor)
+        self.for_all_dtypes(self.do_test_ssor)
         
-    def do_test_newton(self, typecode):
+    def do_test_newton(self, dtype):
         def my_sin(x):
             if isinstance(x, complex):
                 return cmath.sin(x)
@@ -554,7 +554,7 @@ class TestMatrices(unittest.TestCase):
         self.assert_small(f(result))
 
     def test_newton(self):
-        self.for_all_typecodes(self.do_test_newton)
+        self.for_all_dtypes(self.do_test_newton)
         
     def test_daskr(self):
         def f(t, y):

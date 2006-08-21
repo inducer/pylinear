@@ -66,7 +66,11 @@ Each of the flavors is represented by a symbolic constant:
 \end{tableii}
 
 Likewise, each of the element types has its own symbolic constant.
-These constants are usually called \indexii{type}{code}\index{typecode}\dfn{typecodes}.
+These constants are usually called data types or \var{dtype}s, 
+for short.
+\index{dtype}
+\indexii{data}{type}
+\indexii{type}{code}\index{typecode}\dfn{typecodes}.
 
 \begin{tableii}{l|l}{constant}{Constant}{Corresponding Element Type}
   \lineii{Float64}
@@ -90,7 +94,7 @@ mostly compatible with Numerical Python.
 The following functions in the module \module{pylinear.array} permit
 the creation of new \class{Array}s:
 
-\begin{funcdesc}{array}{sequence, typecode=None}
+\begin{funcdesc}{array}{sequence, dtype=None}
    There are many ways to create arrays. The most basic one is the use of the
    \function{array} function:
 \begin{verbatim}
@@ -118,16 +122,16 @@ the creation of new \class{Array}s:
    though all of its input elements are reals:
 \begin{verbatim}
 >>> array([1,2,3]) # reals are enough for 1, 2 and 3
->>> array([1,2,3], typecode=Complex64) # not the default type
+>>> array([1,2,3], dtype=Complex64) # not the default type
 >>> array([1,2,3+0j]) # same effect
 \end{verbatim}
     Note that in NumPy, \function{array} takes a few more arguments, such as
     \code{copy}, \code{savespace}, and \code{shape}. These are not supported.
 \end{funcdesc}
 
-\begin{funcdesc}{sparse}{mapping, shape=None, typecode=None, flavor=SparseBuildMatrix}
+\begin{funcdesc}{sparse}{mapping, shape=None, dtype=None, flavor=SparseBuildMatrix}
   This function creates a (not necessarily sparse) \class{Matrix} of
-  the given \code{shape}, \code{typecode}, and \code{flavor} based on
+  the given \code{shape}, \code{dtype}, and \code{flavor} based on
   a sparse representation of its entries. At present, it cannot create
   \class{Vector}s. The sparse representation consists of a dictionary
   of dictionaries, whose keys are the row indices for the outer dictionary,
@@ -135,7 +139,7 @@ the creation of new \class{Array}s:
 
   If the \code{shape} parameter is unspecified, the shape is specified by
   the largest row and column indices seen in examining the \code{mapping}.
-  If the \code{typecode} is unspecified, \function{sparse} uses the same
+  If the \code{dtype} is unspecified, \function{sparse} uses the same
   logic as \function{data} to determine it.
 \begin{verbatim}
 >>> sparse({0:{4:17, 3:1+2j},3:{2:15}})
@@ -143,16 +147,34 @@ the creation of new \class{Array}s:
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{asarray}{seq, typecode, flavor=None}
+\begin{funcdesc}{asarray}{seq, dtype, flavor=None}
   This function converts scalars, lists and tuples to an
   \class{Array} type, if possible. It passes \class{Array}s through,
   making copies only to convert types.  In any other case a
   \class{TypeError} is raised.
 \end{funcdesc}
 
-\begin{funcdesc}{zeros}{shape, typecode=Float, flavor=None}
+\begin{funcdesc}{empty}{shape, dtype=Float, flavor=None}
+  \function{empty} creates an \class{Array} of the given \var{shape},
+  \var{dtype} and \var{flavor} which is not initialized at all. 
+  With a little bit of luck, it'll contain all zeros, but in general
+  it may contain whichever garbage was in the chunk of memory that
+  the \class{Array} now occupies. This is typically faster
+  than \function{zeros}, especially for dense \class{Array}s.
+
+  If you do decide that you need the \class{Array} empty, call
+  \method{clear()} on it.
+
+  See the \member{shape} attribute in Section \ref{sec:arrayproperties} for
+  information on the \var{shape} parameter.
+
+\begin{verbatim}
+>>> empty((2,5), Float) # ATTENTION: random garbage
+\end{verbatim}
+\end{funcdesc}
+\begin{funcdesc}{zeros}{shape, dtype=Float, flavor=None}
   \function{zeros} creates an \class{Array} of the given \var{shape},
-  \var{typecode} and \var{flavor} which is filled with zeros. See the
+  \var{dtype} and \var{flavor} which is filled with zeros. See the
   \member{shape} attribute in Section \ref{sec:arrayproperties} for
   information on the \var{shape} parameter.
 \begin{verbatim}
@@ -160,9 +182,9 @@ the creation of new \class{Array}s:
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{ones}{shape, typecode=Float, flavor=None}
+\begin{funcdesc}{ones}{shape, dtype=Float, flavor=None}
   \function{ones} creates an \class{Array} of the given \var{shape},
-  \var{typecode} and \var{flavor} which is filled with ones. See the
+  \var{dtype} and \var{flavor} which is filled with ones. See the
   \member{shape} attribute in Section \ref{sec:arrayproperties} for
   information on the \var{shape} parameter.
 \begin{verbatim}
@@ -170,9 +192,9 @@ the creation of new \class{Array}s:
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{eye}{n, m=None, offset=0, typecode=Float, flavor=None}
+\begin{funcdesc}{eye}{n, m=None, offset=0, dtype=Float, flavor=None}
   \function{eye} creates a \class{Matrix} of shape \code{(n,m)} and
-  the given \var{typecode} and \var{flavor} which is filled with
+  the given \var{dtype} and \var{flavor} which is filled with
   zeros and has ones on the \code{offset}th super-diagonal. 
 
   \code{offset} may also be negative, thus pointing to a sub-diagonal.
@@ -180,19 +202,19 @@ the creation of new \class{Array}s:
   If \code{offset} is 0, you get an $n\times m$ identity matrix.
 
 \begin{verbatim}
->>> eye(4, 3, offset=1, typecode=Complex)
+>>> eye(4, 3, offset=1, dtype=Complex)
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{tri}{n, m=None, offset=0, typecode=Float, flavor=None}
+\begin{funcdesc}{tri}{n, m=None, offset=0, dtype=Float, flavor=None}
   \function{tri} creates a \class{Matrix} of shape \code{(n,m)} and
-  the given \var{typecode} and \var{flavor} which has ones on the 
+  the given \var{dtype} and \var{flavor} which has ones on the 
   \code{offset}th super-diagonal and below, and zeros elsewhere.
 
   \code{offset} may also be negative, thus pointing to a sub-diagonal.
 
 \begin{verbatim}
->>> tri(4, 3, offset=1, typecode=Complex)
+>>> tri(4, 3, offset=1, dtype=Complex)
 \end{verbatim}
 \end{funcdesc}
 
@@ -331,22 +353,20 @@ An \class{Array} has the following meta-data attributes:
 \end{memberdesc}
 
 \begin{memberdesc}[Array]{flavor}
+  Reading the \member{dtype} attribute gets the data type of the given
+  matrix. Assigning a value to the \member{dtype} attribute is not supported.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.dtype
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x.dtype
+\end{verbatim}
+\end{memberdesc}
+
+\begin{memberdesc}[Array]{flavor}
   Reading the \member{flavor} attribute gets the flavor of the given
   matrix. Assigning a value to the \member{flavor} attribute is not supported.
 \end{memberdesc}
-
-An \class{Array} has the following meta-data-returning methods:
-
-\begin{methoddesc}[Array]{typecode}{}
-  Returns the typecode of the matrix.
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> x.typecode()
->>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
->>> x.typecode()
-\end{verbatim}
-\end{methoddesc}
-
 % --------------------------------------------------------------------------
 \section{Accessing and modifying \class{Array} data}
 
@@ -514,15 +534,15 @@ intricate meanings, as discussed in Section
 
 If binary operators or elementwise functions (see Section
 \ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
-typecode, the operands are promoted to a common type. (For the case of
+dtype, the operands are promoted to a common type. (For the case of
 non-matching dimension, see Section \ref{subsec:arraybroadcast} for
 broadcasting rules.)
 
-If the only mismatch is in typecode, one argument array
+If the only mismatch is in dtype, one argument array
 is cast upward in the type hierarchy (e.g. from integer to real,
 from real to complex) in order to match the other.
 
-If there is also a mismatch in flavor, the matrix with the typecode
+If there is also a mismatch in flavor, the matrix with the dtype
 which is higher up in the type hierarchy determines the flavor of the
 result.
 
@@ -878,7 +898,7 @@ is called a ufunc, or ``Universal Function''.) Elementwise functions generally
 apply a certain functionality to each element in an array. For example, the
 \function{sin} elementwise function computes the sine of each of the given
 array's entries, and returns the processed matrix, which will be of the same
-size, flavor, and typecode. Binary elementwise functions receive two
+size, flavor, and dtype. Binary elementwise functions receive two
 \class{Array}s of equal size as arguments, apply a binary function (such as,
 for example, addition or multiplication) to each pair of entries of the two
 \class{Array}s, pairing the entries at the same location in each \class{Array},

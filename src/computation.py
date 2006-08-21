@@ -1,3 +1,19 @@
+#
+#  Copyright (c) 2004-2006
+#  Andreas Kloeckner
+#
+#  Permission to use, copy, modify, distribute and sell this software
+#  and its documentation for any purpose is hereby granted without fee,
+#  provided that the above copyright notice appear in all copies and
+#  that both that copyright notice and this permission notice appear
+#  in supporting documentation.  The authors make no representations
+#  about the suitability of this software for any purpose.
+#  It is provided "as is" without express or implied warranty.
+#
+
+
+
+
 """
 PyLinear's Python wrapper/functionality module for computational routines.
 """
@@ -15,20 +31,20 @@ import pylinear._operation as _op
 
 # computational routines ------------------------------------------------------
 def solve_linear_system(mat, rhs):
-    typecode = mat.typecode()
+    dtype = mat.dtype
     h,w = mat.shape
     if mat.flavor is num.SparseExecuteMatrix and pylinear.has_umfpack():
         # use UMFPACK
         umf_operator = UMFPACKOperator.make(mat)
 
-        temp = num.zeros((h,), typecode)
+        temp = num.zeros((h,), dtype)
         if len(rhs.shape) == 1:
             umf_operator.apply(rhs, temp)
             return temp
         else:
             rhh, rhw = rhs.shape
 
-            solution = num.zeros(rhs.shape, typecode)
+            solution = num.zeros(rhs.shape, dtype)
             assert rhh == h
             for col in range(rhw):
                 umf_operator.apply(rhs[:,col], temp)
@@ -38,7 +54,7 @@ def solve_linear_system(mat, rhs):
         # use lu
         l, u, permut, sign = lu(mat)
 
-        temp = num.zeros((h,), typecode)
+        temp = num.zeros((h,), dtype)
         if len(rhs.shape) == 1:
             for i in range(h):
                 temp[i] = rhs[permut[i]]
@@ -46,7 +62,7 @@ def solve_linear_system(mat, rhs):
         else:
             rhh, rhw = rhs.shape
         
-            solution = num.zeros(rhs.shape, typecode)
+            solution = num.zeros(rhs.shape, dtype)
             assert rhh == h
             for col in range(rhw):
                 for i in range(h):
@@ -103,7 +119,7 @@ if pylinear.has_lapack():
 def inverse(mat):
     w,h = mat.shape
     assert h == w
-    return solve_linear_system(mat, num.identity(h, mat.typecode()))
+    return solve_linear_system(mat, num.identity(h, mat.dtype))
 
 
 
@@ -263,9 +279,9 @@ def linspace(x, y, n = 100):
 
 
 # other helpers ---------------------------------------------------------------
-def make_permutation_matrix(permutation, typecode=num.Float):
+def make_permutation_matrix(permutation, dtype=num.Float):
     size = len(permutation)
-    result = num.zeros((size,size), typecode)
+    result = num.zeros((size,size), dtype)
     for index, value in zip(range(size), permutation):
         result[index,value] = 1
     return result
