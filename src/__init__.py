@@ -21,6 +21,10 @@ See http://news.tiker.net/software/pylinear for details.
 
 import _operation as _op
 
+def version():
+    """Return a 3-tuple with the PyLinear version."""
+    return (0,92,0)
+
 has_blas = _op.has_blas
 has_lapack = _op.has_lapack
 has_arpack = _op.has_arpack

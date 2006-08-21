@@ -11,46 +11,49 @@ assumed to be imported using
 \end{verbatim}
 in the examples.
 
-\section{Types and flavors}
+\section{Types and Flavors}
 \label{sec:types-and-flavors}
-PyLinear provides four flavors of arrays with two different element
-types each.  The possible \dfn{flavors}\index{flavor} are:
+
+First, let's fix a bit of terminology. 
+
+From this point onwards, we will use the term \class{Array}\index{array}
+to mean any type of matrix or vector. The term \class{Matrix}\index{matrix}
+will refer to any of the matrix types. The term \class{Vector}\index{vector}
+shall refer to only the dense vector type. Note that these do not exist as
+actual Python classes, but we will pretend that they do.
+
+In PyLinear, two things determine an \class{Array} type: the
+\dfn{flavor}\index{Flavor} and the \dfn{data type}\indexii{Data}{Type} (or
+\dfn{dtype}\index{dtype} for short).
+
+The supported data types are
+\begin{itemize}
+  \item double precision (i.e. 64-bit) real, and
+  \item double precision (i.e. 2x64-bit) complex.
+\end{itemize}
+
+The supported flavors are
 \begin{itemize}
   \item dense vector\indexii{Dense}{Vector},
   \item dense matrix\indexii{Dense}{Matrix},
   \item sparse build matrix\indexiii{Sparse}{Build}{Matrix}, and
   \item sparse execute matrix\indexiii{Sparse}{Execute}{Matrix}.
 \end{itemize}
-From this point onwards, we will use the term \class{Array}\index{array}
-to mean any type of matrix or vector. The term \class{Matrix}\index{matrix}
-will refer to any of the matrix types. The term \class{Vector}\index{vector}
-shall refer to only the dense vector type. Note that these do not exist as
-classes as such, but we will pretend that they do.
 
-The supported element types are
-\begin{itemize}
-  \item double precision (i.e. 64-bit) real, and
-  \item double precision (i.e. 2x64-bit) complex.
-\end{itemize}
-
-PyLinear only allows vectors and matrices (i.e.  objects with one and
-two index dimensions, but no tensors or other higher-dimensional
-objects). There is only one vector flavor, but there are three
-different flavors of matrices with different performance and memory
-characteristics. \emph{Dense} matrices store \var{m}-by-\var{n}
-elements in a two-dimensional grid of \var{m} rows and \var{n}
-columns. They are used for small matrices or those which have mostly
-non-zero elements. Contrast this with the sparse types, which are
-typically used for matrices consisting of mostly zero
-elements. \emph{Sparse build} matrices store their elements a list of
-\samp{(i, j, a[i,j])}, to which new elements are simply appended,
-which is very fast. This list is typically unsorted, but may have to
-be sorted by \var{i} and \var{j} for multiplication, element access or
-element removal, which makes these operations pretty
-slow. Consequently, this flavor is typically used for the assembly of
-large sparse matrices. It is then converted to the \emph{sparse
-execute} flavor for fast matrix multiplication. This flavor uses a
-standard compressed column format for fast linear algebra operations.
+There is only one vector flavor, but there are three different flavors of
+matrices with different performance and memory characteristics. \emph{Dense}
+matrices store \var{m}-by-\var{n} elements in a two-dimensional grid of \var{m}
+rows and \var{n} columns. They are used for small matrices or those which have
+mostly non-zero elements. Contrast this with the sparse types, which are
+typically used for matrices consisting of mostly zero elements. \emph{Sparse
+build} matrices store their elements a list of \samp{(i, j, a[i,j])}, to which
+new elements are simply appended, which is very fast. This list is typically
+unsorted, but may have to be sorted by \var{i} and \var{j} for multiplication,
+element access or element removal, which makes these operations pretty slow.
+Consequently, this flavor is typically used for the assembly of large sparse
+matrices. It is then converted to the \emph{sparse execute} flavor for fast
+matrix multiplication. This flavor uses a standard compressed column format for
+fast linear algebra operations.
 
 Each of the flavors is represented by a symbolic constant:
 
@@ -66,8 +69,6 @@ Each of the flavors is represented by a symbolic constant:
 \end{tableii}
 
 Likewise, each of the element types has its own symbolic constant.
-These constants are usually called data types or \var{dtype}s, 
-for short.
 \index{dtype}
 \indexii{data}{type}
 \indexii{type}{code}\index{typecode}\dfn{typecodes}.
@@ -85,8 +86,8 @@ for short.
           element type. An alias for \constant{Complex64}.}
 \end{tableii}
 
-Despite some dissimilarity, PyLinear's matrix layer attempts to be
-mostly compatible with Numerical Python.
+Despite a good bit of internal dissimilarity, PyLinear's matrix layer attempts
+to be mostly interface-compatible with NumPy.
 
 % --------------------------------------------------------------------------
 \section{Creating \class{Array}s}
@@ -196,6 +197,7 @@ the creation of new \class{Array}s:
   \function{eye} creates a \class{Matrix} of shape \code{(n,m)} and
   the given \var{dtype} and \var{flavor} which is filled with
   zeros and has ones on the \code{offset}th super-diagonal. 
+  \code{m} is assumed identical to \code{n} if it is \code{None}.
 
   \code{offset} may also be negative, thus pointing to a sub-diagonal.
 
@@ -241,16 +243,85 @@ the creation of new \class{Array}s:
 >>> vstack((a,2*a,3*a))
 \end{verbatim}
 \end{funcdesc}
+% --------------------------------------------------------------------------
+\subsection{Pickle support}
 
-\section{Extracting parts of \class{Array}s}
+\class{Array}s also have efficient support for pickling. Pickling is a
+convenient way to store complicated data structures in a platform-independent
+byte stream. Unless you need human-readable output, pickling makes an
+excellent way of saving PyLinear arrays to disk. 
 
+As such, unpickling a previously pickled \class{Array} is another way to create one:
+
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x
+>>> import pickle
+>>> string_rep = pickle.dumps(x)
+>>> isinstance(string_rep, str)
+>>> y = pickle.loads(string_rep)
+>>> y
+\end{verbatim}
+
+Pickling also works on arbitrarily larger data structures of which
+\class{Array}s are only a part.
+% --------------------------------------------------------------------------
+\section{Accessing \class{Array} Properties}
+
+\label{sec:arrayproperties}
+Once you've created a few \class{Array}s, you might want to query them
+about their properties, such as their data type or shape.
+
+\begin{memberdesc}[Array]{shape}
+  Reading the \member{shape} attribute gets the shape tuple, that is,
+  a tuple of length equal to the array's rank specifying the
+  dimensions of the matrix.  For a vector, this is a singleton
+  containing an integer, for a matrix, this is a pair containing the
+  number of rows and columns, in this order.  
+
+  Assigning a value to the \member{shape} attribute will destructively
+  resize the array.
+
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.shape
+>>> x.T.shape
+>>> x.shape = (4,2)
+>>> x # typically random garbage
+\end{verbatim}
+\end{memberdesc}
+
+\begin{memberdesc}[Array]{dtype}
+  Reading the \member{dtype} attribute gets the data type of the given
+  matrix. Assigning a value to the \member{dtype} attribute is not supported.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.dtype
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x.dtype
+\end{verbatim}
+\end{memberdesc}
+
+\begin{memberdesc}[Array]{flavor}
+  Reading the \member{flavor} attribute gets the flavor of the given
+  matrix. Assigning a value to the \member{flavor} attribute is not supported.
+\end{memberdesc}
+% -----------------------------------------------------------------------------
+\section{Accessing \class{Array} Data}
+% -----------------------------------------------------------------------------
+PyLinear provides a multitude of ways to access and manipulate the data
+contained in an array, the simplest of which may be just accessing the
+elements one-by-one or in chunks, as described in the next section.
+% -----------------------------------------------------------------------------
+\subsection{Indexing}
 PyLinear supports indexing for reading and writing on \class{Array}s, in nearly
 the same way as you might be used to it from either Python sequences or Matlab
-matrices.
+matrices. This mode of access is quite power- and featureful, so let's go over
+the possibilities one by one.
 
-\class{Matrix} objects are indexed by 2-tuples, whereas vectors are indexed by
-single values. As all indices in Python, PyLinear's indices are 0-based.
-
+\class{Matrix} objects are indexed by 2-tuples, whereas \class{Vector}s are
+indexed by single values. Like all indices in Python, PyLinear's indices are
+0-based.
 \begin{verbatim}
 >>> a = array([[1,2,3],[4,5,6],[7,8,9]])
 >>> a
@@ -260,20 +331,82 @@ single values. As all indices in Python, PyLinear's indices are 0-based.
 >>> v[1]
 >>> v[1:]
 \end{verbatim}
-
-Indexing a matrix with a single value will return entire rows: 
-
+Negative indices count from the end of the respective dimension:
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> a
+>>> a[-1,-2]
+>>> a[-1,1:]
+>>> v = array([1,2,3])
+>>> v[-1]
+>>> v[-1:]
+\end{verbatim}
+Writing data to specific places in \class{Array}s is just as simple:
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6],[7,8,9]])
+>>> a[0,2] = 17
+>>> a
+>>> a[0:2,1:] = array([[17,18],[19,20]])
+>>> a
+\end{verbatim}
+% -----------------------------------------------------------------------------
+\subsubsection{Row-wise Access}
+% -----------------------------------------------------------------------------
+Indexing a matrix with a single value returns entire rows as \class{Vector}s:
 \begin{verbatim}
 >>> a[0]
->>> a[1:]
+>>> a[0].flavor
 \end{verbatim}
-
-As you might already have gathered above, regular Python slice syntax is
-supported, so that you can write \code{a[3:17]}, \code{a[1:3,5:9]}, or even
-\code{a[::-1]} to obtain the reverse of a \class{Vector}. Unlike Python lists,
-\class{Array}s may not be resized using slice assignments. Like in the rest of
-Python, yet unlike NumPy, slices return copies, not views of the corresponding
-data.
+Note the subtlety: If you specify just a column or row, you get a
+\class{Vector}.  If you specify a one-element slice, you get a \class{Matrix}:
+\begin{verbatim}
+>>> a[0:1]
+>>> a[0:1].flavor
+\end{verbatim}
+The same logic, of course, goes for column-wise access:
+\begin{verbatim}
+>>> a[:,2]
+>>> a[:,2].flavor
+>>> a[:,2:3]
+>>> a[:,2:3].flavor
+\end{verbatim}
+Write access is less picky in that respect:
+\begin{verbatim}
+>>> a[0] = array([1.41,3.14,2.71]) # write as vector
+>>> a
+>>> a[0] = array([[3.14,2.71,1.56]]) # write as matrix
+>>> a
+\end{verbatim}
+% -----------------------------------------------------------------------------
+\subsubsection{Strides}
+% -----------------------------------------------------------------------------
+Strides are supported, i.e. \code{a[3:9:2]} gives you the entries at indices
+3, 5, and 7. Strides may also be negative:
+\begin{verbatim}
+>>> a
+>>> a[::-1]
+\end{verbatim}
+Unlike Python lists, \class{Array}s may not be resized using slice assignments.
+Like in the rest of Python, yet unlike NumPy, slices return copies, not views
+of the corresponding data.
+% -----------------------------------------------------------------------------
+\subsubsection{Broadcasting}
+% -----------------------------------------------------------------------------
+\label{sssec:write-broadcasting}
+When assigning to \class{Array}s slices and/or subscripts, the right hand
+side of the assignment may have lesser rank than the left hand side. In this
+case, the right hand side is \dfn{broadcast}\index{broadcast} across the missing
+rank. Observe:
+\begin{verbatim}
+>>> a = num.ones((10,10))
+>>> b = num.arange(10)
+>>> a+b
+\end{verbatim}
+% -----------------------------------------------------------------------------
+\subsection{Simple \class{Matrix} Decompositions}
+% -----------------------------------------------------------------------------
+Next, we will discuss a few functions that return just parts of \class{Matrix}
+objects.
 
 \begin{funcdesc}{hsplit}{ary, indices_or_sections}
   Split a single \class{Matrix} array into multiple sub-\class{Matrix}
@@ -307,70 +440,16 @@ data.
 \end{verbatim}
 \end{funcdesc}
 
-\subsection{Pickle support}
-\class{Array}s also have efficient support for pickling. Pickling is a
-convenient way to store complicated data structures in a platform-independent
-byte stream. Unless you need human-readable output, pickling makes an
-excellent way of saving PyLinear arrays to disk.
-
-Unpickling a previously pickled \class{Array} is another way to create one:
-
+\begin{funcdesc}{diagonal}{matrix, offset=0}
+  Returns the diagonal of \var{matrix} as a vector, or the \var{offset}th
+  super- (for \code{offset>0}) or sub-diagonal (for \code{offset<0}).
 \begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> import pickle
->>> string_rep = pickle.dumps(x)
->>> isinstance(string_rep, str)
->>> y = pickle.loads(string_rep)
->>> y
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> diagonal(a)
+>>> diagonal(a,1)
 \end{verbatim}
-
-Pickling also works on arbitrarily larger data structures of which
-\class{Array}s are only a part.
-
-% --------------------------------------------------------------------------
-\section{Accessing \class{Array} properties}
-
-\label{sec:arrayproperties}
-An \class{Array} has the following meta-data attributes:
-
-\begin{memberdesc}[Array]{shape}
-  Reading the \member{shape} attribute gets the shape tuple, that is,
-  a tuple of length equal to the array's dimension specifying the
-  dimensions of the matrix.  For a vector, this is a singleton
-  containing an integer, for a matrix, this is a pair containing the
-  number of rows and columns, in this order.  
-
-  Assigning a value to the \member{shape} attribute will destructively
-  resize the array.
-
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> x.shape
->>> x.T.shape
->>> x.shape = (4,2)
->>> x # typically random garbage
-\end{verbatim}
-\end{memberdesc}
-
-\begin{memberdesc}[Array]{flavor}
-  Reading the \member{dtype} attribute gets the data type of the given
-  matrix. Assigning a value to the \member{dtype} attribute is not supported.
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> x.dtype
->>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
->>> x.dtype
-\end{verbatim}
-\end{memberdesc}
-
-\begin{memberdesc}[Array]{flavor}
-  Reading the \member{flavor} attribute gets the flavor of the given
-  matrix. Assigning a value to the \member{flavor} attribute is not supported.
-\end{memberdesc}
-% --------------------------------------------------------------------------
-\section{Accessing and modifying \class{Array} data}
-
-An \class{Array} has the following data attributes:
+\end{funcdesc}
 
 \begin{memberdesc}[Array]{real}
   Reading this attribute obtains a copy of the real part of the matrix.
@@ -396,11 +475,78 @@ An \class{Array} has the following data attributes:
 \end{verbatim}
 \end{memberdesc}
 
-In addition to the \class{Array} data attributes, \class{Matrix} types
-offer the following:
+\begin{funcdesc}{take}{matrix, indices, axis=0}
+  Assembles an \class{Array} from the entries of the \class{Array}
+  listed in \var{indices}, which must be simple numbers. \var{axis}
+  specifies the axis along which the indices are taken.
+\end{funcdesc}
+% --------------------------------------------------------------------------
+\section{\class{Array} Math}
+% --------------------------------------------------------------------------
+In this section, we will discuss how to do basic calculations with \class{Array}
+objects. When we say basic, we mean ``anything that can be done with simple
+loops, sums and products''. More sophisticated algorithms are available
+(and described in \ref{cha:numerics}), however, they are not the subject of this
+chapter.
 
+If you are an expert, then you may recognize the functionality of this 
+module as roughly what's provided by the FORTRAN Basic Linear Algebra Subroutines,
+or BLAS\index{BLAS}.
+% --------------------------------------------------------------------------
+\subsection{Binary operations}
+% --------------------------------------------------------------------------
+\class{Array}s provide all the operators you would expect, like sums,
+differences, products and such. There are, however, a couple of fine points
+that are worth noting:
+
+\subsubsection{Type promotion}
+\label{subsec:arraypromotion}
+
+If binary operators or elementwise functions (see Section
+\ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
+dtype, the operands are promoted to a common type. (For the case of
+non-matching dimension, see Section \ref{subsec:arraybroadcast} for
+broadcasting rules.)
+
+If the only mismatch is in dtype, one argument array
+is cast upward in the type hierarchy (e.g. from integer to real,
+from real to complex) in order to match the other.
+
+\begin{verbatim}
+>>> a = array([[1,2],[0,1]])
+>>> b = ones((2,2)) * 1j
+>>> a.dtype
+>>> b.dtype
+>>> (a+b).dtype
+\end{verbatim}
+
+If there is also a mismatch in flavor, the result assumes the flavor
+of the first operand:
+
+\begin{verbatim}
+>>> a = ones((3,3))
+>>> b = ones((3,3), flavor=SparseBuildMatrix)
+>>> a+b
+>>> b+a
+\end{verbatim}
+
+\subsubsection{Broadcasting}
+\label{subsec:arraybroadcast}
+
+The binary elementwise operators as well as all the binary elementwise
+functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
+where one argument has lesser dimension than the other. In this case, the
+missing dimensions are \index{broadcasting}\dfn{broadcast} across the remainder
+of the matrix. If the lesser-dimension argument is a scalar, this is easy to
+explain: It is treated like an array of the right size filled with that scalar.
+If it is a vector, it is treated like a matrix filled with rows consisting of
+the given vector.
+
+All of this can, of course, only work if the corresponding \class{Array} sizes 
+match.
+XXX Is outerproduct documented?
 \begin{memberdesc}[Matrix]{T}
-  Returns a real-transpose copy of the matrix.
+  This object property a real-transpose copy of the matrix.
 
   Does not exist in NumPy.
 \begin{verbatim}
@@ -411,7 +557,7 @@ offer the following:
 \end{memberdesc}
 
 \begin{memberdesc}[Matrix]{H}
-  Returns a conjugate-transpose copy of the matrix.
+  This object property returns a conjugate-transpose copy of the matrix.
   Identical to \member{T} for real matrices.
 
   Does not exist in NumPy.
@@ -422,7 +568,19 @@ offer the following:
 \end{verbatim}
 \end{memberdesc}
 
-\section{Matrix flavor particulars}
+\begin{funcdesc}{trace}{matrix, offset=0}
+  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
+  for details of the meaning of \var{offset}.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> trace(a)
+>>> trace(a,1)
+\end{verbatim}
+\end{funcdesc}
+% -----------------------------------------------------------------------------
+\section{Flavor-specific Functionality}
+% -----------------------------------------------------------------------------
 
 The following methods tie into the particulars of the sparse matrices'
 memory layouts.
@@ -492,34 +650,6 @@ memory layouts.
 Some of them resemble NumPy's functionality and ease the porting between
 different matrix libraries:
 
-\begin{funcdesc}{diagonal}{matrix, offset=0}
-  Returns the diagonal of \var{matrix} as a vector, or the \var{offset}th
-  super- (for \code{offset>0}) or sub-diagonal (for \code{offset<0}).
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> diagonal(a)
->>> diagonal(a,1)
-\end{verbatim}
-\end{funcdesc}
-\begin{funcdesc}{take}{matrix, indices, axis=0}
-  Assembles an \class{Array} from the entries of the \class{Array}
-  listed in \var{indices}, which must be simple numbers. \var{axis}
-  specifies the axis along which the indices are taken.
-\end{funcdesc}
-\begin{funcdesc}{outerproduct}{op1, op2}
-  Equivalent to \code{op1 <<outer>> op2}.
-\end{funcdesc}
-\begin{funcdesc}{trace}{matrix, offset=0}
-  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
-  for details of the meaning of \var{offset}.
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> trace(a)
->>> trace(a,1)
-\end{verbatim}
-\end{funcdesc}
 % --------------------------------------------------------------------------
 \section{Matrix algebra}
 \class{Array}s support the operators \code{+} (binary), \code{+=},
@@ -529,37 +659,6 @@ Multiplication and division are also supplied, but have slightly more
 intricate meanings, as discussed in Section
 \ref{subsec:arraymultiplication}.
 
-\subsection{Type promotion}
-\label{subsec:arraypromotion}
-
-If binary operators or elementwise functions (see Section
-\ref{subsec:elementwise-funcs}) are applied to arrays of non-matching flavor or
-dtype, the operands are promoted to a common type. (For the case of
-non-matching dimension, see Section \ref{subsec:arraybroadcast} for
-broadcasting rules.)
-
-If the only mismatch is in dtype, one argument array
-is cast upward in the type hierarchy (e.g. from integer to real,
-from real to complex) in order to match the other.
-
-If there is also a mismatch in flavor, the matrix with the dtype
-which is higher up in the type hierarchy determines the flavor of the
-result.
-
-\subsection{Broadcasting}
-\label{subsec:arraybroadcast}
-
-The binary elementwise operators as well as all the binary elementwise
-functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
-where one argument has lesser dimension than the other. In this case, the
-missing dimensions are \index{broadcasting}\dfn{broadcast} across the remainder
-of the matrix. If the lesser-dimension argument is a scalar, this is easy to
-explain: It is treated like an array of the right size filled with that scalar.
-If it is a vector, it is treated like a matrix filled with rows consisting of
-the given vector.
-
-All of this can only work if the corresponding \class{Array} sizes 
-match.
 
 
 \subsection{Multiplication semantics}

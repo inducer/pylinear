@@ -22,15 +22,7 @@ PyLinear's Python wrapper module for creating/manipulating Arrays.
 
 
 
-import sys
 from pylinear._array import *
-
-
-
-
-def version():
-    """Return a 3-tuple with the PyLinear version."""
-    return (0,92,0)
 
 
 
@@ -97,6 +89,9 @@ class ParameterizedType(object):
             return isinstance(object, self(object.dtype))
         except NameError:
             return False
+
+    def __str__(self):
+        return self.Name
 
     def __call__(self, dtype):
         return self.TypeDict[dtype]
@@ -324,6 +319,7 @@ def _not_equal(a, b):
 
 # array interface -------------------------------------------------------------
 def _dtype_to_array_typestr(tc):
+    import sys
     if sys.byteorder == "big":
         indicator = ">"
     elif sys.byteorder == "little":
@@ -472,8 +468,72 @@ def array(data, dtype=None, flavor=None):
 
 
 
-def sparse(mapping, shape=None, dtype=None, flavor=SparseBuildMatrix):
-    """Create a sparse Array from (two-level) nested mappings (e.g. dictionaries).
+def arange(*args, **kwargs):
+    """arange([start,] stop[, step,], dtype=None)
+ 
+    For integer arguments, just like range() except it returns an array whose
+    type can be specified by the keyword argument dtype.
+ 
+    If dtype is not specified, the type of the result is deduced from the type
+    of the arguments.
+ 
+    For floating point arguments, the length of the result is ceil((stop -
+    start)/step).  This rule may result in the last element of the result be
+    greater than stop. 
+    """
+    # Yuck. Thanks NumPy developers, love y'all. ;)
+
+    # argument processing -----------------------------------------------------
+    start = None
+    stop = None
+    step = None
+    dtype = None
+
+    if args[-1] in DTYPES:
+        dtype = args[-1]
+        args = args[:-1]
+
+    argc = len(args)
+    if argc == 0:
+        raise ValueError, "stop argument required"
+    elif argc == 1:
+        stop = args[0]
+    elif argc == 2:
+        start = args[0]
+        stop = args[1]
+    elif argc == 3:
+        start = args[0]
+        stop = args[1]
+        step = args[2]
+    else:
+        raise ValueError, "too many arguments"
+
+    admissible_names = ["start", "stop", "step", "dtype"]
+    for k, v in kwargs.iteritems():
+        if k in admissible_names:
+            if locals()[k] is None:
+                locals()[k] = v
+            else:
+                raise ValueError, "may not specify 'dtype' by position and keyword" % k
+        else:
+            raise ValueError, "unexpected keyword argument '%s'" % k
+
+    if start is None:
+        start = 0
+    if step is None:
+        step = 1
+
+    # actual functionality ----------------------------------------------------
+    import math
+    length = int(math.ceil(float(stop-start)/step))
+    return array([start + i*step for i in range(length)], dtype=dtype)
+
+
+
+
+def sparse(mapping, shape=None, dtype=None, flavor=SparseBuildMatrix): 
+    """Create a sparse Array from (two-level) nested
+    mappings (e.g. dictionaries).
 
     Takes into account the given dtype and flavor. If None are specified,
     the minimum that will accomodate the given data are used.

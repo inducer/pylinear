@@ -7,9 +7,18 @@ document diagonal_matrix, take, tri[ul]
 
 document computation
 
+document arange
+
 operator algebra examples
 C++ extension sample
 rethink structure of arraytypes.tex
+
+clean up XXX's
+Test with Fempy.
+
+document version()
+
+document interactive features
 --------------------------------------------------------------------------
 Future
 --------------------------------------------------------------------------
