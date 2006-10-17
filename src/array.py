@@ -641,12 +641,6 @@ def zeros_like(ary):
     """Return a zero-filled array with shape, flavor and dtype just
     like `ary'.
     """
-    result = zeros(shape, dtype, flavor)
-    result.clear()
-    return result
-
-def zeros_like(shape, dtype=Float, flavor=None):
-    """Return a zero-filled array."""
     result = zeros(ary.shape, ary.dtype, ary.flavor)
     result.clear()
     return result
