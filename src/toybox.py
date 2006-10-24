@@ -356,7 +356,22 @@ def codiagonalize(matrices, observer = iteration.make_observer(stall_thresh = 1e
 
 
 
-# some tools ------------------------------------------------------------------
+# functional calculus for symmetric matrices ----------------------------------
+def apply_f_to_symmetric(f, a):
+    # a has to be symmetric
+    h,w = a.shape
+    assert h == w
+
+    q, w = la.Heigenvectors(a)
+    new_w = num.zeros_like(w)
+    for i, v in enumerate(w):
+        new_w[i] = f(v)
+    return q*num.diagonal_matrix(new_w)*q.H
+    
+        
+    
+
+# matrix exponentials ---------------------------------------------------------
 def matrix_exp_by_series(a, eps = 1e-15):
     h,w = a.shape
     assert h == w

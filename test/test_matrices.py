@@ -614,6 +614,15 @@ class TestMatrices(unittest.TestCase):
         except ValueError:
             pass
 
+    def do_test_symmetric_fun_calculus(self, dtype):
+        size = 10
+        a = make_random_spd_matrix(size, dtype)
+
+        s = toybox.apply_f_to_symmetric(math.sqrt, a)
+        self.assert_small(s*s-a)
+
+    def test_symmetric_fun_calculus(self):
+        self.for_all_dtypes(self.do_test_symmetric_fun_calculus)
             
 if __name__ == '__main__':
     unittest.main()
