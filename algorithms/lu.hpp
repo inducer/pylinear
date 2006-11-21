@@ -63,7 +63,7 @@ namespace lu
   boost::tuple<DesiredResultL *, DesiredResultU *, std::vector<unsigned> *, int> lu(const MatrixExpression &a)
   {
     if (a.size1() != a.size2())
-      throw std::runtime_error("cholesky: A is not quadratic");
+      throw std::runtime_error("lu: A is not quadratic");
 
     unsigned n = a.size1();
     int parity = 1;
