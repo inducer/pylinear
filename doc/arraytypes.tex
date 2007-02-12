@@ -4,7 +4,7 @@
    the elementary operations available on them.
 \end{quote}
 
-The present chapter describes the module \module{pylinear.array}. It is
+We're describing the module \module{pylinear.array}. For simplicity, it is
 assumed to be imported using
 \begin{verbatim}
 >>> from pylinear.array import *
@@ -16,9 +16,9 @@ in the examples.
 
 First, let's fix a bit of terminology. 
 
-From this point onwards, we will use the term \class{Array}\index{array}
-to mean any type of matrix or vector. The term \class{Matrix}\index{matrix}
-will refer to any of the matrix types. The term \class{Vector}\index{vector}
+From this point onwards, we will use the term \class{Array}\index{array} to
+mean any type of matrix or vector. The term \class{Matrix}\index{matrix} will
+refer to matrices, both sparse and dense. The term \class{Vector}\index{vector}
 shall refer to only the dense vector type. Note that these do not exist as
 actual Python classes, but we will pretend that they do.
 
@@ -71,7 +71,8 @@ Each of the flavors is represented by a symbolic constant:
 Likewise, each of the element types has its own symbolic constant.
 \index{dtype}
 \indexii{data}{type}
-\indexii{type}{code}\index{typecode}\dfn{typecodes}.
+\indexii{type}{code}
+\index{typecode}
 
 \begin{tableii}{l|l}{constant}{Constant}{Corresponding Element Type}
   \lineii{Float64}
@@ -86,9 +87,13 @@ Likewise, each of the element types has its own symbolic constant.
           element type. An alias for \constant{Complex64}.}
 \end{tableii}
 
-Despite a good bit of internal dissimilarity, PyLinear's matrix layer attempts
-to be mostly interface-compatible with NumPy.
-
+Despite a good bit of internal dissimilarity, PyLinear's programming interface
+attempts to be mostly compatible with NumPy, which is the traditional
+(non-sparse) array package for Python. So suppose you have some NumPy code that
+you would like to run on PyLinear. That code likely has a line like
+\verb|import numpy| somewhere near the top. Then you can try and say
+\verb|import pylinear.array as numpy|, which should get you most of the way
+there.
 % --------------------------------------------------------------------------
 \section{Creating \class{Array}s}
 
@@ -407,11 +412,13 @@ rank. Observe:
 \end{verbatim}
 The same trick works for vectors as well.
 % -----------------------------------------------------------------------------
-\subsection{Simple Decomposition}
+\subsection{Picking \class{Array}s apart}
 % -----------------------------------------------------------------------------
 The following operations return only parts of the data contained in a
 \class{Array} object:
-
+% -----------------------------------------------------------------------------
+\subsubsection{Picking apart complex \class{Array}s}
+% -----------------------------------------------------------------------------
 \begin{memberdesc}[Array]{real}
   Reading this attribute obtains a copy of the real part of the matrix.
   For real matrices, the matrix is simply copied.
@@ -435,7 +442,9 @@ The following operations return only parts of the data contained in a
 >>> x.imaginary
 \end{verbatim}
 \end{memberdesc}
-
+% -----------------------------------------------------------------------------
+\subsubsection{Getting Noncontiguous Parts of an \class{Array}}
+% -----------------------------------------------------------------------------
 \begin{funcdesc}{take}{matrix, indices, axis=0}
   Assembles an \class{Array} from the entries of the \class{Array}
   listed in \var{indices}, which must be simple numbers. \var{axis}
@@ -477,28 +486,29 @@ objects.
 \end{verbatim}
 \end{funcdesc}
 
-\begin{funcdesc}{diagonal}{matrix, offset=0}
-  Returns the diagonal of \var{matrix} as a vector, or the \var{offset}th
-  super- (for \code{offset>0}) or sub-diagonal (for \code{offset<0}).
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> diagonal(a)
->>> diagonal(a,1)
-\end{verbatim}
+\begin{funcdesc}{diagonal}{matrix, offset=0} Returns the diagonal of
+\var{matrix} as a vector, or the \var{offset}th super- (for \code{offset>0}) or
+sub-diagonal (for \code{offset<0}).  \begin{verbatim} >>> a =
+array([[1,2,3],[4,5,6]]) >>> a >>> diagonal(a) >>> diagonal(a,1) \end{verbatim}
 \end{funcdesc}
 % --------------------------------------------------------------------------
-\section{\class{Array} Math}
+\section{Basic \class{Array} Math}
 % --------------------------------------------------------------------------
-In this section, we will discuss how to do basic calculations with \class{Array}
-objects. When we say basic, we mean ``anything that can be done with simple
-loops, sums and products''. More sophisticated algorithms are available
-(and described in \ref{cha:numerics}), however, they are not the subject of this
-chapter.
+In this section, we will discuss how to perform basic calculations with
+\class{Array} objects. 
 
-If you are an expert, then you may recognize the functionality of this 
-module as roughly what's provided by the FORTRAN Basic Linear Algebra Subroutines,
-or BLAS\index{BLAS}.
+To begin with, \class{Array}s support the usual range of algebraic operators,
+such as \code{+}, \code{-}, \code{*} and \code{/}. For the additive operators,
+this is straightforward, as the standard elementwise meaning applies. The
+multiplicative operators, on the other hand, acquire different meanings
+depending on the types of their arguments, such as matrix or dot products.  The
+details can be found in \ref{subsec:arraymultiplication}. Despite the default
+``complicated'' meaning of multiplication, elementwise multiplication is
+also available, as is a host of other elementwise operations. See 
+\ref{subsec:elementwise-funcs} for details.
+
+PyLinear also supplies a large number of more advanced matrix procedures.
+These are described in Chapter \ref{cha:numerics}.
 % --------------------------------------------------------------------------
 \subsection{Generalities on Binary Operations}
 % --------------------------------------------------------------------------
@@ -538,17 +548,17 @@ of the first operand:
 \end{verbatim}
 
 % --------------------------------------------------------------------------
-\subsubsection{Broadcasting}
-\label{sssec:arraybroadcast}
+\subsubsection{Broadcasting} \label{sssec:arraybroadcast}
 % --------------------------------------------------------------------------
 The binary elementwise operators as well as all the binary elementwise
 functions (see Section \ref{subsec:elementwise-funcs}) accept argument pairs
-where one argument has lesser dimension than the other. In this case, the
-missing dimensions are \index{broadcasting}\dfn{broadcast} across the remainder
-of the matrix. If the lesser-dimension argument is a scalar, this is easy to
-explain: It is treated like an array of the right size filled with that scalar.
-If it is a vector, it is treated like a matrix filled with rows consisting of
-the given vector.
+where one argument has lesser rank than the other. In this case, the missing
+ranks are \index{broadcasting}\dfn{broadcast} across the remainder of the
+matrix. If the lesser-rank argument is a scalar, this is easy to explain: It is
+treated like an array of the right size filled with that scalar.  If it is a
+vector, that vector is treated like a matrix filled with rows consisting of the
+given vector.
+
 \begin{verbatim}
 >>> a = ones((4,4))
 >>> b = arange(4)
@@ -558,8 +568,6 @@ the given vector.
 >>> a+b
 >>> a+b+5
 \end{verbatim}
-All of this can, of course, only work if the corresponding \class{Array} sizes 
-match.
 % --------------------------------------------------------------------------
 \subsection{Multiplicative (and related) Operators}
 \label{subsec:arraymultiplication}
@@ -783,240 +791,10 @@ related to multiplication:
 
 \end{itemize}
 XXX Is outerproduct documented?
-% --------------------------------------------------------------------------
-\subsection{Linear Algebra}
-% --------------------------------------------------------------------------
-The following operations are related to the theory of linear algebra.
-
-\begin{memberdesc}[Matrix]{T}
-  This object property a real-transpose copy of the matrix.
-
-  Does not exist in NumPy.
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> x
->>> x.T
-\end{verbatim}
-\end{memberdesc}
-
-\begin{memberdesc}[Matrix]{H}
-  This object property returns a conjugate-transpose copy of the matrix.
-  Identical to \member{T} for real matrices.
-
-  Does not exist in NumPy.
-\begin{verbatim}
->>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
->>> x
->>> x.H
-\end{verbatim}
-\end{memberdesc}
-
-\begin{funcdesc}{trace}{matrix, offset=0}
-  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
-  for details of the meaning of \var{offset}.
-\begin{verbatim}
->>> a = array([[1,2,3],[4,5,6]])
->>> a
->>> trace(a)
->>> trace(a,1)
-\end{verbatim}
-\end{funcdesc}
 % -----------------------------------------------------------------------------
-\section{Flavor-specific Functionality}
-% -----------------------------------------------------------------------------
-
-The following methods tie into the particulars of the sparse matrices'
-memory layouts.
-
-\begin{methoddesc}[SparseBuildMatrix]{sort}{}
-  The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
-  can become unsorted, depending on the order of insertions into the
-  matrix.  This is rectified by the \method{sort} method. During
-  normal usage, you don't have to worry about sorting your matrices,
-  since this action is triggered automatically whenever it is
-  necessary.
-\end{methoddesc}
-\begin{methoddesc}{set_element}{i, j, entry}
-  Sets the entry in the \var{i}th row and \var{j}th column to the
-  value \var{entry}.
-
-  Why would you want this if you could easily say \code{A[i,j] =
-  entry}? This method is guaranteed to be an O(1) operation if it is
-  available, whereas the alternative notation will always work, but
-  may be exceedingly slow. (Consider the case of a
-  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
-  move to accomodate a new element.)
-
-  Available on all but \class{SparseExecuteMatrix} objects.
-\end{methoddesc}
-\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
-  Sets the entry in the \var{i}th row and \var{j}th column to the
-  value \var{entry}. If used, the user guarantees that for all
-  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
-
-  Why would you want this if you could easily say \code{A[i,j] =
-  entry}? This method is guaranteed to be an O(1) operation if 
-  it is available, whereas the alternative notation will always
-  work, but may be exceedingly slow. (Consider the case of a
-  \class{SparseBuildMatrix}, which might have to be resorted.)
-\end{methoddesc}
-\begin{methoddesc}[Matrix]{add_element}{i, j, number}
-  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
-  column.
-
-  Why would you want this if you could easily say \samp{A[i,j] +=
-  entry}? This method is guaranteed to be an O(1) operation if it is
-  available, whereas the alternative notation will always work, but
-  may be exceedingly slow. (Consider the case of a
-  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
-  move to accomodate a new element.)
-
-  Available on all but \class{SparseExecuteMatrix} objects.
-\end{methoddesc}
-\begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
-  This is a rather internal method, but it is explained here
-  nonetheless.
-
-  The \class{SparseExecuteMatrix} class uses a list to indicate the
-  column starts in a linear field of numbers. This list of column
-  starts, in its original state, is usually incomplete, i.e. does not
-  cover all rows, which allows $O(1)$ insertion at the end of the
-  number field. This method makes sure that the column start list is
-  complete. This is required by certain third-party sparse matrix
-  libraries that directly read the structure of your sparse
-  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
-  call this method automatically, however, so that you don't have to
-  worry about this here. But if you are binding to other sparse matrix
-  libraries, this call might come in useful.
-\end{methoddesc}
-
-Some of them resemble NumPy's functionality and ease the porting between
-different matrix libraries:
-
-% --------------------------------------------------------------------------
-\section{Matrix algebra}
-\class{Array}s support the operators \code{+} (binary), \code{+=},
-\code{-} (binary), \code{-=}, as well as \code{+} (unary) and \code{-}
-(unary) with their elementwise meanings as you would expect them.
-Multiplication and division are also supplied, but have slightly more
-intricate meanings, as discussed in Section
-
-
-
-
-\section{Simple computational routines}
-
-The following methods are available on PyLinear's \class{Array} types:
-
-\begin{methoddesc}{sum}{}
-  The \method{sum} method returns the sum of all non-zero array elements. (Saying
-  ``non-zero'' sounds stupid, but it actually means that for sparse arrays,
-  only non-zero elements are considered, and thus represents a guarantee
-  with respect to asymptotic complexity of the operation.)
-  Returns the sum of all elements in the array.
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> x.sum()
->>> v = array([1,2,3])
->>> v.sum()
-\end{verbatim}
-\end{methoddesc}
-%\begin{methoddesc}{abs_square_sum}{} INTENTIONALLY LEFT OUT
-%  Returns the sum of the squared absolute values of all elements in
-%  the array.
-%\end{methoddesc}
-\begin{methoddesc}{__iter__}{}
-  For \class{Matrix} types, this method returns an iterator whose
-  consecutive values are the rows of the matrix. Note that this method
-  always returns a \emph{dense} \class{Vector}, so it can be slow
-  to use for sparse matrices.
-
-  For \class{Vector}s, this method returns an iterator whose
-  consecutive values are the entries of the vector.
-
-  This method is implicitly called in \code{for} loops:
-\begin{verbatim}
->>> x = array([[1,2,3],[4,5,6]])
->>> for row in x:
-...   print row
-...
->>> x = array([1,2,3])
->>> for entry in x:
-...   print entry
-...
-\end{verbatim}
-\end{methoddesc}
-\begin{methoddesc}{indices}{}
-  This method works like the \method{keys}() method on a
-  dictionary: It returns an iterator whose values are all indices
-  of the \class{Array} for which the corresponding value is
-  potentially non-zero. (That is, for dense matrices, it returns
-  each element's index, while for sparse matrices, only non-zero
-  elements are enumerated.)
-\begin{verbatim}
->>> x = sparse({0:{4:17, 3:1+2j},3:{2:15}})
->>> for index in x.indices():
-...   print index
-\end{verbatim}
-\end{methoddesc}
-\begin{methoddesc}{add_scattered}{row_indices, column_indices, little_matrix}
-  Modifies the called matrix in-place by adding a the entries of a
-  \var{little_matrix} to the already present entries, where the
-  affected rows and columns are given by \var{row_indices},
-  \var{column_indices}.
-\begin{verbatim}
->>> a = zeros((10,10), Float, SparseBuildMatrix)
->>> b = array([[1,2],[3,4]])
->>> a.add_scattered([4,8], [1,3], b)
->>> a
-\end{verbatim}
-  This operation is common in finite element codes.
-\end{methoddesc}
-\begin{methoddesc}{copy}{}
-  Returns an identical copy of the matrix.
-\begin{verbatim}
->>> a = array([1,2,3])
->>> b = a.copy()
->>> b[0] = 15
->>> a
->>> b
-\end{verbatim}
-\end{methoddesc}
-\begin{methoddesc}{solve_upper}{vector}
-  If the matrix is an non-singular upper triangular matrix, then a vector
-  \code{result} is returned that satisfies \code{matrix*result=vector}, i.e.
-  this routine solves the linear system given by the matrix.
-
-  If the matrix is not regular upper triangular, then the result of this routine
-  is still a vector, but of undefined meaning.
-\begin{verbatim}
->>> a = array([[1,2],[0,3]])
->>> b = array([17,12])
->>> v = a.solve_upper(b)
->>> v
->>> a*v
-\end{verbatim}
-\end{methoddesc}
-\begin{methoddesc}{solve_lower}{vector}
-  If the matrix is an non-singular lower triangular matrix, then a vector
-  \code{result} is returned that satisfies \code{matrix*result=vector}, i.e.
-  this routine solves the linear system given by the matrix.
-
-  If the matrix is not regular upper triangular, then the result of this routine
-  is still a vector, but of undefined meaning.
-  
-\begin{verbatim}
->>> a = array([[1,0],[3,4]])
->>> b = array([17,12])
->>> v = a.solve_lower(b)
->>> v
->>> a*v
-\end{verbatim}
-\end{methoddesc}
-
 \section{Elementwise Functions}
 \label{subsec:elementwise-funcs}
-
+% -----------------------------------------------------------------------------
 PyLinear sports a few so-called \dfn{Elementwise Functions},
 \indexii{Universal}{Function}\indexii{Elementwise}{Function} some of which are
 \emph{unary}, while others are \emph{binary}. (In NumPy, this kind of function
@@ -1147,3 +925,225 @@ The following binary elementwise functions exist:
 
 Additional elementwise function methods, such as \member{reduce}, as they are
 found in NumPy, are not (yet) supported in PyLinear.
+% --------------------------------------------------------------------------
+\subsection{Linear Algebra}
+% --------------------------------------------------------------------------
+The following operations are related to the theory of linear algebra.
+
+\begin{memberdesc}[Matrix]{T}
+  This object property a real-transpose copy of the matrix.
+
+  Does not exist in NumPy.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x
+>>> x.T
+\end{verbatim}
+\end{memberdesc}
+
+\begin{memberdesc}[Matrix]{H}
+  This object property returns a conjugate-transpose copy of the matrix.
+  Identical to \member{T} for real matrices.
+
+  Does not exist in NumPy.
+\begin{verbatim}
+>>> x = array([[1+3j,2-4j,3],[4,5+1j,6]])
+>>> x
+>>> x.H
+\end{verbatim}
+\end{memberdesc}
+
+\begin{funcdesc}{trace}{matrix, offset=0}
+  Returns the sum of the \var{offset}th diagonal. See \function{diagonal}
+  for details of the meaning of \var{offset}.
+\begin{verbatim}
+>>> a = array([[1,2,3],[4,5,6]])
+>>> a
+>>> trace(a)
+>>> trace(a,1)
+\end{verbatim}
+\end{funcdesc}
+% -----------------------------------------------------------------------------
+\section{Flavor-specific Functionality}
+% -----------------------------------------------------------------------------
+
+The following methods tie into the particulars of the sparse matrices'
+memory layouts.
+
+\begin{methoddesc}[SparseBuildMatrix]{sort}{}
+  The list of $(i,j,a_{i,j})$ stored by a \class{SparseBuildMatrix}
+  can become unsorted, depending on the order of insertions into the
+  matrix.  This is rectified by the \method{sort} method. During
+  normal usage, you don't have to worry about sorting your matrices,
+  since this action is triggered automatically whenever it is
+  necessary.
+\end{methoddesc}
+\begin{methoddesc}{set_element}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{set_element_past_end}{i, j, entry}
+  Sets the entry in the \var{i}th row and \var{j}th column to the
+  value \var{entry}. If used, the user guarantees that for all
+  $k>i$, $A_{k,l}=0$ for all $l$ and that $A_{i,l}=0$ for $l>=j$.
+
+  Why would you want this if you could easily say \code{A[i,j] =
+  entry}? This method is guaranteed to be an O(1) operation if 
+  it is available, whereas the alternative notation will always
+  work, but may be exceedingly slow. (Consider the case of a
+  \class{SparseBuildMatrix}, which might have to be resorted.)
+\end{methoddesc}
+\begin{methoddesc}[Matrix]{add_element}{i, j, number}
+  Adds \var{number} to the entry in the \var{i}th row and \var{j}th
+  column.
+
+  Why would you want this if you could easily say \samp{A[i,j] +=
+  entry}? This method is guaranteed to be an O(1) operation if it is
+  available, whereas the alternative notation will always work, but
+  may be exceedingly slow. (Consider the case of a
+  \class{SparseExecuteMatrix}, which might have to perform an $O(n^2)$
+  move to accomodate a new element.)
+
+  Available on all but \class{SparseExecuteMatrix} objects.
+\end{methoddesc}
+\begin{methoddesc}[SparseExecuteMatrix]{complete_index1_data}{}
+  This is a rather internal method, but it is explained here
+  nonetheless.
+
+  The \class{SparseExecuteMatrix} class uses a list to indicate the
+  column starts in a linear field of numbers. This list of column
+  starts, in its original state, is usually incomplete, i.e. does not
+  cover all rows, which allows $O(1)$ insertion at the end of the
+  number field. This method makes sure that the column start list is
+  complete. This is required by certain third-party sparse matrix
+  libraries that directly read the structure of your sparse
+  matrices. Within PyLinear, UMFPACK is one such example. Its wrappers
+  call this method automatically, however, so that you don't have to
+  worry about this here. But if you are binding to other sparse matrix
+  libraries, this call might come in useful.
+\end{methoddesc}
+% --------------------------------------------------------------------------
+\section{Matrix algebra}
+
+
+
+
+\section{Simple computational routines}
+
+The following methods are available on PyLinear's \class{Array} types:
+
+\begin{methoddesc}{sum}{}
+  The \method{sum} method returns the sum of all non-zero array elements. (Saying
+  ``non-zero'' sounds stupid, but it actually means that for sparse arrays,
+  only non-zero elements are considered, and thus represents a guarantee
+  with respect to asymptotic complexity of the operation.)
+  Returns the sum of all elements in the array.
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> x.sum()
+>>> v = array([1,2,3])
+>>> v.sum()
+\end{verbatim}
+\end{methoddesc}
+%\begin{methoddesc}{abs_square_sum}{} INTENTIONALLY LEFT OUT
+%  Returns the sum of the squared absolute values of all elements in
+%  the array.
+%\end{methoddesc}
+\begin{methoddesc}{__iter__}{}
+  For \class{Matrix} types, this method returns an iterator whose
+  consecutive values are the rows of the matrix. Note that this method
+  always returns a \emph{dense} \class{Vector}, so it can be slow
+  to use for sparse matrices.
+
+  For \class{Vector}s, this method returns an iterator whose
+  consecutive values are the entries of the vector.
+
+  This method is implicitly called in \code{for} loops:
+\begin{verbatim}
+>>> x = array([[1,2,3],[4,5,6]])
+>>> for row in x:
+...   print row
+...
+>>> x = array([1,2,3])
+>>> for entry in x:
+...   print entry
+...
+\end{verbatim}
+\end{methoddesc}
+\begin{methoddesc}{indices}{}
+  This method works like the \method{keys}() method on a
+  dictionary: It returns an iterator whose values are all indices
+  of the \class{Array} for which the corresponding value is
+  potentially non-zero. (That is, for dense matrices, it returns
+  each element's index, while for sparse matrices, only non-zero
+  elements are enumerated.)
+\begin{verbatim}
+>>> x = sparse({0:{4:17, 3:1+2j},3:{2:15}})
+>>> for index in x.indices():
+...   print index
+\end{verbatim}
+\end{methoddesc}
+\begin{methoddesc}{add_scattered}{row_indices, column_indices, little_matrix}
+  Modifies the called matrix in-place by adding a the entries of a
+  \var{little_matrix} to the already present entries, where the
+  affected rows and columns are given by \var{row_indices},
+  \var{column_indices}.
+\begin{verbatim}
+>>> a = zeros((10,10), Float, SparseBuildMatrix)
+>>> b = array([[1,2],[3,4]])
+>>> a.add_scattered([4,8], [1,3], b)
+>>> a
+\end{verbatim}
+  This operation is common in finite element codes.
+\end{methoddesc}
+\begin{methoddesc}{copy}{}
+  Returns an identical copy of the matrix.
+\begin{verbatim}
+>>> a = array([1,2,3])
+>>> b = a.copy()
+>>> b[0] = 15
+>>> a
+>>> b
+\end{verbatim}
+\end{methoddesc}
+\begin{methoddesc}{solve_upper}{vector}
+  If the matrix is an non-singular upper triangular matrix, then a vector
+  \code{result} is returned that satisfies \code{matrix*result=vector}, i.e.
+  this routine solves the linear system given by the matrix.
+
+  If the matrix is not regular upper triangular, then the result of this routine
+  is still a vector, but of undefined meaning.
+\begin{verbatim}
+>>> a = array([[1,2],[0,3]])
+>>> b = array([17,12])
+>>> v = a.solve_upper(b)
+>>> v
+>>> a*v
+\end{verbatim}
+\end{methoddesc}
+\begin{methoddesc}{solve_lower}{vector}
+  If the matrix is an non-singular lower triangular matrix, then a vector
+  \code{result} is returned that satisfies \code{matrix*result=vector}, i.e.
+  this routine solves the linear system given by the matrix.
+
+  If the matrix is not regular upper triangular, then the result of this routine
+  is still a vector, but of undefined meaning.
+  
+\begin{verbatim}
+>>> a = array([[1,0],[3,4]])
+>>> b = array([17,12])
+>>> v = a.solve_lower(b)
+>>> v
+>>> a*v
+\end{verbatim}
+\end{methoddesc}
+

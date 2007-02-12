@@ -14,7 +14,6 @@ C++ extension sample
 rethink structure of arraytypes.tex
 
 clean up XXX's
-Test with Fempy.
 
 document version()
 
@@ -22,11 +21,14 @@ document interactive features
 reexamine intro for punch
 Use Gunter's storage adapters.
 exp(1) in interactive pylinear
+
+document default arguments on *_like functions
+import cyclic_slice, integrate_by_simpson
+import rmtree, first, allsame, factorial, ProgressBar -> pytools
 --------------------------------------------------------------------------
 Future
 --------------------------------------------------------------------------
 gradient, convolve
-replace typecode by dtype?
 array interface
 more ufuncs
   - with their different methods?

@@ -621,14 +621,13 @@ def empty(shape, dtype=Float, flavor=None):
         result = matrix_class(shape[0], shape[1])
     return result
 
-def empty_like(ary):
+def empty_like(ary, shape=None, dtype=None, flavor=None):
     """Return an uninitialized array with shape, flavor and dtype just
     like `ary'.
     
     This is often faster than zeros_like().
     """
-    result = empty(ary.shape, ary.dtype, ary.flavor)
-    result.clear()
+    result = empty(shape or ary.shape, dtype or ary.dtype, flavor or ary.flavor)
     return result
 
 def zeros(shape, dtype=Float, flavor=None):
@@ -637,11 +636,11 @@ def zeros(shape, dtype=Float, flavor=None):
     result.clear()
     return result
 
-def zeros_like(ary):
+def zeros_like(ary, shape=None, dtype=None, flavor=None):
     """Return a zero-filled array with shape, flavor and dtype just
     like `ary'.
     """
-    result = zeros(ary.shape, ary.dtype, ary.flavor)
+    result = zeros(shape or ary.shape, dtype or ary.dtype, flavor or ary.flavor)
     result.clear()
     return result
 
