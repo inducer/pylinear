@@ -24,7 +24,7 @@ HAVE_DASKR = False
 
 BOOST_INCLUDE_DIRS = []
 BOOST_LIBRARY_DIRS = [] 
-BPL_LIBRARIES = ["boost_python"]
+BPL_LIBRARIES = ["boost_python-mt"]
 
 BOOST_UBLAS_BINDINGS_INCLUDE_DIRS = ["/home/andreas/work/boost-sandbox"]
 
