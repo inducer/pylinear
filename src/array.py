@@ -579,7 +579,7 @@ def asarray(data, dtype=None, flavor=None):
     try:
         given_flavor = data.flavor
         given_dtype = data.dtype
-    except NameError:
+    except AttributeError:
         given_flavor = None
         given_dtype = None
 
