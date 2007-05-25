@@ -266,18 +266,6 @@ if pylinear.has_arpack():
 
 
 
-# matlab-workalikes -----------------------------------------------------------
-def linspace(x, y, n = 100):
-    if type(x) is types.IntType:
-        x = float(x)
-    if type(y) is types.IntType:
-        y = float(y)
-    h = (y-x) / n
-    return [ x+h*i for i in range(n+1) ]
-
-
-
-
 # other helpers ---------------------------------------------------------------
 def make_permutation_matrix(permutation, dtype=num.Float):
     size = len(permutation)

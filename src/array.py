@@ -22,6 +22,7 @@ PyLinear's Python wrapper module for creating/manipulating Arrays.
 
 
 
+from __future__ import division
 from pylinear._array import *
 
 
@@ -527,6 +528,23 @@ def arange(*args, **kwargs):
     import math
     length = int(math.ceil(float(stop-start)/step))
     return array([start + i*step for i in range(length)], dtype=dtype)
+
+
+
+
+def linspace(start, stop, num=100, endpoint=True):
+    """Return evenly spaced numbers.
+ 
+    Return num evenly spaced samples from start to stop.  If
+    endpoint is True, the last sample is stop. If retstep is
+    True then return the step value used.
+    """
+    if endpoint:
+        h = (stop-start) / (num-1)
+    else:
+        h = (stop-start) / num
+        
+    return [ start+h*i for i in range(num) ]
 
 
 
