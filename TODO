@@ -3,7 +3,7 @@ Current
 --------------------------------------------------------------------------
 Documentation fallout of comp/op split
 
-document diagonal_matrix, take, tri[ul]
+document diagonal_matrix, take, tri[ul], linspace, leftsolve
 
 document computation
 

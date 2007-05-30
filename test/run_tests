@@ -1,2 +1,2 @@
 #! /bin/bash
-python -c 'import unittestgui; unittestgui.main("test_matrices.TestMatrices")'
+python2.5 -c 'import unittestgui; unittestgui.main("test_matrices.TestMatrices")'

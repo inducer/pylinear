@@ -544,7 +544,7 @@ def linspace(start, stop, num=100, endpoint=True):
     else:
         h = (stop-start) / num
         
-    return [ start+h*i for i in range(num) ]
+    return array([ start+h*i for i in range(num) ])
 
 
 
@@ -604,7 +604,7 @@ def asarray(data, dtype=None, flavor=None):
     if flavor is None:
         flavor = given_flavor
 
-    if given_dtype == dtype and given_flavor == flavor:
+    if flavor and dtype and given_dtype == dtype and given_flavor == flavor:
         return data
 
     if dtype is None and given_dtype is not None:
@@ -1127,3 +1127,10 @@ def _solve_operator(mat, rhs):
 
 solve = _InfixOperator(_solve_operator)
 
+def _leftsolve_operator(mat, rhs):
+    import pylinear.computation as comp
+
+    # FIXME inefficient
+    return comp.solve_linear_system(mat.T, rhs.T).T
+
+leftsolve = _InfixOperator(_leftsolve_operator)
