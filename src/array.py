@@ -598,23 +598,21 @@ def asarray(data, dtype=None, flavor=None):
         given_flavor = data.flavor
         given_dtype = data.dtype
     except AttributeError:
-        given_flavor = None
-        given_dtype = None
+        # not handling a pylinear array--leave that to the general array
+        # constructor.
+        return array(data, dtype, flavor)
 
     if flavor is None:
         flavor = given_flavor
 
-    if flavor and dtype and given_dtype == dtype and given_flavor == flavor:
-        return data
-
-    if dtype is None and given_dtype is not None:
+    if dtype is None:
         dtype = given_dtype
 
-    try:
-        mat_class = _get_matrix_class(len(data.shape), dtype, flavor)
-        return mat_class(data)
-    except TypeError:
-        return array(data, dtype, flavor)
+    if given_dtype == dtype and given_flavor == flavor:
+        return data
+
+    mat_class = _get_matrix_class(len(data.shape), dtype, flavor)
+    return mat_class(data)
   
 
 
