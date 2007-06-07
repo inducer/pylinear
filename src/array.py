@@ -247,14 +247,15 @@ def _wrap_vector(strs, max_length=80, indent=8*" ", first_indent=0):
 
 
 
-def _stringify_vector(array, num_stringifier):
+def _stringify_vector(array, num_stringifier, max_length=80):
     strs = [num_stringifier(entry) for entry in array]
-    return "array([%s])" % _wrap_vector(strs, indent=7*" ", first_indent=7)
+    return "array([%s])" % _wrap_vector(strs, indent=7*" ", first_indent=7,
+            max_length=max_length)
 
 
 
 
-def _stringify_dense_matrix(array, num_stringifier):
+def _stringify_dense_matrix(array, num_stringifier, max_length=80):
     h,w = array.shape
     strs = [[num_stringifier(array[i,j]) for i in range(h)] for j in range(w)]
     col_widths = [max([len(s) for s in col]) for col in strs]
@@ -262,12 +263,13 @@ def _stringify_dense_matrix(array, num_stringifier):
     for i, v in enumerate(array):
         row = [strs[j][i].rjust(col_widths[j])
                for j in range(w)]
-        result += "[%s]" % _wrap_vector(row, indent=12*" ", first_indent=8)
+        result += "[%s]" % _wrap_vector(row, indent=12*" ", first_indent=8,
+                max_length=max_length)
         if i != h - 1:
             result += ",\n" + 7 * " "
     return "array([%s])" % result
 
-def _stringify_sparse_matrix(array, num_stringifier):
+def _stringify_sparse_matrix(array, num_stringifier, max_length=80):
     strs = []
     last_row = -1
     for i, j in array.indices():
@@ -281,7 +283,8 @@ def _stringify_sparse_matrix(array, num_stringifier):
     result = ""
     for row_idx, (i,row) in enumerate(strs):
         indent = 10+len(str(row_idx))
-        result += "%d: {%s}" % (i, _wrap_vector(row, indent=(indent + 4)*" ", first_indent=indent))
+        result += "%d: {%s}" % (i, _wrap_vector(row, 
+            indent=(indent + 4)*" ", first_indent=indent, max_length=max_length))
         if row_idx != len(strs) - 1:
             result += ",\n" + 8 * " "
     return "sparse({%s},\n%sshape=%s, flavor=%s)" % (
@@ -294,7 +297,6 @@ def _str_sparse_matrix(array): return _stringify_sparse_matrix(array, str)
 def _repr_vector(array): return _stringify_vector(array, repr)
 def _repr_dense_matrix(array): return _stringify_dense_matrix(array, repr)
 def _repr_sparse_matrix(array): return _stringify_sparse_matrix(array, repr)
-
 
 
 
@@ -371,14 +373,17 @@ def _add_array_behaviors():
         # stringification -----------------------------------------------------
         Vector(dtype).__str__ = _str_vector
         Vector(dtype).__repr__ = _repr_vector
+        Vector(dtype).format = _stringify_vector
         DenseMatrix(dtype).__str__ = _str_dense_matrix
         DenseMatrix(dtype).__repr__ = _repr_dense_matrix
+        DenseMatrix(dtype).format = _stringify_dense_matrix
 
         for f in FLAVORS:
             if f not in [Vector, DenseMatrix]:
                 co = f(dtype)
                 co.__str__ = _str_sparse_matrix
                 co.__repr__ = _repr_sparse_matrix
+                co.format = _stringify_sparse_matrix
 
         # cast_and_retry ------------------------------------------------------
         for mt in MATRIX_FLAVORS:
