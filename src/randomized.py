@@ -49,7 +49,7 @@ def make_random_vector(size, dtype):
 
 def make_random_onb(size, dtype):
     vectors = [ makeRandomVector(size, dtype) for i in range(size) ]
-    vectors = comp.orthogonalize(vectors)
+    vectors = comp.orthonormalize(vectors)
 
     for i in range(size):
         for j in range(size):
@@ -67,7 +67,7 @@ def make_random_orthogonal_matrix(size, dtype):
         write_random_vector(v)
         vectors.append(v)
 
-    orth_vectors = comp.orthogonalize(vectors)
+    orth_vectors = comp.orthonormalize(vectors)
 
     mat = num.zeros((size,size), dtype)
     for i in range(size):

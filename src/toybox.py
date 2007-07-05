@@ -526,7 +526,7 @@ def get_parallelogram_volume(vectors):
     if vectors[0].shape[0] == 2:
         return vectors[0][0] * vectors[1][1] - vectors[1][0] * vectors[0][1]
     else:
-        raise RuntimeError, "not implemented"
+        raise NotImplementedError
 
 
 

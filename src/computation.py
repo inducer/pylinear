@@ -167,7 +167,7 @@ def spectral_condition_number(matrix, min_index = 0, threshold = None):
 
 
 
-def orthogonalize(vectors):
+def orthonormalize(vectors):
     # Gram-Schmidt FIXME: unstable
     done_vectors = []
 
