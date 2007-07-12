@@ -760,7 +760,7 @@ def vstack(tup, flavor=DenseMatrix):
     """Stack arrays in sequence vertically (row wise)
  
     Description:
-        Take a sequence of arrays and stack them veritcally
+        Take a sequence of arrays and stack them vertically
         to make a single array.  All arrays in the sequence
         must have the same shape along all but the first axis.
         vstack will rebuild arrays divided by vsplit.
@@ -768,12 +768,17 @@ def vstack(tup, flavor=DenseMatrix):
         tup -- sequence of arrays.  All arrays must have the same
                shape.
     """
-    # don't check other array's width--the assignment will catch it if it's
-    # wrong.
-    w = tup[0].shape[1]
-    h = sum([arr.shape[0] for arr in tup])
+    if len(tup[0].shape) == 1:
+        h = sum([arr.shape[0] for arr in tup])
 
-    result = zeros((h,w), _max_dtype(tup), flavor=flavor)
+        result = zeros((h,), _max_dtype(tup), flavor=flavor)
+    else:
+        # don't check other array's width--the assignment will catch it if it's
+        # wrong.
+        w = tup[0].shape[1]
+        h = sum([arr.shape[0] for arr in tup])
+
+        result = zeros((h,w), _max_dtype(tup), flavor=flavor)
 
     index = 0
     for arr in tup:
@@ -978,7 +983,6 @@ def sum(arr):
     except AttributeError:
         return _original_sum(arr)
 
-
 def product(arr, axis):
     """Return the product of arr's entries."""
 
@@ -1119,6 +1123,9 @@ class _InfixOperator:
         return self.function(other)
     def call(self, a, b):
         return self.function(a, b)
+
+
+
 
 outer = _InfixOperator(outerproduct)
 cross = _InfixOperator(crossproduct)

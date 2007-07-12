@@ -10,7 +10,7 @@ rm -Rf html
 mkdir ,temp
 cd ,temp
 for i in ../*.tex; do 
-    python ../sub_verbatim.py $i > `basename $i`
+    python2.5 ../sub_verbatim.py $i > `basename $i`
 done
 
 export TEXINPUTS="$TEXINPUTS:$PY_DOC_PATH/texinputs" 
