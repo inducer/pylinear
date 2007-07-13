@@ -429,15 +429,26 @@ def array(data, dtype=None, flavor=None):
         try:
             return 1+get_dim(data[0])
         except:
-            return 0
+            try:
+                len(data)
+            except:
+                return 0
+            return 1
 
-    def get_biggest_type(data, prev_biggest_type = Float64):
+    def get_biggest_type(data, prev_biggest_type=Float64):
         try:
             data[0][0]
+            multi_d = True
+        except TypeError:
+            multi_d = False
+        except IndexError:
+            multi_d = False
+
+        if multi_d:
             for i in data:
                 prev_biggest_type = get_biggest_type(i, prev_biggest_type)
             return prev_biggest_type
-        except TypeError:
+        else:
             for i in data:
                 if isinstance(i, complex):
                     prev_biggest_type = Complex
