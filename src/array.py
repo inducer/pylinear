@@ -779,6 +779,9 @@ def vstack(tup, flavor=DenseMatrix):
         tup -- sequence of arrays.  All arrays must have the same
                shape.
     """
+    if len(tup) == 0:
+        return array([])
+
     if len(tup[0].shape) == 1:
         h = sum([arr.shape[0] for arr in tup])
 
