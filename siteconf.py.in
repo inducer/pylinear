@@ -6,46 +6,40 @@
 PYLINEAR_CONF_TEMPLATE_VERSION = 2
 
 # Change to "True" (without the quotes) if the respective package is available.
-HAVE_BLAS = False
-HAVE_LAPACK = False
-HAVE_ARPACK = False
-HAVE_UMFPACK = False
+HAVE_BLAS = ${HAVE_BLAS}
+HAVE_LAPACK = ${HAVE_LAPACK}
+HAVE_ARPACK = ${HAVE_ARPACK}
+HAVE_UMFPACK = ${HAVE_UMFPACK}
 
 # DASKR is included in PyLinear's source for your convenience.
 # You may go to fortran/daskr and run ./build.sh, then set 
 # this variable to True. The default settings below should then
 # suffice to include DASKR in your build.
 
-HAVE_DASKR = False
+HAVE_DASKR = ${HAVE_DASKR} or ${COMPILE_DASKR}
 
 # --------------------------------------------------------------------
 # Path options
 # --------------------------------------------------------------------
 
-BOOST_INCLUDE_DIRS = []
-BOOST_LIBRARY_DIRS = [] 
-BPL_LIBRARIES = ["boost_python-mt"]
+BOOST_INCLUDE_DIRS = [$str{BOOST_INC_DIR}]
+BOOST_LIBRARY_DIRS = [$str{BOOST_LIB_DIR}] 
+BPL_LIBRARIES = [$str{BOOST_PYTHON_LIBNAME}]
 
-BOOST_UBLAS_BINDINGS_INCLUDE_DIRS = ["/home/andreas/work/boost-sandbox"]
+BOOST_BINDINGS_INCLUDE_DIRS = [$str{BOOST_BINDINGS_INC_DIR}]
 
-BLAS_LIBRARY_DIRS = []
-BLAS_LIBRARIES = ["blas"]
+BLAS_LIBRARY_DIRS = [$str{BLAS_LIB_DIR}]
+BLAS_LIBRARIES = $str{BLAS_LIB_NAMES}.split(",")
 
-LAPACK_LIBRARY_DIRS = []
-LAPACK_LIBRARIES = ["lapack"]
+LAPACK_LIBRARY_DIRS = [$str{LAPACK_LIB_DIR}]
+LAPACK_LIBRARIES = $str{LAPACK_LIB_NAMES}.split(",")
 
-ARPACK_LIBRARY_DIRS = []
-ARPACK_LIBRARIES = ["arpack"]
+ARPACK_LIBRARY_DIRS = [$str{ARPACK_LIB_DIR}]
+ARPACK_LIBRARIES = $str{ARPACK_LIB_NAMES}.split(",")
 
-# *** CHANGE with respect to prior versions: 
-# include trailing "umfpack" or "ufsparse"
-# make sure you use boost-bindings release 2006-04-30 or newer.
-# older version, stand-alone
-#UMFPACK_INCLUDE_DIRS = ["/usr/include/umfpack"] 
-# newer version, stand-alone
-UMFPACK_INCLUDE_DIRS = ["/usr/include/ufsparse"] 
+UMFPACK_INCLUDE_DIRS = [$str{UMFPACK_INC_DIR}] 
 UMFPACK_LIBRARY_DIRS = []
-UMFPACK_LIBRARIES = ["umfpack", "amd"]
+UMFPACK_LIBRARIES = $str{UMFPACK_LIB_NAMES}.split(",")
 
 DASKR_LIBRARY_DIRS = ["fortran/daskr"]
 DASKR_LIBRARIES = ["daskr"]
@@ -53,6 +47,5 @@ DASKR_LIBRARIES = ["daskr"]
 # --------------------------------------------------------------------
 # Compiler flags
 # --------------------------------------------------------------------
-#EXTRA_COMPILE_ARGS = ["-fmessage-length=0", "-Wno-sign-compare"]
-EXTRA_COMPILE_ARGS = ["-Wno-sign-compare"]
+EXTRA_COMPILE_ARGS = [$str{CXXFLAGS}]
 

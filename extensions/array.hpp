@@ -1229,9 +1229,11 @@ namespace ufuncs
     else
     {
       Py_DECREF(result);
-      PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                             (std::string("_ufunc_") + Name::m_name).c_str(), 
-                                             op2.ptr());
+      PyObject *result = PyObject_CallMethod(op1.ptr(), 
+          (char *) "_cast_and_retry", 
+          (char *) "sO",
+          (std::string("_ufunc_") + Name::m_name).c_str(), 
+          op2.ptr());
       if (result == 0)
         throw python::error_already_set();
       else
@@ -1255,9 +1257,11 @@ namespace ufuncs
     else
     {
       Py_DECREF(result);
-      PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                             (std::string("_reverse_ufunc_") + Name::m_name).c_str(), 
-                                             op2.ptr());
+      PyObject *result = PyObject_CallMethod(op1.ptr(), 
+          (char *) "_cast_and_retry", 
+          (char *) "sO",
+          (std::string("_reverse_ufunc_") + Name::m_name).c_str(), 
+          op2.ptr());
       if (result == 0)
         throw python::error_already_set();
       else
@@ -1522,8 +1526,10 @@ static PyObject *divideByScalar(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "div", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "div", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else
@@ -1561,8 +1567,10 @@ static PyObject *divideByScalarInPlace(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "idiv", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "idiv", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else
@@ -1610,8 +1618,10 @@ static PyObject *multiplyVector(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "mul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "mul", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else
@@ -1650,8 +1660,11 @@ static PyObject *multiplyVectorOuter(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "_outerproduct", op2.ptr());
+    PyObject *result = PyObject_CallMethod(
+        op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "_outerproduct", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else
@@ -1809,8 +1822,10 @@ static PyObject *multiplyMatrix(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "mul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "mul", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else
@@ -1839,8 +1854,10 @@ static PyObject *rmultiplyMatrix(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "rmul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "rmul", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else
@@ -1901,8 +1918,10 @@ static PyObject *multiplyMatrixInPlace(python::object op1, python::object op2)
   else
   {
     Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), "_cast_and_retry", "sO",
-                                           "imul", op2.ptr());
+    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+        (char *) "_cast_and_retry", 
+        (char *) "sO",
+        "imul", op2.ptr());
     if (result == 0)
       throw python::error_already_set();
     else

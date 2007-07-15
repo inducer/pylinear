@@ -9,15 +9,14 @@ import sys
 try:
     execfile("siteconf.py")
 except IOError:
-    print "*** Please copy siteconf-template.py to siteconf.py,"
-    print "*** then edit siteconf.py to match your environment."
+    print "*** Please run configure first."
     sys.exit(1)
 
 from distutils.core import setup,Extension
 
 def old_config():
     print "*** You are using an old version of Pylinear's configuration."
-    print "*** Please start with a fresh copy of siteconf-template.py."
+    print "*** Please re-run configure."
     sys.exit(1)
 
 try:
@@ -39,7 +38,7 @@ INCLUDE_DIRS = ["algorithms"] + \
 LIBRARY_DIRS = BOOST_LIBRARY_DIRS
 LIBRARIES = BPL_LIBRARIES
 
-OP_EXTRA_INCLUDE_DIRS = BOOST_UBLAS_BINDINGS_INCLUDE_DIRS
+OP_EXTRA_INCLUDE_DIRS = BOOST_BINDINGS_INCLUDE_DIRS
 OP_EXTRA_LIBRARY_DIRS = []
 OP_EXTRA_LIBRARIES = []
 

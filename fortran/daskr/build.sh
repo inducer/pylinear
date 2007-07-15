@@ -10,7 +10,7 @@ rm -f $LIBRARY
 
 for i in $SOURCE_FILES; do
   DESTNAME=${i%.f}.o
-  $F77 -c -o $DESTNAME $i
+  $F77 -fPIC -c -o $DESTNAME $i
   ar -rc $LIBRARY $DESTNAME
 done
 

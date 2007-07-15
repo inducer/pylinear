@@ -1,0 +1,14 @@
+all:
+	if test "x${COMPILE_DASKR}" = "xTrue"; then \
+	  (cd fortran/daskr; ./build.sh) ; \
+	fi
+	${PYTHON_EXE} setup.py build
+
+install:
+	${PYTHON_EXE} setup.py install
+
+clean:
+	if test "x${COMPILE_DASKR}" = "xTrue"; then \
+	  (cd fortran/daskr; ./clean.sh) ; \
+	fi
+	rm build -Rf
