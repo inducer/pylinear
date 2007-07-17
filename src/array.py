@@ -1023,6 +1023,60 @@ def kroneckerproduct(a, b):
             result[i*bh:(i+1)*bh,j*bw:(j+1)*bw] = a[i,j] * b
     return result
 
+def permutation_matrix(to_indices=None, from_indices=None, h=None, w=None,
+        dtype=Float64):
+    """Return a permutation matrix.
+
+    If to_indices is specified, the resulting permutation 
+    matrix P satisfies the condition
+
+    P * e[i] = e[to_indices[i]] for i=1,...,len(to_indices)
+
+    where e[i] is the i-th unit vector. The height of P is 
+    determined either implicitly by the maximum of to_indices
+    or explicitly by the parameter h.
+
+    If from_indices is specified, the resulting permutation 
+    matrix P satisfies the condition
+
+    P * e[from_indices[i]] = e[i] for i=1,...,len(from_indices)
+    
+    where e[i] is the i-th unit vector. The width of P is
+    determined either implicitly by the maximum of from_indices
+    of explicitly by the parameter w.
+
+    If both to_indices and from_indices is specified, a ValueError
+    exception is raised.
+    """
+    if to_indices is not None and from_indices is not None:
+        raise ValueError, "only one of to_indices and from_indices may " \
+                "be specified"
+
+    if to_indices is not None:
+        if h is None:
+            h = max(to_indices)+1
+        w = len(to_indices)
+    else:
+        if w is None:
+            w = max(from_indices)+1
+        h = len(from_indices)
+
+    result = zeros((h,w), flavor=SparseBuildMatrix, dtype=dtype)
+
+    if to_indices is not None:
+        for j, i in enumerate(to_indices):
+            result.add_element(i, j, 1)
+    else:
+        for i, j in enumerate(from_indices):
+            result.add_element(i, j, 1)
+
+    return asarray(result, flavor=SparseExecuteMatrix)
+
+def unit_vector(n, i, dtype=Float64):
+    """Return the i-th unit vector of size n, with the given dtype."""
+    result = zeros((n,), dtype=dtype)
+    result[i] = 1
+    return result
 
 
 

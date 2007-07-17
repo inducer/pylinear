@@ -91,7 +91,7 @@ class _LUInverseOperator:
 
         self.L = l
         self.U = u
-        self.Permutation = perm
+        self.P = num.permutation_matrix(from_indices=perm)
 
     def size1(self):
         return self.L.shape[0]
@@ -100,10 +100,9 @@ class _LUInverseOperator:
         return self.L.shape[1]
 
     def apply(self, before, after):
-        temp = num.zeros((len(before),), before.dtype)
-        for i in range(len(before)):
-            temp[i] = before[self.Permutation[i]]
-        after[:] = self.U.solve_upper(self.L.solve_lower(temp))
+        after[:] = self.U.solve_upper(
+                self.L.solve_lower(
+                    self.P*before))
 
 class _LUInverseOperatorFloat64(_LUInverseOperator, _op.MatrixOperatorFloat64):
     def __init__(self, l, u, perm):

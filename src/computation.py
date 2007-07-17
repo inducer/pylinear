@@ -262,18 +262,3 @@ if pylinear.has_arpack():
                                max_iterations)
 
         return zip(result.RitzValues, result.RitzVectors)
-
-
-
-
-# other helpers ---------------------------------------------------------------
-def make_permutation_matrix(permutation, dtype=num.Float):
-    size = len(permutation)
-    result = num.zeros((size,size), dtype)
-    for index, value in zip(range(size), permutation):
-        result[index,value] = 1
-    return result
-
-
-
-  

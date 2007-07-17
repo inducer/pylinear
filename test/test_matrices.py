@@ -236,8 +236,13 @@ class TestMatrices(unittest.TestCase):
         size = 100
         A = make_random_full_matrix(size, dtype)+10*num.identity(size, num.Float)
         L,U,permut,sign = comp.lu(A)
-        permut_mat = comp.make_permutation_matrix(permut)
+        permut_mat = num.permutation_matrix(from_indices=permut)
         self.assert_small(L * U - permut_mat * A)
+
+        inv_op = op.LUInverseOperator.make(A)
+        for count in range(20):
+            x = make_random_vector(size, dtype)
+            self.assert_small(inv_op(A*x) - x)
 
     def test_lu(self):
         #self.for_all_dtypes(self.do_test_lu)
@@ -623,6 +628,25 @@ class TestMatrices(unittest.TestCase):
 
     def test_symmetric_fun_calculus(self):
         self.for_all_dtypes(self.do_test_symmetric_fun_calculus)
+
+    def test_permutation_matrix(self):
+        from random import shuffle
+
+        n = 37
+
+        permut = range(37)
+        shuffle(permut)
+
+        fp = num.permutation_matrix(from_indices=permut)
+        tp = num.permutation_matrix(to_indices=permut)
+        
+        self.assert_(fp.T == tp)
+
+        e = [num.unit_vector(n, i) for i in range(n)]
+
+        for i in range(n):
+            self.assert_small(tp*e[i]-e[permut[i]])
+            self.assert_small(fp*e[permut[i]]-e[i])
             
 if __name__ == '__main__':
     unittest.main()
