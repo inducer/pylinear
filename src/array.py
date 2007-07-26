@@ -314,7 +314,7 @@ def _equal(a, b):
         return False
 
 def _not_equal(a, b):
-    return not _equals(a, b)
+    return not _equal(a, b)
 
 
 

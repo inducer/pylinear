@@ -27,6 +27,8 @@ exp(1) in interactive pylinear
 document default arguments on *_like functions
 import cyclic_slice, integrate_by_simpson
 import rmtree, first, allsame, factorial, ProgressBar -> pytools
+
+Think about copy semantics
 --------------------------------------------------------------------------
 Future
 --------------------------------------------------------------------------

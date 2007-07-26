@@ -2095,7 +2095,8 @@ template <typename WrappedClass>
 static void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
-  class_<WrappedClass> pyc(total_typename.c_str());
+  typedef class_<WrappedClass> wrapper_class;
+  wrapper_class pyc(total_typename.c_str());
 
   pyc
     .def(python::init<typename WrappedClass::size_type, 
@@ -2109,7 +2110,7 @@ static void exposeMatrixType(WrappedClass, const std::string &python_typename, c
 
   exposeMatrixConcept(pyc, WrappedClass());
   exposeIterator(pyc, total_typename, WrappedClass());
-  exposeForMatricesConvertibleTo(matrix_converter_exposer<class_<WrappedClass> >(pyc), 
+  exposeForMatricesConvertibleTo(matrix_converter_exposer<wrapper_class>(pyc), 
       typename WrappedClass::value_type());
   exposeMatrixSpecialties(pyc, WrappedClass());
 }

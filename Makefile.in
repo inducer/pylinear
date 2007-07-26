@@ -1,14 +1,14 @@
-all:
-	if test "x${COMPILE_DASKR}" = "xTrue"; then \
-	  (cd fortran/daskr; ./build.sh) ; \
-	fi
+.PHONY	: all install clean tags
+
+all: tags
 	${PYTHON_EXE} setup.py build
 
-install:
+install: tags
 	${PYTHON_EXE} setup.py install
 
 clean:
-	if test "x${COMPILE_DASKR}" = "xTrue"; then \
-	  (cd fortran/daskr; ./clean.sh) ; \
-	fi
-	rm build -Rf
+	rm -Rf build
+	rm tags
+
+tags:
+	ctags -R src || true
