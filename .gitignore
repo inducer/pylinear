@@ -8,3 +8,4 @@ doc/html
 *.o
 *.pyc
 Makefile
+tags
