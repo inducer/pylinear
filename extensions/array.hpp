@@ -1449,7 +1449,7 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
 
     .def("sum", sum<WrappedClass>,
         "Return the sum of the Array's entries.")
-    .def("_product_nonzeros", sum<WrappedClass>,
+    .def("_product_nonzeros", product<WrappedClass>,
         "Return the product of the Array's entries, excluding zeros in sparse Arrays.")
     .def("abs_square_sum", abs_square_sum<WrappedClass>)
     ;
@@ -2066,7 +2066,10 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB
     .def("complete_index1_data", &matrix_type::complete_index1_data,
         "Fill up index data of compressed row storage.")
     .def("set_element_past_end", &matrix_type::push_back,
-        "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.");
+        "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
+    .add_property("nnz", &matrix_type::nnz, 
+        "The number of structural nonzeros in the matrix")
+    ;
 }
 
 
@@ -2085,7 +2088,10 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::coordinate_matrix<VT, L, IB
     .def("set_element_past_end", &matrix_type::push_back,
         "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
     .def("add_element", &matrix_type::append_element,
-        "(i,j,x) Set a[i,j] += x.");
+        "(i,j,x) Set a[i,j] += x.")
+    .add_property("nnz", &matrix_type::nnz, 
+        "The number of structural nonzeros in the matrix")
+    ;
 }
 
 
