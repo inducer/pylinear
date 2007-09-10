@@ -33,7 +33,7 @@ def main():
     conf["ARPACK_INCLUDE_DIRS"] = []
     conf["DASKR_INCLUDE_DIRS"] = []
 
-    INCLUDE_DIRS = ["algorithms"] + \
+    INCLUDE_DIRS = ["src/cpp"] + \
                    conf["BOOST_INCLUDE_DIRS"]
     LIBRARY_DIRS = conf["BOOST_LIBRARY_DIRS"]
     LIBRARIES = conf["BPL_LIBRARIES"]
@@ -80,15 +80,15 @@ def main():
           license = "BSD-Style",
           url="http://news.tiker.net/software/pylinear",
           packages=["pylinear"],
-          package_dir={"pylinear": "src"},
+          package_dir={"pylinear": "src/python"},
           ext_package="pylinear",
           scripts=["scripts/pylinear"],
           ext_modules=[ Extension("_array", 
-                                  ["extensions/array.cpp", 
-                                   "extensions/vector.cpp", 
-                                   "extensions/matrix_dense.cpp",
-                                   "extensions/matrix_sparse_build.cpp",
-                                   "extensions/matrix_sparse_ex.cpp",
+                                  ["src/wrapper/array.cpp", 
+                                   "src/wrapper/vector.cpp", 
+                                   "src/wrapper/matrix_dense.cpp",
+                                   "src/wrapper/matrix_sparse_build.cpp",
+                                   "src/wrapper/matrix_sparse_ex.cpp",
                                    ],
                                   include_dirs=INCLUDE_DIRS,
                                   library_dirs=LIBRARY_DIRS,
@@ -96,7 +96,7 @@ def main():
                                   extra_compile_args=conf["EXTRA_COMPILE_ARGS"],
                                   ),
                         Extension( "_operation", 
-                                   ["extensions/operation.cpp",
+                                   ["src/wrapper/operation.cpp",
                                     ],
                                    define_macros=list(OP_EXTRA_DEFINES.iteritems()),
                                    include_dirs=INCLUDE_DIRS + OP_EXTRA_INCLUDE_DIRS,
