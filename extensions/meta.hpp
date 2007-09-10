@@ -91,13 +91,13 @@ template <typename OldValueType, typename NewValueType>
 struct change_value_type<ublas::matrix<OldValueType>, NewValueType>
 { typedef ublas::matrix<NewValueType> type; };
 
-template <typename OldValueType, typename NewValueType>
-struct change_value_type<ublas::coordinate_matrix<OldValueType>, NewValueType>
-{ typedef ublas::coordinate_matrix<NewValueType> type; };
+template <typename OLD, typename NEW, typename F, std::size_t IB, typename IA>
+struct change_value_type<ublas::coordinate_matrix<OLD, F, IB, IA>, NEW>
+{ typedef ublas::coordinate_matrix<NEW, F, IB, IA> type; };
 
-template <typename OLD, typename NEW, typename L, std::size_t IB, typename IA>
-struct change_value_type<ublas::compressed_matrix<OLD, L, IB, IA>, NEW>
-{ typedef ublas::compressed_matrix<NEW, L, IB, IA> type; };
+template <typename OLD, typename NEW, typename F, std::size_t IB, typename IA>
+struct change_value_type<ublas::compressed_matrix<OLD, F, IB, IA>, NEW>
+{ typedef ublas::compressed_matrix<NEW, F, IB, IA> type; };
 
 template <typename OldValueType, typename NewValueType>
 struct change_value_type<ublas::vector<OldValueType>, NewValueType>
@@ -120,9 +120,10 @@ static void exposeForAllSimpleTypes(const std::string &python_eltname, const Exp
 {
   exposer.expose("Matrix" + python_eltname, ublas::matrix<ValueType>());
   exposer.expose("SparseExecuteMatrix" + python_eltname, 
-                 ublas::compressed_matrix<ValueType, 
-                 ublas::column_major, 0, ublas::unbounded_array<int> >());
-  exposer.expose("SparseBuildMatrix" + python_eltname, ublas::coordinate_matrix<ValueType>());
+      ublas::compressed_matrix<ValueType, 
+      ublas::column_major, 0, ublas::unbounded_array<int> >());
+  exposer.expose("SparseBuildMatrix" + python_eltname, 
+      ublas::coordinate_matrix<ValueType, ublas::column_major>());
 }
 
 

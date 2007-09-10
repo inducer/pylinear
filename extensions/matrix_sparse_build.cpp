@@ -22,7 +22,9 @@
 template <typename ValueType>
 static void exposeAll(ValueType, const std::string &python_eltypename)
 {
-  exposeMatrixType(ublas::coordinate_matrix<ValueType>(), "SparseBuildMatrix", python_eltypename);
+  exposeMatrixType(ublas::coordinate_matrix<
+      ValueType, ublas::column_major>(), 
+      "SparseBuildMatrix", python_eltypename);
 }
 
 

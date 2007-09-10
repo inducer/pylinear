@@ -822,7 +822,7 @@ void addScatteredBackend(MatrixType &mat,
 
 
 template <typename V>
-void addScatteredBackend(ublas::coordinate_matrix<V> &mat, 
+void addScatteredBackend(ublas::coordinate_matrix<V, ublas::column_major> &mat, 
     python::object row_indices, 
     python::object column_indices,
     const ublas::matrix<V> &little_mat)

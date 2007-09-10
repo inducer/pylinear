@@ -84,25 +84,6 @@ inline bool isComplex(const std::complex<T2> &)
 
 
 
-// isCoordinateMatrix ---------------------------------------------------------
-template <typename MatrixType>
-inline bool isCoordinateMatrix(const MatrixType &)
-{
-  return false;
-}
-
-
-
-
-template <typename T>
-inline bool isCoordinateMatrix(const ublas::coordinate_matrix<T> &)
-{
-  return true;
-}
-
-
-
-
 // conjugate ------------------------------------------------------------------
 template <typename T>
 inline T conjugate(const T &x)
