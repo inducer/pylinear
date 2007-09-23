@@ -88,7 +88,7 @@ class ParameterizedType(object):
     def is_a(self, object):
         try:
             return isinstance(object, self(object.dtype))
-        except NameError:
+        except AttributeError:
             return False
 
     def __str__(self):
@@ -736,7 +736,7 @@ def diagonal_matrix(vec_or_mat, shape=None, dtype=None, flavor=DenseMatrix):
         return result
     else:
         mat = vec_or_mat
-        result = zeros(mat.shape, mat.dtype, mat.flavor)
+        result = zeros(mat.shape, dtype or mat.dtype, mat.flavor)
         n = mat.shape[0]
         for i in range(n):
             result[i,i] = mat[i,i]
