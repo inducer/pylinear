@@ -45,6 +45,14 @@ def adapt_real_to_complex_operator(real_part, imaginary_part):
 
 
 
+def write_gnuplot_sparsity_pattern(name, matrix):
+    gnuplot_file = file(name, "w")
+    for i,j in matrix.indices():
+        gnuplot_file.write("%d %d\n" % (i,j))
+
+
+
+
 # polynomial fits -------------------------------------------------------------
 def vandermonde(vector, degree = None):
     if degree is None:
