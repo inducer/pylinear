@@ -234,12 +234,12 @@ if pylinear.has_arpack():
     def operator_eigenvectors(
         operator,
         n_eigenvectors,
-        right_hand_operator = None,
-        spectral_shift = None,
-        which_eigenvalues = LARGEST_MAGNITUDE,
-        n_arnoldi_vectors = None,
-        tolerance = 1e-12,
-        max_iterations = None):
+        right_hand_operator=None,
+        spectral_shift=None,
+        which=LARGEST_MAGNITUDE,
+        n_arnoldi_vectors=None,
+        tolerance=1e-12,
+        max_iterations=None):
 
         if n_arnoldi_vectors is None:
             n_arnoldi_vectors = 2 * n_eigenvectors + 1
@@ -257,7 +257,7 @@ if pylinear.has_arpack():
                                mode, spectral_shift or 0,
                                n_eigenvectors,
                                n_arnoldi_vectors,
-                               which_eigenvalues,
+                               which,
                                tolerance,
                                max_iterations)
 
