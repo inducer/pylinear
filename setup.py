@@ -47,6 +47,7 @@ def main():
     conf["USE_ARPACK"] = conf["HAVE_ARPACK"] and conf["USE_LAPACK"]
     conf["USE_UMFPACK"] = conf["USE_BLAS"] and conf["HAVE_UMFPACK"]
     conf["USE_DASKR"] = conf["USE_LAPACK"] and conf["HAVE_DASKR"]
+    conf["USE_FFTW"] = conf["HAVE_FFTW"]
 
     if conf["HAVE_LAPACK"] and not conf["USE_LAPACK"]:
         print "*** LAPACK disabled because BLAS is missing"
@@ -70,6 +71,7 @@ def main():
     handle_component("LAPACK")
     handle_component("ARPACK")
     handle_component("UMFPACK")
+    handle_component("FFTW")
     handle_component("DASKR")
 
     setup(name="PyLinear",
@@ -96,7 +98,19 @@ def main():
                                   extra_compile_args=conf["EXTRA_COMPILE_ARGS"],
                                   ),
                         Extension( "_operation", 
-                                   ["src/wrapper/operation.cpp",
+                                   [
+                                       "src/wrapper/operation.cpp",
+                                       "src/wrapper/op_lapack.cpp",
+                                    ],
+                                   define_macros=list(OP_EXTRA_DEFINES.iteritems()),
+                                   include_dirs=INCLUDE_DIRS + OP_EXTRA_INCLUDE_DIRS,
+                                   library_dirs=LIBRARY_DIRS + OP_EXTRA_LIBRARY_DIRS,
+                                   libraries=LIBRARIES + OP_EXTRA_LIBRARIES,
+                                   extra_compile_args=conf["EXTRA_COMPILE_ARGS"],
+                                   ),
+                        Extension( "_fft", 
+                                   [
+                                       "src/wrapper/op_fftw.cpp",
                                     ],
                                    define_macros=list(OP_EXTRA_DEFINES.iteritems()),
                                    include_dirs=INCLUDE_DIRS + OP_EXTRA_INCLUDE_DIRS,
