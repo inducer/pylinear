@@ -19,12 +19,44 @@
 
 
 
-template <typename ValueType>
-static void exposeAll(ValueType, const std::string &python_eltypename)
+namespace
 {
-  exposeVectorType(ublas::vector<ValueType>(), "Vector", python_eltypename);
-}
+  template <typename ValueType>
+  static void exposeAll(ValueType, const std::string &python_eltypename)
+  {
+    exposeVectorType(ublas::vector<ValueType>(), "Vector", python_eltypename);
+  }
 
+
+
+
+  /*
+  template <class Vec>
+  class multidim_view
+  {
+    private:
+      boost::shared_ptr<Vec>    m_vector;
+      std::vector<unsigned>     m_dimensions;
+      unsigned                  m_offset;
+      std::vector<unsigned>     m_strides;
+
+    public:
+      multidim_view(boost::shared_ptr<Vec> &vector, 
+          const std::vector<unsigned> &dimensions)
+        : m_vector(vector), m_dimensions(dimensions)
+      { }
+
+      multidim_view(multidim_view &src)
+        : m_vector(src.m_vector), m_dimensions(src.m_dimensions)
+      { }
+
+
+
+      Vec &vector() const
+      { return m_vector; }
+  };
+  */
+}
 
 
 
