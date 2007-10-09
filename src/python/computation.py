@@ -243,7 +243,7 @@ if pylinear.has_arpack():
         max_iterations=None):
 
         if n_arnoldi_vectors is None:
-            n_arnoldi_vectors = 2 * n_eigenvectors + 1
+            n_arnoldi_vectors = min(2 * n_eigenvectors + 1, operator.size1())
 
         mode = _op.REGULAR_NON_GENERALIZED
         if right_hand_operator is not None:
