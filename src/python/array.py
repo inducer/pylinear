@@ -745,59 +745,79 @@ def diagonal_matrix(vec_or_mat, shape=None, dtype=None, flavor=DenseMatrix):
 def hstack(tup, flavor=DenseMatrix):
     """Stack arrays in sequence horizontally (column wise)
      
-    Description:
-        Take a sequence of arrays and stack them horizontally
-        to make a single array.  All arrays in the sequence
-        must have the same shape along all but the second axis.
-        hstack will rebuild arrays divided by hsplit.
-    Arguments:
-        tup -- sequence of arrays.  All arrays must have the same
-               shape.
+    Take a sequence of arrays and stack them horizontally
+    to make a single array.  All arrays in the sequence
+    must have the same shape along all but the second axis.
+    hstack will rebuild arrays divided by hsplit.
+
+    @param tup: sequence of arrays.
+
+    Vectors are seen as rows.
     """
-    # don't check other array's height--the assignment will catch it if it's
+    # don't check other arrays' height--the assignment will catch it if it's
     # wrong.
-    h = tup[0].shape[0]
-    w = sum([arr.shape[1] for arr in tup])
 
-    result = zeros((h,w), _max_dtype(tup), flavor=flavor)
+    if len(tup) == 0:
+        return array([])
 
-    index = 0
-    for arr in tup:
-        result[:,index:index+arr.shape[1]] = arr
-        index += arr.shape[1]
+    from pytools import all_equal
+    if not all_equal(len(ary.shape) for ary in tup):
+        raise ValueError, "argument must be either all vectors or all matrices"
+
+    w = sum([arr.shape[-1] for arr in tup])
+    if len(tup[0].shape) == 1:
+        # vector case
+        result = zeros((w,), _max_dtype(tup), flavor=flavor)
+        index = 0
+        for arr in tup:
+            result[index:index+arr.shape[-1]] = arr
+            index += arr.shape[-1]
+    else:
+        # matrix case
+        h = tup[0].shape[0]
+
+        result = zeros((h,w), _max_dtype(tup), flavor=flavor)
+
+        index = 0
+        for arr in tup:
+            result[:,index:index+arr.shape[1]] = arr
+            index += arr.shape[1]
     return result
 
 def vstack(tup, flavor=DenseMatrix):
     """Stack arrays in sequence vertically (row wise)
  
-    Description:
-        Take a sequence of arrays and stack them vertically
-        to make a single array.  All arrays in the sequence
-        must have the same shape along all but the first axis.
-        vstack will rebuild arrays divided by vsplit.
-    Arguments:
-        tup -- sequence of arrays.  All arrays must have the same
-               shape.
+    Take a sequence of arrays and stack them vertically
+    to make a single array.  All arrays in the sequence
+    must have the same shape along all but the first axis.
+    vstack will rebuild arrays divided by vsplit.
+
+    @param tup: sequence of arrays.  All arrays must have the same shape.
+
+    Vectors are seen as rows.
     """
     if len(tup) == 0:
         return array([])
 
-    if len(tup[0].shape) == 1:
-        h = sum([arr.shape[0] for arr in tup])
+    def height(ary):
+        if len(ary.shape) == 1:
+            return 1
+        else:
+            return ary.shape[0]
 
-        result = zeros((h,), _max_dtype(tup), flavor=flavor)
-    else:
-        # don't check other array's width--the assignment will catch it if it's
-        # wrong.
-        w = tup[0].shape[1]
-        h = sum([arr.shape[0] for arr in tup])
+    def width(ary):
+        return ary.shape[-1]
 
-        result = zeros((h,w), _max_dtype(tup), flavor=flavor)
+    h = sum(height(ary) for ary in tup)
+    w = max(width(ary) for ary in tup)
+    result = zeros((h,w), _max_dtype(tup), flavor=flavor)
 
     index = 0
     for arr in tup:
-        result[index:index+arr.shape[0]] = arr
-        index += arr.shape[0]
+        this_h = height(arr)
+        result[index:index+this_h,:] = arr
+        index += this_h
+
     return result
     
 def vsplit(ary, indices_or_sections):
