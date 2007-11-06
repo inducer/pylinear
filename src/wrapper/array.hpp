@@ -231,10 +231,10 @@ struct python_matrix_value_iterator<MatrixType, mpl::true_>
 struct slice_info
 {
   bool m_was_slice;
-  int m_start;
-  int m_end;
-  int m_stride;
-  int m_length;
+  Py_ssize_t m_start;
+  Py_ssize_t m_end;
+  Py_ssize_t m_stride;
+  Py_ssize_t m_length;
 };
 
 
