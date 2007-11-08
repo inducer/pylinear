@@ -101,6 +101,7 @@ def main():
                                    [
                                        "src/wrapper/operation.cpp",
                                        "src/wrapper/op_lapack.cpp",
+                                       "src/wrapper/op_daskr.cpp",
                                     ],
                                    define_macros=list(OP_EXTRA_DEFINES.iteritems()),
                                    include_dirs=INCLUDE_DIRS + OP_EXTRA_INCLUDE_DIRS,

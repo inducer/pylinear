@@ -102,50 +102,6 @@ namespace boost { namespace numeric { namespace bindings {  namespace daskr {
           ) const = 0;
   };
 
-  namespace detail 
-  {
-    template <typename Vector>
-    inline
-    void res_callback(
-      double &t, 
-      double *y,
-      double *yprime,
-      double &cj,
-      double *delta, // output
-      int &ires,
-      double *rpar,
-      int *ipar)
-    {
-      // yuck.
-      dae<Vector> &eq(*reinterpret_cast<dae<Vector> *>(ipar[0]));
-
-      unsigned n = eq.dimension();
-
-      Vector vec_y(n), vec_yprime(n);
-      for (unsigned j = 0; j < n; j++)
-      {
-        vec_y[j] = y[j];
-        vec_yprime[j] = yprime[j];
-      }
-
-      try
-      {
-        bool invalid = false;
-        Vector result = eq.residual(t, vec_y, vec_yprime, invalid);
-
-        if (invalid)
-          ires = -1;
-        else
-          for (unsigned j = 0; j < n; j++)
-            delta[j] = result[j];
-      }
-      catch (...)
-      {
-        ires = -2;
-      }
-    }
-  }
-
   enum consistency
   {
     CONSISTENT=0,
@@ -179,6 +135,8 @@ namespace boost { namespace numeric { namespace bindings {  namespace daskr {
       int IPAR;
 
       bool Initialized;
+
+      static dae<Vector> *StaticEquation;
 
     public:
       dae_solver(dae<Vector> &eq)
@@ -340,7 +298,7 @@ namespace boost { namespace numeric { namespace bindings {  namespace daskr {
         RWORK = boost::shared_array<double>(new double[LRW]);
         IWORK = boost::shared_array<int>(new int[LIW]);
 
-        IPAR = reinterpret_cast<int>(&Equation);
+        IPAR = 0;
 
         RWORK[1-1] = TStop;
         RWORK[2-1] = MaxStep;
@@ -369,8 +327,10 @@ namespace boost { namespace numeric { namespace bindings {  namespace daskr {
 
         int idid;
 
+        StaticEquation = &Equation;
+
         DASKR_F77NAME(ddaskr)(
-            detail::res_callback<Vector>,
+            &res_callback,
             neq, t,
             traits::vector_storage(y), 
             traits::vector_storage(yprime), 
@@ -418,7 +378,49 @@ namespace boost { namespace numeric { namespace bindings {  namespace daskr {
         else
           throw std::runtime_error("invalid error return from daskr");
       }
+
+    private:
+      static void res_callback(
+        double &t, 
+        double *y,
+        double *yprime,
+        double &cj,
+        double *delta, // output
+        int &ires,
+        double *rpar,
+        int *ipar)
+      {
+        dae<Vector> &eq(*StaticEquation);
+
+        unsigned n = eq.dimension();
+
+        Vector vec_y(n), vec_yprime(n);
+        for (unsigned j = 0; j < n; j++)
+        {
+          vec_y[j] = y[j];
+          vec_yprime[j] = yprime[j];
+        }
+
+        try
+        {
+          bool invalid = false;
+          Vector result = eq.residual(t, vec_y, vec_yprime, invalid);
+
+          if (invalid)
+            ires = -1;
+          else
+            for (unsigned j = 0; j < n; j++)
+              delta[j] = result[j];
+        }
+        catch (...)
+        {
+          ires = -2;
+        }
+      }
   };
+
+  template<class Vector>
+    dae<Vector> *dae_solver<Vector>::StaticEquation = 0;
 
 } } } }
 
