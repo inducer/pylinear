@@ -69,12 +69,13 @@ def main():
             OP_EXTRA_LIBRARY_DIRS.extend(conf[comp+"_LIBRARY_DIRS"])
             OP_EXTRA_LIBRARIES.extend(conf[comp+"_LIBRARIES"])
 
-    handle_component("BLAS")
-    handle_component("LAPACK")
     handle_component("ARPACK")
     handle_component("UMFPACK")
     handle_component("FFTW")
     handle_component("DASKR")
+    handle_component("LAPACK")
+    handle_component("BLAS")
+    handle_component("XERBLA")
 
     setup(name="PyLinear",
           version="0.92",
