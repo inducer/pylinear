@@ -54,6 +54,9 @@ vars = [
     # -------------------------------------------------------------------------
     ("CXXFLAGS", "-Wno-sign-compare",
         "Any extra C++ compiler options to include"),
+    ("SUPPLY_XERBLA", False,
+        "Whether to compile and add our own XERBLA routine."
+        "ATLAS LAPACK does not have one."),
     ]
 
 subst_files = ["Makefile", "siteconf.py"]

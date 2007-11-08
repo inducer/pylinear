@@ -32,6 +32,7 @@ def main():
     conf["LAPACK_INCLUDE_DIRS"] = []
     conf["ARPACK_INCLUDE_DIRS"] = []
     conf["DASKR_INCLUDE_DIRS"] = []
+    conf["XERBLA_INCLUDE_DIRS"] = []
 
     INCLUDE_DIRS = ["src/cpp"] + \
                    conf["BOOST_INCLUDE_DIRS"]
@@ -42,6 +43,7 @@ def main():
     OP_EXTRA_LIBRARY_DIRS = []
     OP_EXTRA_LIBRARIES = []
 
+    conf["USE_XERBLA"] = conf["SUPPLY_XERBLA"]
     conf["USE_BLAS"] = conf["HAVE_BLAS"]
     conf["USE_LAPACK"] = conf["HAVE_LAPACK"] and conf["HAVE_BLAS"]
     conf["USE_ARPACK"] = conf["HAVE_ARPACK"] and conf["USE_LAPACK"]

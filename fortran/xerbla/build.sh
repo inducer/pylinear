@@ -3,8 +3,8 @@
 set -e
 
 F77=gfortran
-SOURCE_FILES="daux.f ddaskr.f dlinpk.f"
-LIBRARY=libdaskr.a
+SOURCE_FILES="xerbla.f"
+LIBRARY=libxerbla.a
 
 rm -f $LIBRARY
 

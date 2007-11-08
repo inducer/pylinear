@@ -4,6 +4,9 @@ all: tags
 	if test "x${COMPILE_DASKR}" = "xTrue"; then \
 	  (cd fortran/daskr; ./build.sh) ; \
 	fi
+	if test "x${SUPPLY_XERBLA = "xTrue"; then \
+	  (cd fortran/xerbla; ./build.sh) ; \
+	fi
 	${PYTHON_EXE} setup.py build
 
 install: tags
@@ -12,6 +15,9 @@ install: tags
 clean:
 	if test "x${COMPILE_DASKR}" = "xTrue"; then \
 	  (cd fortran/daskr; ./clean.sh) ; \
+	fi
+	if test "x${SUPPLY_XERBLA}" = "xTrue"; then \
+	  (cd fortran/xerbla; ./clean.sh) ; \
 	fi
 	rm -Rf build
 	rm -f tags
