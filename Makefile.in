@@ -1,7 +1,7 @@
 .PHONY	: all install clean tags
 
 all: tags
-        if test "x${COMPILE_DASKR}" = "xTrue"; then \
+	if test "x${COMPILE_DASKR}" = "xTrue"; then \
 	  (cd fortran/daskr; ./build.sh) ; \
 	fi
 	${PYTHON_EXE} setup.py build
