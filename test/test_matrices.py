@@ -1,4 +1,5 @@
 import sys, random, math
+import pylinear
 import pylinear.array as num
 import pylinear.operator as op
 import pylinear.computation as comp
@@ -140,6 +141,9 @@ class TestMatrices(unittest.TestCase):
         self.for_all_dtypes(self.do_test_cg)
 
     def do_test_umfpack(self, dtype):
+        if not pylinear.has_umfpack():
+            return
+
         size = 100
         #A = make_random_matrix(size, dtype, num.SparseExecuteMatrix)
         #b = make_random_vector(size, dtype)
@@ -157,6 +161,9 @@ class TestMatrices(unittest.TestCase):
         self.for_all_dtypes(self.do_test_umfpack)
 
     def do_test_arpack_classic(self, dtype):
+        if not pylinear.has_arpack():
+            return
+
         size = 10
         #A = make_random_matrix(size, dtype)
         A = tmd.aclassmat[dtype]
@@ -171,6 +178,9 @@ class TestMatrices(unittest.TestCase):
         self.for_all_dtypes(self.do_test_arpack_classic)
 
     def do_test_arpack_generalized(self, dtype):
+        if not pylinear.has_arpack():
+            return
+
         size = 100
         A = tmd.agen_a[dtype]
         Aop = op.MatrixOperator.make(A)
@@ -190,6 +200,8 @@ class TestMatrices(unittest.TestCase):
         self.for_all_dtypes(self.do_test_arpack_generalized)
 
     def do_test_arpack_shift_invert(self, dtype):
+        if not pylinear.has_arpack():
+            return
         size = 100
         sigma = 1
 
