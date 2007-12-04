@@ -539,14 +539,6 @@ def get_parallelogram_volume(vectors):
 
 
 
-def unit_vector(i, dim, dtype = num.Float):
-    uvec = num.zeros((dim,), dtype)
-    uvec[i] = 1
-    return uvec
-
-
-
-
 def conjugate(value):
     try:
         return value.conjugate()
@@ -619,6 +611,8 @@ if pylinear.has_daskr():
         return integrate_dae(my_dae(), t, initial, f(t, initial), t_end, steps=steps)
 
 
+
+
 # Obscure stuff --------------------------------------------------------------
 def write_matrix_as_csv(filename, matrix):
     mat_file = file(filename, "w")
@@ -642,9 +636,4 @@ def shift(vec, dist):
         result[:dist] = vec[N-dist:]
 
     return result
-
-
-        
-
-
 

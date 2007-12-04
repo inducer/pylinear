@@ -9,7 +9,7 @@ all: tags
 	fi
 	${PYTHON_EXE} setup.py build
 
-install: tags
+install: all tags
 	${PYTHON_EXE} setup.py install
 
 clean:

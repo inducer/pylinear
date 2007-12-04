@@ -168,20 +168,80 @@ def spectral_condition_number(matrix, min_index = 0, threshold = None):
 
 
 
-def orthonormalize(vectors):
-    # Gram-Schmidt FIXME: unstable
+def orthonormalize(vectors, discard_threshold=None):
+    """Carry out a modified [1] Gram-Schmidt orthonormalization on
+    vectors.
+
+    If, during orthonormalization, the 2-norm of a vector drops 
+    below C{discard_threshold}, then this vector is silently 
+    discarded. If C{discard_threshold} is C{None}, then no vector
+    will ever be dropped, and a zero 2-norm encountered during
+    orthonormalization will throw an L{OrthonormalizationError}.
+
+    [1] U{http://en.wikipedia.org/wiki/Gram%E2%80%93Schmidt_process}
+    """
+
     done_vectors = []
 
     for v in vectors:
         my_v = v.copy()
         for done_v in done_vectors:
-            my_v -= (v*done_v.H) * done_v
+            my_v -= (my_v*done_v.H) * done_v
         v_norm = norm_2(my_v)
-        if v_norm == 0:
-            raise RuntimeError, "Orthogonalization failed"
+
+        if discard_threshold is None:
+            if v_norm == 0:
+                raise RuntimeError, "Orthogonalization failed"
+        else:
+            if v_norm < discard_threshold:
+                continue
+
         my_v /= v_norm
         done_vectors.append(my_v)
+
     return done_vectors
+
+
+
+
+def make_onb_with(vectors, dim=None, orth_threshold=1e-13):
+    """Complete C{vectors} into an orthonormal basis.
+
+    C{vectors} are verified to be orthogonal already. If empty,
+    C{dim}, the dimension of the desired vector space, must be
+    given.
+    """
+    from pytools import delta
+
+    # first, find (and verify) dim
+    for x in vectors:
+        if dim is None:
+            dim = len(x)
+        else:
+            if dim != len(x):
+                raise ValueError, "not all vectors have same dimensionality"
+
+    assert len(vectors) <= dim
+    
+    # next, assert given vectors are pairwise orthogonal
+    for i, xi in enumerate(vectors):
+        for j, yj in enumerate(vectors):
+            assert abs(xi*yj - delta(i,j)) < orth_threshold
+
+    vectors = vectors[:]
+
+    for i in range(dim):
+        vectors.append(num.unit_vector(dim, i))
+
+    return orthonormalize(vectors, orth_threshold)
+
+
+
+
+    
+    
+
+
 
 
 
