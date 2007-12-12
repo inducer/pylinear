@@ -52,8 +52,11 @@ DASKR_LIBRARIES = ["daskr"]
 # --------------------------------------------------------------------
 # Compiler flags
 # --------------------------------------------------------------------
-EXTRA_COMPILE_ARGS = [$str{CXXFLAGS}]
+from pytools import flatten
+EXTRA_COMPILE_ARGS = list(flatten([eca.split() for eca in [$str{CXXFLAGS}]]))
 SUPPLY_XERBLA = ${SUPPLY_XERBLA}
 XERBLA_LIBRARY_DIRS = ["fortran/xerbla"]
 XERBLA_LIBRARIES = ["xerbla"]
+
+
 
