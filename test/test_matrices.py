@@ -245,11 +245,11 @@ class TestMatrices(unittest.TestCase):
         self.for_all_dtypes(self.do_test_solve)
 
     def do_test_lu(self, dtype):
-        size = 100
+        size = 50
         A = make_random_full_matrix(size, dtype)+10*num.identity(size, num.Float)
         L,U,permut,sign = comp.lu(A)
         permut_mat = num.permutation_matrix(from_indices=permut)
-        self.assert_small(L * U - permut_mat * A)
+        self.assert_small(L * U - permut_mat *A)
 
         inv_op = op.LUInverseOperator.make(A)
         for count in range(20):
@@ -257,8 +257,9 @@ class TestMatrices(unittest.TestCase):
             self.assert_small(inv_op(A*x) - x)
 
     def test_lu(self):
-        #self.for_all_dtypes(self.do_test_lu)
-        self.do_test_lu(num.Float)
+        for i in range(10):
+            #self.for_all_dtypes(self.do_test_lu)
+            self.do_test_lu(num.Float)
 
     def do_test_sparse(self, dtype):
         def count_elements(mat):
@@ -291,13 +292,16 @@ class TestMatrices(unittest.TestCase):
         size = 10
         A = make_random_full_matrix(size, dtype)
         detA = comp.determinant(A)
+        detAt = comp.determinant(A.T)
         A2 = A*A
         detA2 = comp.determinant(A2)
 
         self.assert_(abs((detA**2-detA2) / detA2) < 1e-10)
+        self.assert_(abs((detA-detAt) / detA) < 1e-10)
 
     def test_determinant(self):
-        self.for_all_dtypes(self.do_test_determinant)
+        for i in range(10):
+            self.for_all_dtypes(self.do_test_determinant)
 
     def do_test_svd(self, dtype):
         size = 100
@@ -659,6 +663,24 @@ class TestMatrices(unittest.TestCase):
         for i in range(n):
             self.assert_small(tp*e[i]-e[permut[i]])
             self.assert_small(fp*e[permut[i]]-e[i])
+
+    def test_permutation_sign(self):
+        from random import randrange
+
+        for attempt in range(50):
+            seq = range(randrange(10,20))
+            n = len(seq)
+
+            s = 1
+            for k in range(randrange(n, n*2)):
+                i = randrange(0, n)
+                j = randrange(0, n)
+                if i != j:
+                    seq[i], seq[j] = seq[j], seq[i]
+                    s *= -1
+
+            from pylinear._operation import permutation_sign
+            self.assert_(permutation_sign(seq) == s)
             
 if __name__ == '__main__':
     unittest.main()

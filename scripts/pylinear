@@ -28,6 +28,7 @@ cons.runsource("from pylinear.array import *")
 cons.runsource("from pylinear.operator import *")
 cons.runsource("from pylinear.computation import *")
 cons.runsource("from pylinear.toybox import *")
+cons.runsource("from pylinear.randomized import *")
 cons.interact("PyLinear %s, running on Python %s\n"
         "Copyright (c) Andreas Kloeckner 2004-2006"
 % (".".join([str(i) for i in pylinear.version()]), sys.version))

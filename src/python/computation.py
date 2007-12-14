@@ -51,6 +51,8 @@ def solve_linear_system(mat, rhs):
                 umf_operator.apply(rhs[:,col], temp)
                 solution[:,col] = temp
             return solution
+    elif pylinear.has_umfpack():
+        return _op.solve_linear_system(mat, rhs)
     else:
         # use lu
         l, u, permut, sign = lu(mat)
@@ -81,9 +83,33 @@ def solve_linear_system_cg(matrix, vector):
 
 
 
+def det_py(mat):
+    h,w = mat.shape
+    assert h == w
+    if h == 2:
+        return mat[0,0]*mat[1,1] - mat[1,0]*mat[0,1]
+    else:
+        try:
+            l,u, permut, sign = lu(mat)
+            
+            product = 1
+            for i in range(h):
+                product *= u[i,i]
+
+            return product * sign
+        except RuntimeError:
+            # responds to the "is singular" exception
+            return 0
+
+
+
+
 cholesky = _op.cholesky
-lu = _op.lu
+lu = _op.lu_no_lapack
 if pylinear.has_lapack():
+    lu = _op.lu_lapack
+    #determinant = _op.det_lapack
+    determinant = det_py
     svd = _op.singular_value_decomposition
     left_right_diagonalize = _op.eigenvectors
 
@@ -112,6 +138,8 @@ if pylinear.has_lapack():
                 return 0.
         s_vec_inv = num.array([inv_if_can(x) for x in s_vec])
         return vt.H * num.diagonal_matrix(s_vec_inv, shape=mat.shape[::-1]) * u.H
+else:
+    determinant = det_py
 
 
 
@@ -125,23 +153,6 @@ def inverse(mat):
 
 
 
-def determinant(mat):
-    h,w = mat.shape
-    assert h == w
-    if h == 2:
-        return mat[0,0]*mat[1,1] - mat[1,0]*mat[0,1]
-    else:
-        try:
-            l,u, permut, sign = _op.lu(mat)
-            
-            product = 1
-            for i in range(h):
-                product *= u[i,i]
-
-            return product * sign
-        except RuntimeError:
-            # responds to the "is singular" exception
-            return 0
 
 
 

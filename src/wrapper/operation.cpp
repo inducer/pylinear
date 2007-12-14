@@ -271,7 +271,7 @@ python::object luWrapper(const MatrixType &a)
 template <typename ValueType>
 void exposeLU(ValueType)
 {
-  python::def("lu", luWrapper<ublas::matrix<ValueType> >);
+  python::def("lu_no_lapack", luWrapper<ublas::matrix<ValueType> >);
 }
 
 
