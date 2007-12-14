@@ -247,7 +247,7 @@ PyObject *lu_wrapper(const ublas::matrix<ValueType> &a)
   std::auto_ptr<matrix_t> u(new matrix_t(a.size1(), a.size2()));
   u->clear();
 
-  for (unsigned i = 0; i < a.size1(); i++)
+  for (typename matrix_t::size_type i = 0; i < a.size1(); i++)
   {
     unsigned j = 0;
     for (; j < std::min(i, a.size2()); j++) (*l)(i,j) = temp(i,j);
