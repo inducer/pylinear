@@ -1675,6 +1675,33 @@ static PyObject *multiplyVectorOuter(python::object op1, python::object op2)
 
 
 
+
+template <typename VectorType>
+static PyObject *crossproduct(const VectorType &vec1, const VectorType &vec2)
+{
+  if (vec1.size() == 3 && vec2.size() == 3)
+  {
+    std::auto_ptr<VectorType> result(new VectorType(3));
+
+    (*result)[0] = vec1[1]*vec2[2]-vec1[2]*vec2[1];
+    (*result)[1] = vec1[2]*vec2[0]-vec1[0]*vec2[2];
+    (*result)[2] = vec1[0]*vec2[1]-vec1[1]*vec2[0];
+
+    return pyobject_from_new_ptr(result.release());
+  }
+  else if (vec1.size() == 2 && vec2.size() == 2)
+  {
+    std::auto_ptr<VectorType> result(new VectorType(1));
+    (*result)[0] = vec1[1]*vec2[2]-vec1[2]*vec2[1];
+    return pyobject_from_new_ptr(result.release());
+  }
+  else
+    PYTHON_ERROR(ValueError, "cross product requires two vectors of dimensions 2 or 3");
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
 static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
 {
@@ -1754,6 +1781,8 @@ static void exposeVectorType(WrappedClass, const std::string &python_typename, c
   exposeVectorConcept(pyclass, WrappedClass());
   exposeIterator(pyclass, total_typename, WrappedClass());
   exposeVectorConverters(pyclass, typename WrappedClass::value_type());
+
+  def("crossproduct", crossproduct<WrappedClass>);
 }
 
 

@@ -982,20 +982,6 @@ def outerproduct(vec1, vec2):
     """Return the (matrix) outer product of vec1 and vec2."""
     return vec1._outerproduct(vec2)
 
-def crossproduct(vec1, vec2):
-    """Return the cross product of vec1 and vec2."""
-    (v1len,) = vec1.shape
-    (v2len,) = vec2.shape
-    if v1len == 3 and v2len == 3:
-        return array([
-        vec1[1]*vec2[2]-vec1[2]*vec2[1],
-        vec1[2]*vec2[0]-vec1[0]*vec2[2],
-        vec1[0]*vec2[1]-vec1[1]*vec2[0]])
-    elif v1len == 2 and v2len == 2:
-        return vec1[0]*vec2[1]-vec1[1]*vec2[0]
-    else:
-        raise ValueError, "cross product requires two vectors of dimension 2 or 3"
-
 def transpose(mat):
     """Return the transpose of mat. For compatibility with NumPy."""
     return mat.T
