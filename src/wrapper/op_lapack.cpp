@@ -308,7 +308,6 @@ ValueType determinant(const ublas::matrix<ValueType> &a)
 
   return result;
 }
-#endif // USE_LAPACK
 
 
 
@@ -375,6 +374,7 @@ PyObject *solve_linear_system_with_vector_wrapper(
 
 
 // ----------------------------------------------------------------------------
+#endif // USE_LAPACK
 
 
 
