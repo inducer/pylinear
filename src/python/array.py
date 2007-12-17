@@ -1030,7 +1030,7 @@ def kroneckerproduct(a, b):
     return result
 
 def permutation_matrix(to_indices=None, from_indices=None, h=None, w=None,
-        dtype=Float64):
+        dtype=Float64, flavor=SparseExecuteMatrix):
     """Return a permutation matrix.
 
     If to_indices is specified, the resulting permutation 
@@ -1076,7 +1076,7 @@ def permutation_matrix(to_indices=None, from_indices=None, h=None, w=None,
         for i, j in enumerate(from_indices):
             result.add_element(i, j, 1)
 
-    return asarray(result, flavor=SparseExecuteMatrix)
+    return asarray(result, flavor=flavor)
 
 def unit_vector(n, i, dtype=Float64):
     """Return the i-th unit vector of size n, with the given dtype."""
