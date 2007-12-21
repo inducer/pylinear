@@ -54,7 +54,7 @@ namespace cg
     // typed up from J.R. Shewchuk, 
     // An Introduction to the Conjugate Gradient Method
     // Without the Agonizing Pain, Edition 1 1/4 [8/1994]
-    // Appendix B4
+    // Appendix B3
     unsigned iterations = 0;
     vector<v_t> residual(b-prod(A,x));
     vector<v_t> d = prod(preconditioner, residual);
