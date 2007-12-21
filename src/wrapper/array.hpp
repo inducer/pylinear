@@ -20,6 +20,7 @@
 #include <functional>
 
 #include <boost/python.hpp>
+#include <boost/python/stl_iterator.hpp>
 
 #include "meta.hpp"
 #include "python_helpers.hpp"
@@ -492,7 +493,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
 template <typename ValueType>
 static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &new_value)
 { 
-  python::extract<typename ublas::vector<ValueType>::value_type> new_scalar(new_value);
+  python::extract<ValueType> new_scalar(new_value);
   python::extract<const ublas::vector<ValueType> &> new_vector(new_value);
 
   slice_info si;
@@ -507,6 +508,13 @@ static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::obj
       PYTHON_ERROR(ValueError, "subvector is wrong size for assignment");
     subslice(m, si.m_start, si.m_stride, si.m_length) = 
       new_vector();
+  }
+  else if (!PyInt_Check(index)) // only for slice indices
+  {
+    python::stl_input_iterator<ValueType> it(new_value);
+    // try iterating over new_value, maybe it's a list
+    for (unsigned i = 0; i < si.m_length; i++)
+      m[si.m_start + si.m_stride*i] = *it++;
   }
   else
     PYTHON_ERROR(ValueError, "Unknown type in element or slice assignment");
