@@ -1137,6 +1137,7 @@ angle = arg
 def absolute(m): 
     """Return the elementwise absolute value of the argument Array."""
     return m._ufunc_absolute()
+abs = absolute
 
 class _BinaryUfunc:
     def __call__(self, op1, op2):
