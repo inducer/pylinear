@@ -6,6 +6,7 @@ import sys
 
 try:
     import readline
+    import rlcompleter
     HAVE_READLINE = True
 except ImportError:
     HAVE_READLINE = False
