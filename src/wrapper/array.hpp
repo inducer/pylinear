@@ -1831,8 +1831,6 @@ void exposeVectorConverters(PythonClass &pyclass, std::complex<T>)
 {
   exposeVectorConvertersForValueType(pyclass, T());
   exposeVectorConvertersForValueType(pyclass, std::complex<T>());
-
-  python::implicitly_convertible<ublas::vector<T>, ublas::vector<std::complex<T> > >();
 }
 
 
