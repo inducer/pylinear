@@ -239,7 +239,7 @@ class TestMatrices(unittest.TestCase):
         A = tmd.solve_a[dtype]
         b = tmd.solve_b[dtype]
         x = A <<num.solve>> b
-        self.assert_(comp.norm_2(A*x - b) < 1e-10)
+        self.assert_(comp.norm_2(A*x - b) < 2e-10)
 
     def test_solve(self):
         self.for_all_dtypes(self.do_test_solve)
