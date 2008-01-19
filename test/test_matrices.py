@@ -18,8 +18,8 @@ class TestMatrices(unittest.TestCase):
         f(num.Float)
         f(num.Complex)
 
-    def assert_small(self, matrix):
-        self.assert_(comp.norm_frobenius(matrix) < 1e-10)
+    def assert_small(self, matrix, thresh=1e-10):
+        self.assert_(comp.norm_frobenius(matrix) < thresh)
 
     def assert_zero(self, matrix):
         if len(matrix.shape) == 2:
@@ -681,6 +681,26 @@ class TestMatrices(unittest.TestCase):
 
             from pylinear._operation import permutation_sign
             self.assert_(permutation_sign(seq) == s)
+
+    def do_test_sparse_operators(self, flavor):
+        n = 100
+        mat1 = make_random_matrix(n, num.Float, flavor)
+        mat2 = make_random_matrix(n, num.Float, flavor)
+
+        v = make_random_vector(n, num.Float)
+
+        err = mat1*(mat2*v)  - (mat1*mat2)*v
+        self.assert_small(err, 1e-9)
+
+        err = mat1*v + mat2*v - (mat1+mat2)*v
+        self.assert_small(err)
+
+        err = mat1*v - mat2*v - (mat1-mat2)*v
+        self.assert_small(err)
+
+    def test_sparse_operators(self):
+        for flavor in [num.DenseMatrix, num.SparseBuildMatrix, num.SparseExecuteMatrix]:
+            self.do_test_sparse_operators(flavor)
             
 if __name__ == '__main__':
     unittest.main()

@@ -120,13 +120,25 @@ SparseExecuteMatrix = ParameterizedType("SparseExecuteMatrix")
 
 # additional array functionality ----------------------------------------------
 MATRIX_FLAVORS = [
-    DenseMatrix,
-    SparseBuildMatrix,
-    SparseExecuteMatrix,
-    ]
+        DenseMatrix,
+        SparseBuildMatrix,
+        SparseExecuteMatrix,
+        ]
+
+DENSE_FLAVORS = [
+        Vector,
+        DenseMatrix,
+        ]
+
+SPARSE_FLAVORS = [
+        SparseBuildMatrix,
+        SparseExecuteMatrix,
+        ]
+
 VECTOR_FLAVORS = [
-    Vector,
-    ]
+        Vector,
+        ]
+
 FLAVORS = MATRIX_FLAVORS + VECTOR_FLAVORS
 
 
@@ -351,11 +363,6 @@ def _add_array_behaviors():
         dtype_array_typestr = _dtype_to_array_typestr(dtype)
         for f in FLAVORS:
             co = f(dtype)
-            co.__add__ = co._ufunc_add
-            co.__radd__ = co._ufunc_add
-            co.__sub__ = co._ufunc_subtract
-            co.__rsub__ = co._reverse_ufunc_subtract
-
             co.__eq__ = _equal
             co.__ne__ = _not_equal
             
@@ -365,6 +372,12 @@ def _add_array_behaviors():
             
             co.__array_typestr__ = property(get_returner(dtype_array_typestr))
 
+        for f in DENSE_FLAVORS:
+            co = f(dtype)
+            co.__add__ = co._ufunc_add
+            co.__radd__ = co._ufunc_add
+            co.__sub__ = co._ufunc_subtract
+            co.__rsub__ = co._reverse_ufunc_subtract
 
         DenseMatrix(dtype).__pow__ = _matrix_power
         DenseMatrix(dtype).__rdiv__ = _divide_by_matrix

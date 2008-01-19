@@ -45,6 +45,25 @@ using helpers::decomplexify;
 
 
 namespace {
+// op wrappers ----------------------------------------------------------------
+template <class Array, class Operator>
+Array wrapUnaryOp(const Array &op)
+{
+  return Operator()(op);
+}
+
+
+
+
+template <class Array, class Operator>
+Array wrapBinaryOp(const Array &op1, const Array &op2)
+{
+  return Operator()(op1, op2);
+}
+
+
+
+
 // helpers --------------------------------------------------------------------
 template <typename T>
 generic_ublas::minilist<T> getMinilist(const python::object &tup)
@@ -683,25 +702,6 @@ MatrixType *getFilledVector(
   *mat = ublas::scalar_vector<value_t>(size1, value);
   return mat.release();
 }
-
-
-
-
-// operators ------------------------------------------------------------------
-template <typename MatrixType>
-MatrixType negateOp(const MatrixType &m) { return -m; }
-
-template <typename MatrixType>
-MatrixType *plusAssignOp(MatrixType &m1, const MatrixType &m2) { m1 += m2; return &m1; }
-
-template <typename MatrixType>
-MatrixType *minusAssignOp(MatrixType &m1, const MatrixType &m2) { m1 -= m2; return &m1; }
-
-template <typename MatrixType, typename Scalar>
-MatrixType *scalarTimesAssignOp(MatrixType &m1, const Scalar &s) { m1 *= s; return &m1; }
-
-template <typename MatrixType, typename Scalar>
-MatrixType *scalarDivideAssignOp(MatrixType &m1, const Scalar &s) { m1 /= s; return &m1; }
 
 
 
@@ -1416,8 +1416,8 @@ product(MatrixType &mat)
 
 
 
-template <typename PythonClass, typename WrappedClass>
-void exposeUfuncs(PythonClass &pyclass, WrappedClass)
+template <typename WrappedClass, typename PythonClass>
+void exposeUfuncs(PythonClass &pyclass)
 {
   typedef
     typename WrappedClass::value_type
@@ -1483,44 +1483,48 @@ void exposeUfuncs(PythonClass &pyclass, WrappedClass)
 template <typename PythonClass, typename WrappedClass>
 void exposeElementWiseBehavior(PythonClass &pyclass, WrappedClass)
 {
-  typedef typename WrappedClass::value_type value_type;
+  typedef WrappedClass cl;
+  typedef typename cl::value_type value_type;
   pyclass
-    .def("copy", copyNew<WrappedClass>, 
+    .def("copy", copyNew<cl>, 
         python::return_value_policy<python::manage_new_object>(),
         "Return an exact copy of the given Array.")
-    .def("clear", &WrappedClass::clear,
+    .def("clear", &cl::clear,
         "Discard Array content and fill with zeros, if necessary.")
 
     .add_property(
       "shape", 
-      (python::object (*)(const WrappedClass &)) getShape, 
-      (void (*)(WrappedClass &, const python::tuple &)) setShape,
+      (python::object (*)(const cl &)) getShape, 
+      (void (*)(cl &, const python::tuple &)) setShape,
       "Return a shape tuple for the Array.")
     .add_property(
       "__array_shape__", 
-      (python::object (*)(const WrappedClass &)) getShape)
-    .def("__len__", (unsigned (*)(const WrappedClass &)) getLength,
+      (python::object (*)(const cl &)) getShape)
+    .def("__len__", (unsigned (*)(const cl &)) getLength,
         "Return the length of the leading dimension of the Array.")
-    .def("swap", &WrappedClass::swap)
+    .def("swap", &cl::swap)
 
-    .def("__getitem__", (PyObject *(*)(/*const*/ WrappedClass &, PyObject *)) getElement)
-    .def("__setitem__", (void (*)(WrappedClass &, PyObject *, python::object &)) setElement)
-
-    // unary negation
-    .def("__neg__", negateOp<WrappedClass>)
-
-    // container - container
-    .def("__iadd__", plusAssignOp<WrappedClass>, python::return_self<>())
-    .def("__isub__", minusAssignOp<WrappedClass>, python::return_self<>())
-
-    .def("sum", sum<WrappedClass>,
-        "Return the sum of the Array's entries.")
-    .def("_product_nonzeros", product<WrappedClass>,
-        "Return the product of the Array's entries, excluding zeros in sparse Arrays.")
-    .def("abs_square_sum", abs_square_sum<WrappedClass>)
+    .def("__getitem__", (PyObject *(*)(/*const*/ cl &, PyObject *)) getElement)
+    .def("__setitem__", (void (*)(cl &, PyObject *, python::object &)) setElement)
     ;
 
-  exposeUfuncs(pyclass, WrappedClass());
+  // unary negation
+  pyclass
+    .def("__neg__", wrapUnaryOp<cl, std::negate<cl> >)
+    ;
+
+  // container - container
+  pyclass
+    .def(self += self)
+    .def(self -= self)
+
+    .def("sum", sum<cl>,
+        "Return the sum of the Array's entries.")
+    .def("_product_nonzeros", product<cl>,
+        "Return the product of the Array's entries, excluding zeros in sparse Arrays.")
+    .def("abs_square_sum", abs_square_sum<cl>)
+    ;
+
   exposePickling(pyclass, WrappedClass());
 }
 
@@ -1796,6 +1800,7 @@ void exposeVectorConcept(PythonClass &pyclass, WrappedClass)
     .def("_nocast__outerproduct", multiplyVectorOuterWithoutCoercion<WrappedClass>)
     ;
 	 
+  exposeUfuncs<WrappedClass>(pyclass);
 }
 
 
@@ -1815,7 +1820,7 @@ void exposeVectorConvertersForValueType(PythonClass &pyclass, ValueType)
 template <typename PythonClass, typename T>
 void exposeVectorConverters(PythonClass &pyclass, T)
 {
-  exposeVectorConvertersForValueType(pyclass, T());
+   exposeVectorConvertersForValueType(pyclass, T());
 }
 
 
@@ -1826,6 +1831,8 @@ void exposeVectorConverters(PythonClass &pyclass, std::complex<T>)
 {
   exposeVectorConvertersForValueType(pyclass, T());
   exposeVectorConvertersForValueType(pyclass, std::complex<T>());
+
+  python::implicitly_convertible<ublas::vector<T>, ublas::vector<std::complex<T> > >();
 }
 
 
@@ -1849,6 +1856,8 @@ void exposeVectorType(WrappedClass, const std::string &python_typename, const st
   exposeVectorConverters(pyclass, typename WrappedClass::value_type());
 
   def("crossproduct", crossproduct<WrappedClass>);
+
+  exposeUfuncs<WrappedClass>(pyclass);
 }
 
 
@@ -2170,6 +2179,7 @@ void exposeMatrixSpecialties(PYC &pyclass, ublas::matrix<VT, L, A>)
         "(i,j,x) Set a[i,j] += x.");
 
   exposeAddScattered<matrix_type, matrix_type>(pyclass);
+  exposeUfuncs<matrix_type>(pyclass);
 }
 
 
@@ -2178,15 +2188,20 @@ void exposeMatrixSpecialties(PYC &pyclass, ublas::matrix<VT, L, A>)
 template <typename PYC, typename VT, typename L, std::size_t IB, typename IA, typename TA>
 void exposeMatrixSpecialties(PYC &pyclass, ublas::compressed_matrix<VT, L, IB, IA, TA>)
 {
-  typedef ublas::compressed_matrix<VT, L, IB, IA, TA> matrix_type;
+  typedef ublas::compressed_matrix<VT, L, IB, IA, TA> cl;
 
   pyclass
-    .def("complete_index1_data", &matrix_type::complete_index1_data,
+    .def("complete_index1_data", &cl::complete_index1_data,
         "Fill up index data of compressed row storage.")
-    .def("set_element_past_end", &matrix_type::push_back,
+    .def("set_element_past_end", &cl::push_back,
         "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
-    .add_property("nnz", &matrix_type::nnz, 
+    .add_property("nnz", &cl::nnz, 
         "The number of structural nonzeros in the matrix")
+    ;
+
+  pyclass
+    .def("__add__", wrapBinaryOp<cl, std::plus<cl> >)
+    .def("__sub__", wrapBinaryOp<cl, std::minus<cl> >)
     ;
 }
 
@@ -2196,26 +2211,31 @@ void exposeMatrixSpecialties(PYC &pyclass, ublas::compressed_matrix<VT, L, IB, I
 template <typename PYC, typename VT, typename L, std::size_t IB, typename IA, typename TA>
 void exposeMatrixSpecialties(PYC &pyclass, ublas::coordinate_matrix<VT, L, IB, IA, TA>)
 {
-  typedef ublas::coordinate_matrix<VT, L, IB, IA, TA> matrix_type;
+  typedef ublas::coordinate_matrix<VT, L, IB, IA, TA> cl;
 
   pyclass
-    .def("sort", &matrix_type::sort,
+    .def("sort", &cl::sort,
         "Make sure coordinate representation is sorted.")
-    .def("set_element", insertElementWrapper<matrix_type>,
+    .def("set_element", insertElementWrapper<cl>,
         "(i,j,x) Set a[i,j] = x.")
-    .def("set_element_past_end", &matrix_type::push_back,
+    .def("set_element_past_end", &cl::push_back,
         "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
-    .def("add_element", &matrix_type::append_element,
+    .def("add_element", &cl::append_element,
         "(i,j,x) Set a[i,j] += x.")
-    .add_property("nnz", &matrix_type::nnz, 
+    .add_property("nnz", &cl::nnz, 
         "The number of structural nonzeros in the matrix")
     ;
 
-  exposeAddScattered<matrix_type, ublas::matrix<VT> >(pyclass);
-  exposeAddScattered<matrix_type, matrix_type >(pyclass);
-  exposeAddScattered<matrix_type, 
+  exposeAddScattered<cl, ublas::matrix<VT> >(pyclass);
+  exposeAddScattered<cl, cl >(pyclass);
+  exposeAddScattered<cl, 
     ublas::compressed_matrix<VT, ublas::column_major, 0, 
     ublas::unbounded_array<int> > >(pyclass);
+
+  pyclass
+    .def("__add__", wrapBinaryOp<cl, std::plus<cl> >)
+    .def("__sub__", wrapBinaryOp<cl, std::minus<cl> >)
+    ;
 }
 
 
