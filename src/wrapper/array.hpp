@@ -46,20 +46,22 @@ using helpers::decomplexify;
 
 namespace {
 // helpers --------------------------------------------------------------------
-generic_ublas::minilist<unsigned> getMinilist(const python::tuple &tup)
+template <typename T>
+generic_ublas::minilist<T> getMinilist(const python::object &tup)
 {
-  unsigned len = python::extract<unsigned>(tup.attr("__len__")());
+  unsigned len = python::extract<T>(tup.attr("__len__")());
 
-  generic_ublas::minilist<unsigned> result;
+  generic_ublas::minilist<T> result;
   for (unsigned i = 0; i < len; ++i)
-    result.push_back(python::extract<unsigned>(tup[i]));
+    result.push_back(python::extract<T>(tup[i]));
   return result;
 }
 
 
 
 
-python::tuple getPythonShapeTuple(const generic_ublas::minilist<unsigned> &ml)
+template <typename T>
+python::tuple getPythonShapeTuple(const generic_ublas::minilist<T> &ml)
 {
   if (ml.size() == 1)
     return python::make_tuple(ml[0]);
@@ -70,7 +72,8 @@ python::tuple getPythonShapeTuple(const generic_ublas::minilist<unsigned> &ml)
 
 
 
-python::object getPythonIndexTuple(const generic_ublas::minilist<unsigned> &ml)
+template <typename T>
+python::object getPythonIndexTuple(const generic_ublas::minilist<T> &ml)
 {
   if (ml.size() == 1)
     return python::object(ml[0]);
@@ -112,7 +115,7 @@ inline python::object getShape(const MatrixType &m)
 template <typename MatrixType>
 inline void setShape(MatrixType &m, const python::tuple &new_shape)
 { 
-  generic_ublas::setShape(m,getMinilist(new_shape));
+  generic_ublas::setShape(m,getMinilist<typename MatrixType::size_type>(new_shape));
 }
 
 
@@ -241,7 +244,7 @@ struct slice_info
 
 
 
-static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_length)
+void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_length)
 {
   si.m_was_slice = PySlice_Check(slice_or_constant);
   if (si.m_was_slice)
@@ -272,7 +275,7 @@ static void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_l
 
 
 template <typename MatrixType>
-static PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
+PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
@@ -336,7 +339,7 @@ static PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-static PyObject *getElement(/*const*/ ublas::vector<ValueType> &m, PyObject *index)
+PyObject *getElement(/*const*/ ublas::vector<ValueType> &m, PyObject *index)
 { 
   slice_info si;
   translateIndex(index, si, m.size());
@@ -352,7 +355,7 @@ static PyObject *getElement(/*const*/ ublas::vector<ValueType> &m, PyObject *ind
 
 
 template <typename MatrixType>
-static void setElement(MatrixType &m, PyObject *index, python::object &new_value)
+void setElement(MatrixType &m, PyObject *index, python::object &new_value)
 { 
   typedef 
     typename get_corresponding_vector_type<MatrixType>::type
@@ -491,7 +494,7 @@ static void setElement(MatrixType &m, PyObject *index, python::object &new_value
 
 
 template <typename ValueType>
-static void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &new_value)
+void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &new_value)
 { 
   python::extract<ValueType> new_scalar(new_value);
   python::extract<const ublas::vector<ValueType> &> new_vector(new_value);
@@ -568,7 +571,8 @@ struct sparse_pickle_suite : python::pickle_suite
     {
       generic_ublas::insert_element(
         m,
-        getMinilist(python::extract<python::tuple>(entries[i][0])),
+        getMinilist<typename MatrixType::size_type>(
+          python::extract<python::tuple>(entries[i][0])),
         python::extract<typename MatrixType::value_type>(entries[i][1]));
     }
   }
@@ -625,27 +629,27 @@ struct dense_pickle_suite : python::pickle_suite
 
 
 template <typename PythonClass, typename WrappedClass>
-static void exposePickling(PythonClass &pyc, WrappedClass)
+void exposePickling(PythonClass &pyclass, WrappedClass)
 {
-  pyc.def_pickle(sparse_pickle_suite<WrappedClass>());
+  pyclass.def_pickle(sparse_pickle_suite<WrappedClass>());
 }
 
 
 
 
 template <typename PythonClass, typename V>
-static void exposePickling(PythonClass &pyc, ublas::matrix<V>)
+void exposePickling(PythonClass &pyclass, ublas::matrix<V>)
 {
-  pyc.def_pickle(dense_pickle_suite<ublas::matrix<V> >());
+  pyclass.def_pickle(dense_pickle_suite<ublas::matrix<V> >());
 }
 
 
 
 
 template <typename PythonClass, typename V>
-static void exposePickling(PythonClass &pyc, ublas::vector<V>)
+void exposePickling(PythonClass &pyclass, ublas::vector<V>)
 {
-  pyc.def_pickle(dense_pickle_suite<ublas::vector<V> >());
+  pyclass.def_pickle(dense_pickle_suite<ublas::vector<V> >());
 }
 
 
@@ -653,7 +657,7 @@ static void exposePickling(PythonClass &pyc, ublas::vector<V>)
 
 // specialty constructors -----------------------------------------------------
 template <typename MatrixType>
-static MatrixType *getFilledMatrix(
+MatrixType *getFilledMatrix(
     typename MatrixType::size_type size1, 
     typename MatrixType::size_type size2, 
     const typename MatrixType::value_type &value)
@@ -669,7 +673,7 @@ static MatrixType *getFilledMatrix(
 
 
 template <typename MatrixType>
-static MatrixType *getFilledVector(
+MatrixType *getFilledVector(
     typename MatrixType::size_type size1, 
     const typename MatrixType::value_type &value)
 {
@@ -713,7 +717,7 @@ inline MatrixType *copyNew(const MatrixType &m)
 
 
 template <typename MatrixType>
-static PyObject *hermiteMatrix(const MatrixType &m)
+PyObject *hermiteMatrix(const MatrixType &m)
 {
   return pyobject_from_new_ptr(new MatrixType(herm(m)));
 }
@@ -722,7 +726,7 @@ static PyObject *hermiteMatrix(const MatrixType &m)
 
 
 template <typename MatrixType>
-static PyObject *transposeMatrix(const MatrixType &m)
+PyObject *transposeMatrix(const MatrixType &m)
 {
   return pyobject_from_new_ptr(new MatrixType(trans(m)));
 }
@@ -731,7 +735,7 @@ static PyObject *transposeMatrix(const MatrixType &m)
 
 
 template <typename VectorType>
-static PyObject *hermiteVector(const VectorType &m)
+PyObject *hermiteVector(const VectorType &m)
 {
   return pyobject_from_new_ptr(new VectorType(conj(m)));
 }
@@ -740,7 +744,7 @@ static PyObject *hermiteVector(const VectorType &m)
 
 
 template <typename VectorType>
-static PyObject *transposeVector(const VectorType &m)
+PyObject *transposeVector(const VectorType &m)
 {
   return pyobject_from_new_ptr(new VectorType(m));
 }
@@ -797,80 +801,134 @@ struct conjugateWrapper
 
 
 template <typename MatrixType>
-void addScatteredBackend(MatrixType &mat, 
-    python::object row_indices, 
-    python::object column_indices,
-    const ublas::matrix<typename MatrixType::value_type> &little_mat)
+inline
+void add_element_inplace(MatrixType &mat, 
+    typename MatrixType::size_type i,
+    typename MatrixType::size_type j,
+    typename MatrixType::value_type x)
 {
-  using namespace boost::python;
-
-  unsigned row_count = extract<unsigned>(row_indices.attr("__len__")());
-  unsigned column_count = extract<unsigned>(column_indices.attr("__len__")());
-
-  if (row_count != little_mat.size1() || column_count != little_mat.size2())
-    throw std::runtime_error("addScattered: sizes don't match");
-
-  for (unsigned int row = 0; row < row_count; ++row)
-  {
-    int dest_row = extract<int>(row_indices[row]);
-    if (dest_row < 0)
-      continue;
-
-    for (unsigned col = 0; col < column_count; ++col)
-    {
-      int dest_col = extract<int>(column_indices[col]);
-      if (dest_col < 0)
-        continue;
-      mat(dest_row, dest_col) += little_mat(row, col);
-    }
-  }
+  mat(i,j) += x;
 }
 
 
 
 
 template <typename V>
-void addScatteredBackend(ublas::coordinate_matrix<V, ublas::column_major> &mat, 
-    python::object row_indices, 
-    python::object column_indices,
-    const ublas::matrix<V> &little_mat)
+inline
+void add_element_inplace(ublas::coordinate_matrix<V, ublas::column_major> &mat, 
+    unsigned i,
+    unsigned j,
+    V x)
 {
-  using namespace boost::python;
+  mat.append_element(i, j, x);
+}
 
-  unsigned row_count = extract<unsigned>(row_indices.attr("__len__")());
-  unsigned column_count = extract<unsigned>(column_indices.attr("__len__")());
 
-  if (row_count != little_mat.size1() || column_count != little_mat.size2())
-    throw std::runtime_error("addScattered: sizes don't match");
 
-  // FIXME: HACK
-  for (unsigned int row = 0; row < row_count; ++row)
+
+template <typename MatrixType, typename SmallMatrixType>
+void addBlock(MatrixType &mat, 
+    typename MatrixType::size_type start_row,
+    typename MatrixType::size_type start_column,
+    SmallMatrixType &small_mat)
+{
+  typedef typename SmallMatrixType::size_type index_t;
+
+  generic_ublas::matrix_iterator<SmallMatrixType>
+    first = generic_ublas::begin(small_mat),
+    last = generic_ublas::end(small_mat);
+
+  while (first != last)
   {
-    int dest_row = extract<int>(row_indices[row]);
-    if (dest_row < 0)
-      continue;
-
-    for (unsigned col = 0; col < column_count; ++col)
-    {
-      int dest_col = extract<int>(column_indices[col]);
-      if (dest_col < 0)
-        continue;
-      mat.append_element(dest_row, dest_col, little_mat(row, col));
-    }
+    const generic_ublas::minilist<index_t> index = first.index();
+    add_element_inplace(mat, 
+        start_row+index[0], 
+        start_column+index[1], 
+        *first++);
   }
 }
 
 
 
 
-template <typename MatrixType>
+template <typename MatrixType, typename SmallMatrixType>
 void addScattered(MatrixType &mat, 
-    python::object row_indices, 
-    python::object column_indices,
-    const ublas::matrix<typename MatrixType::value_type> &little_mat)
+    python::object row_indices_py, 
+    python::object column_indices_py,
+    SmallMatrixType &small_mat)
 {
-  // FIXME: HACK to accomodate for append_element non-availability
-  addScatteredBackend(mat, row_indices, column_indices, little_mat);
+  using namespace boost::python;
+
+  typedef typename SmallMatrixType::size_type index_t;
+  std::vector<index_t> row_indices;
+  std::vector<index_t> column_indices;
+  copy(
+      stl_input_iterator<index_t>(row_indices_py),
+      stl_input_iterator<index_t>(),
+      back_inserter(row_indices));
+  copy(
+      stl_input_iterator<index_t>(column_indices_py),
+      stl_input_iterator<index_t>(),
+      back_inserter(column_indices));
+
+  if (row_indices.size() != small_mat.size1()
+      || column_indices.size() != small_mat.size2())
+    throw std::runtime_error("sizes don't match");
+
+  generic_ublas::matrix_iterator<SmallMatrixType>
+    first = generic_ublas::begin(small_mat),
+    last = generic_ublas::end(small_mat);
+
+  while (first != last)
+  {
+    const generic_ublas::minilist<index_t> index = first.index();
+    add_element_inplace(mat, 
+        row_indices[index[0]], 
+        column_indices[index[1]], 
+        *first++);
+  }
+}
+
+
+
+
+template <typename MatrixType, typename SmallMatrixType>
+void addScatteredWithSkip(MatrixType &mat, 
+    python::object row_indices_py, 
+    python::object column_indices_py,
+    SmallMatrixType &small_mat)
+{
+  using namespace boost::python;
+
+  typedef typename SmallMatrixType::size_type index_t;
+  std::vector<index_t> row_indices;
+  std::vector<index_t> column_indices;
+  copy(
+      stl_input_iterator<index_t>(row_indices_py),
+      stl_input_iterator<index_t>(),
+      back_inserter(row_indices));
+  copy(
+      stl_input_iterator<index_t>(column_indices_py),
+      stl_input_iterator<index_t>(),
+      back_inserter(column_indices));
+
+  if (row_indices.size() != small_mat.size1()
+      || column_indices.size() != small_mat.size2())
+    throw std::runtime_error("sizes don't match");
+
+  generic_ublas::matrix_iterator<SmallMatrixType>
+    first = generic_ublas::begin(small_mat),
+    last = generic_ublas::end(small_mat);
+
+  while (first != last)
+  {
+    const generic_ublas::minilist<index_t> index = first.index();
+    unsigned dest_row = row_indices[index[0]];
+    unsigned dest_col = column_indices[index[1]];
+    if (dest_row >= 0 && dest_col >= 0)
+      add_element_inplace(mat, dest_row, dest_col, *first);
+    ++first;
+  }
 }
 
 
@@ -1099,7 +1157,7 @@ namespace ufuncs
 
 
   template <typename Function, typename MatrixType>
-  static PyObject *applyBackend(Function f, const MatrixType &m1, python::object obj)
+  PyObject *applyBackend(Function f, const MatrixType &m1, python::object obj)
   {
     typedef 
       typename MatrixType::value_type
@@ -1174,7 +1232,7 @@ namespace ufuncs
   }
 
   template <typename RealFunction, typename V>
-  static PyObject *applyBackend(RealFunction f, const ublas::vector<V> &m1, python::object obj)
+  PyObject *applyBackend(RealFunction f, const ublas::vector<V> &m1, python::object obj)
   {
     typedef 
       typename ublas::vector<V>
@@ -1229,7 +1287,7 @@ namespace ufuncs
   }
 
   template<typename Function, typename MatrixType, typename Name>
-  static PyObject *apply(python::object op1, python::object op2)
+  PyObject *apply(python::object op1, python::object op2)
   {
     PyObject *result = applyBackend(Function(), python::extract<MatrixType>(op1)(), op2);
     if (result != Py_NotImplemented)
@@ -1250,13 +1308,13 @@ namespace ufuncs
   }
 
   template<typename Function, typename MatrixType>
-  static PyObject *applyWithoutCoercion(const MatrixType &op1, python::object op2)
+  PyObject *applyWithoutCoercion(const MatrixType &op1, python::object op2)
   {
     return applyBackend(Function(), op1, op2);
   }
 
   template<typename Function, typename MatrixType, typename Name>
-  static PyObject *applyReversed(python::object op1, python::object op2)
+  PyObject *applyReversed(python::object op1, python::object op2)
   {
     PyObject *result = applyBackend(reverse_binary_function<Function>(), 
                                     python::extract<MatrixType>(op1)(), op2);
@@ -1278,7 +1336,7 @@ namespace ufuncs
   }
 
   template<typename Function, typename MatrixType>
-  static PyObject *applyReversedWithoutCoercion(const MatrixType &op1, python::object op2)
+  PyObject *applyReversedWithoutCoercion(const MatrixType &op1, python::object op2)
   {
     return applyBackend(reverse_binary_function<Function>(), op1, op2);
   }
@@ -1359,13 +1417,13 @@ product(MatrixType &mat)
 
 
 template <typename PythonClass, typename WrappedClass>
-static void exposeUfuncs(PythonClass &pyc, WrappedClass)
+void exposeUfuncs(PythonClass &pyclass, WrappedClass)
 {
   typedef
     typename WrappedClass::value_type
     value_type;
 
-  pyc
+  pyclass
     .def("_ufunc_conjugate", conjugateWrapper<WrappedClass>::apply,
 	python::return_value_policy<python::manage_new_object>())
     .add_property("real", realWrapper<WrappedClass>::apply,
@@ -1374,7 +1432,7 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
         "Return imaginary part of the Array.");
 
 #define MAKE_UNARY_UFUNC(f) \
-  pyc.def("_ufunc_" #f, ufuncs::unary_ufunc_applicator<WrappedClass, \
+  pyclass.def("_ufunc_" #f, ufuncs::unary_ufunc_applicator<WrappedClass, \
       ufuncs::simple_function_adapter_##f<value_type> >::apply, \
       python::return_value_policy<python::manage_new_object>());
   MAKE_UNARY_UFUNC(cos);
@@ -1395,14 +1453,14 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 #undef MAKE_UNARY_UFUNC
 
 #define MAKE_BINARY_UFUNC(NAME, f) \
-  pyc.def("_ufunc_" #NAME, ufuncs::apply \
+  pyclass.def("_ufunc_" #NAME, ufuncs::apply \
           <f<value_type>, WrappedClass, ufuncs::name_##NAME>); \
-  pyc.def("_nocast__ufunc_" #NAME, ufuncs::applyWithoutCoercion \
+  pyclass.def("_nocast__ufunc_" #NAME, ufuncs::applyWithoutCoercion \
           <f<value_type>, WrappedClass>);
 #define MAKE_REVERSE_BINARY_UFUNC(NAME, f) \
-  pyc.def("_reverse_ufunc_" #NAME, ufuncs::applyReversed \
+  pyclass.def("_reverse_ufunc_" #NAME, ufuncs::applyReversed \
           <f<value_type>, WrappedClass, ufuncs::name_##NAME>); \
-  pyc.def("_nocast__reverse_ufunc_" #NAME, ufuncs::applyReversedWithoutCoercion \
+  pyclass.def("_nocast__reverse_ufunc_" #NAME, ufuncs::applyReversedWithoutCoercion \
           <f<value_type>, WrappedClass>);
   MAKE_BINARY_UFUNC(add, std::plus);
   MAKE_BINARY_UFUNC(subtract, std::minus);
@@ -1423,10 +1481,10 @@ static void exposeUfuncs(PythonClass &pyc, WrappedClass)
 
 
 template <typename PythonClass, typename WrappedClass>
-static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
+void exposeElementWiseBehavior(PythonClass &pyclass, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
-  pyc
+  pyclass
     .def("copy", copyNew<WrappedClass>, 
         python::return_value_policy<python::manage_new_object>(),
         "Return an exact copy of the given Array.")
@@ -1462,15 +1520,15 @@ static void exposeElementWiseBehavior(PythonClass &pyc, WrappedClass)
     .def("abs_square_sum", abs_square_sum<WrappedClass>)
     ;
 
-  exposeUfuncs(pyc, WrappedClass());
-  exposePickling(pyc, WrappedClass());
+  exposeUfuncs(pyclass, WrappedClass());
+  exposePickling(pyclass, WrappedClass());
 }
 
 
 
 
 template <typename PythonClass, typename WrappedClass>
-static void exposeIterator(PythonClass &pyc, const std::string &python_typename, WrappedClass)
+void exposeIterator(PythonClass &pyclass, const std::string &python_typename, WrappedClass)
 {
   typedef 
     python_matrix_value_iterator<WrappedClass>
@@ -1480,7 +1538,7 @@ static void exposeIterator(PythonClass &pyc, const std::string &python_typename,
     python_matrix_key_iterator<WrappedClass>
     key_iterator;
 
-  pyc
+  pyclass
     .def("__iter__", &value_iterator::obtain,
         python::return_value_policy<python::manage_new_object,
         python::return_internal_reference<> >())
@@ -1509,7 +1567,7 @@ static void exposeIterator(PythonClass &pyc, const std::string &python_typename,
 
 
 template <typename MatrixType>
-static PyObject *divideByScalarWithoutCoercion(python::object op1, python::object op2)
+PyObject *divideByScalarWithoutCoercion(python::object op1, python::object op2)
 {
   python::extract<typename MatrixType::value_type> op2_scalar(op2);
   if (op2_scalar.check())
@@ -1526,7 +1584,7 @@ static PyObject *divideByScalarWithoutCoercion(python::object op1, python::objec
 
 
 template <typename MatrixType>
-static PyObject *divideByScalar(python::object op1, python::object op2)
+PyObject *divideByScalar(python::object op1, python::object op2)
 {
   PyObject *result = divideByScalarWithoutCoercion<MatrixType>(op1, op2);
   if (result != Py_NotImplemented)
@@ -1549,7 +1607,7 @@ static PyObject *divideByScalar(python::object op1, python::object op2)
 
 
 template <typename MatrixType>
-static PyObject *divideByScalarInPlaceWithoutCoercion(python::object op1, python::object op2)
+PyObject *divideByScalarInPlaceWithoutCoercion(python::object op1, python::object op2)
 {
   python::extract<typename MatrixType::value_type> op2_scalar(op2);
   if (op2_scalar.check())
@@ -1567,7 +1625,7 @@ static PyObject *divideByScalarInPlaceWithoutCoercion(python::object op1, python
 
 
 template <typename MatrixType>
-static PyObject *divideByScalarInPlace(python::object op1, python::object op2)
+PyObject *divideByScalarInPlace(python::object op1, python::object op2)
 {
   PyObject *result = divideByScalarInPlaceWithoutCoercion<MatrixType>(op1, op2);
   if (result != Py_NotImplemented)
@@ -1591,7 +1649,7 @@ static PyObject *divideByScalarInPlace(python::object op1, python::object op2)
 
 // vector wrapper -------------------------------------------------------------
 template <typename VectorType>
-static PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
+PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
 {
   typedef typename VectorType::value_type value_t;
 
@@ -1618,7 +1676,7 @@ static PyObject *multiplyVectorWithoutCoercion(python::object op1, python::objec
 
 
 template <typename VectorType>
-static PyObject *multiplyVector(python::object op1, python::object op2)
+PyObject *multiplyVector(python::object op1, python::object op2)
 {
   PyObject *result = multiplyVectorWithoutCoercion<VectorType>(op1, op2);
   if (result != Py_NotImplemented)
@@ -1641,7 +1699,7 @@ static PyObject *multiplyVector(python::object op1, python::object op2)
 
 
 template <typename VectorType>
-static PyObject *multiplyVectorOuterWithoutCoercion(python::object op1, python::object op2)
+PyObject *multiplyVectorOuterWithoutCoercion(python::object op1, python::object op2)
 {
   typedef typename VectorType::value_type value_type;
   python::extract<VectorType> op2_vec(op2);
@@ -1660,7 +1718,7 @@ static PyObject *multiplyVectorOuterWithoutCoercion(python::object op1, python::
 
 
 template <typename VectorType>
-static PyObject *multiplyVectorOuter(python::object op1, python::object op2)
+PyObject *multiplyVectorOuter(python::object op1, python::object op2)
 {
   PyObject *result = multiplyVectorOuterWithoutCoercion<VectorType>(op1, op2);
   if (result != Py_NotImplemented)
@@ -1685,7 +1743,7 @@ static PyObject *multiplyVectorOuter(python::object op1, python::object op2)
 
 
 template <typename VectorType>
-static PyObject *crossproduct(const VectorType &vec1, const VectorType &vec2)
+PyObject *crossproduct(const VectorType &vec1, const VectorType &vec2)
 {
   if (vec1.size() == 3 && vec2.size() == 3)
   {
@@ -1711,13 +1769,13 @@ static PyObject *crossproduct(const VectorType &vec1, const VectorType &vec2)
 
 
 template <typename PythonClass, typename WrappedClass>
-static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
+void exposeVectorConcept(PythonClass &pyclass, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
 
-  exposeElementWiseBehavior(pyc, WrappedClass());
+  exposeElementWiseBehavior(pyclass, WrappedClass());
 
-  pyc
+  pyclass
     .add_property("H", hermiteVector<WrappedClass>,
         "The complex-conjugate transpose of the Array.")
     .add_property("T", transposeVector<WrappedClass>,
@@ -1744,7 +1802,7 @@ static void exposeVectorConcept(PythonClass &pyc, WrappedClass)
 
 
 template <typename PythonClass, typename ValueType>
-static void exposeVectorConvertersForValueType(PythonClass &pyclass, ValueType)
+void exposeVectorConvertersForValueType(PythonClass &pyclass, ValueType)
 {
   pyclass
     .def(python::init<const ublas::vector<ValueType> &>())
@@ -1755,7 +1813,7 @@ static void exposeVectorConvertersForValueType(PythonClass &pyclass, ValueType)
 
 
 template <typename PythonClass, typename T>
-static void exposeVectorConverters(PythonClass &pyclass, T)
+void exposeVectorConverters(PythonClass &pyclass, T)
 {
   exposeVectorConvertersForValueType(pyclass, T());
 }
@@ -1764,7 +1822,7 @@ static void exposeVectorConverters(PythonClass &pyclass, T)
 
 
 template <typename PythonClass, typename T>
-static void exposeVectorConverters(PythonClass &pyclass, std::complex<T>)
+void exposeVectorConverters(PythonClass &pyclass, std::complex<T>)
 {
   exposeVectorConvertersForValueType(pyclass, T());
   exposeVectorConvertersForValueType(pyclass, std::complex<T>());
@@ -1774,7 +1832,7 @@ static void exposeVectorConverters(PythonClass &pyclass, std::complex<T>)
 
 
 template <typename WrappedClass>
-static void exposeVectorType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
+void exposeVectorType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
   class_<WrappedClass> pyclass(total_typename.c_str());
@@ -1798,7 +1856,7 @@ static void exposeVectorType(WrappedClass, const std::string &python_typename, c
 
 // matrix wrapper -------------------------------------------------------------
 template <typename MatrixType>
-static PyObject *multiplyMatrixBase(python::object op1, python::object op2, 
+PyObject *multiplyMatrixBase(python::object op1, python::object op2, 
                                     bool reverse)
 {
   python::extract<MatrixType> op2_mat(op2);
@@ -1851,7 +1909,7 @@ static PyObject *multiplyMatrixBase(python::object op1, python::object op2,
 
 
 template <typename MatrixType>
-static PyObject *multiplyMatrix(python::object op1, python::object op2)
+PyObject *multiplyMatrix(python::object op1, python::object op2)
 {
   PyObject *result = multiplyMatrixBase<MatrixType>(op1, op2, false);
   if (result != Py_NotImplemented)
@@ -1874,7 +1932,7 @@ static PyObject *multiplyMatrix(python::object op1, python::object op2)
 
 
 template <typename MatrixType>
-static PyObject *multiplyMatrixWithoutCoercion(python::object op1, python::object op2)
+PyObject *multiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 {
   return multiplyMatrixBase<MatrixType>(op1, op2, false);
 }
@@ -1883,7 +1941,7 @@ static PyObject *multiplyMatrixWithoutCoercion(python::object op1, python::objec
 
 
 template <typename MatrixType>
-static PyObject *rmultiplyMatrix(python::object op1, python::object op2)
+PyObject *rmultiplyMatrix(python::object op1, python::object op2)
 {
   PyObject *result = multiplyMatrixBase<MatrixType>(op1, op2, true);
   if (result != Py_NotImplemented)
@@ -1906,7 +1964,7 @@ static PyObject *rmultiplyMatrix(python::object op1, python::object op2)
 
 
 template <typename MatrixType>
-static PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
+PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 {
   return multiplyMatrixBase<MatrixType>(op1, op2, true);
 }
@@ -1915,7 +1973,7 @@ static PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::obje
 
 
 template <typename MatrixType>
-static PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::object op2)
+PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::object op2)
 {
   python::extract<MatrixType> op2_mat(op2);
   if (op2_mat.check())
@@ -1947,7 +2005,7 @@ static PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python
 
 
 template <typename MatrixType>
-static PyObject *multiplyMatrixInPlace(python::object op1, python::object op2)
+PyObject *multiplyMatrixInPlace(python::object op1, python::object op2)
 {
   PyObject *result = multiplyMatrixInPlaceWithoutCoercion<MatrixType>(op1, op2);
   if (result != Py_NotImplemented)
@@ -2005,8 +2063,32 @@ void insertElementWrapper(MatrixType &m,
 
 
 
+template <typename WrappedClass, typename SmallMatrix, typename PythonClass>
+void exposeAddScattered(PythonClass &pyclass)
+{
+  using python::arg;
+
+  pyclass
+    .def("add_block", addBlock<WrappedClass, SmallMatrix>,
+        (arg("self"), arg("start_row"), arg("start_column"), arg("small_mat")),
+        "Add C{small_mat} to self, starting at C{start_row,start_column}.")
+    .def("add_scattered", addScattered<WrappedClass, SmallMatrix>,
+        (arg("self"), arg("row_indices"), arg("column_indices"), arg("small_mat")),
+        "Add C{small_mat} at intersections of C{row_indices} and "
+        "C{column_indices}.")
+    .def("add_scattered_with_skip", addScatteredWithSkip<WrappedClass, SmallMatrix>,
+        (arg("self"), arg("row_indices"), arg("column_indices"), arg("small_mat")),
+        "Add C{small_mat} at intersections of C{row_indices} and "
+        "C{column_indices}. Entries of C{row_indices} or C{column_indices} "
+        "may be negative to skip this row or column.")
+    ;
+}
+
+
+
+
 template <typename PythonClass, typename WrappedClass>
-static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
+void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
 {
   typedef typename WrappedClass::value_type value_type;
 
@@ -2032,9 +2114,6 @@ static void exposeMatrixConcept(PythonClass &pyclass, WrappedClass)
     .def("__idiv__", divideByScalarInPlace<WrappedClass>)
     .def("_nocast_idiv", divideByScalarInPlaceWithoutCoercion<WrappedClass>)
 
-    .def("add_scattered", addScattered<WrappedClass>,
-        "(self, row_indices, column_indices, little_mat)"
-        "Add little_matrix at intersections of rows and columns.")
     .def("solve_lower", solveLower<WrappedClass>,
 	 python::return_value_policy<python::manage_new_object>(),
          "Solve A*x=b with this matrix lower-triangular. Return x.")
@@ -2070,7 +2149,7 @@ public:
 
 
 template <typename PYC, typename MT>
-static void exposeMatrixSpecialties(PYC, MT)
+void exposeMatrixSpecialties(PYC, MT)
 {
 }
 
@@ -2078,28 +2157,30 @@ static void exposeMatrixSpecialties(PYC, MT)
 
 
 template <typename PYC, typename VT, typename L, typename A>
-static void exposeMatrixSpecialties(PYC &pyc, ublas::matrix<VT, L, A>)
+void exposeMatrixSpecialties(PYC &pyclass, ublas::matrix<VT, L, A>)
 {
   typedef ublas::matrix<VT, L, A> matrix_type;
 
-  pyc
+  pyclass
     .def("set_element", matrixSimplePushBack<matrix_type>,
         "(i,j,x) Set a[i,j] = x.")
     .def("set_element_past_end", matrixSimplePushBack<matrix_type>,
         "(i,j,x) Set a[i,j] = x assuming no element before i,j in lexical ordering.")
     .def("add_element", matrixSimpleAppendElement<matrix_type>,
         "(i,j,x) Set a[i,j] += x.");
+
+  exposeAddScattered<matrix_type, matrix_type>(pyclass);
 }
 
 
 
 
 template <typename PYC, typename VT, typename L, std::size_t IB, typename IA, typename TA>
-static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB, IA, TA>)
+void exposeMatrixSpecialties(PYC &pyclass, ublas::compressed_matrix<VT, L, IB, IA, TA>)
 {
   typedef ublas::compressed_matrix<VT, L, IB, IA, TA> matrix_type;
 
-  pyc
+  pyclass
     .def("complete_index1_data", &matrix_type::complete_index1_data,
         "Fill up index data of compressed row storage.")
     .def("set_element_past_end", &matrix_type::push_back,
@@ -2113,11 +2194,11 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::compressed_matrix<VT, L, IB
 
 
 template <typename PYC, typename VT, typename L, std::size_t IB, typename IA, typename TA>
-static void exposeMatrixSpecialties(PYC &pyc, ublas::coordinate_matrix<VT, L, IB, IA, TA>)
+void exposeMatrixSpecialties(PYC &pyclass, ublas::coordinate_matrix<VT, L, IB, IA, TA>)
 {
   typedef ublas::coordinate_matrix<VT, L, IB, IA, TA> matrix_type;
 
-  pyc
+  pyclass
     .def("sort", &matrix_type::sort,
         "Make sure coordinate representation is sorted.")
     .def("set_element", insertElementWrapper<matrix_type>,
@@ -2129,19 +2210,25 @@ static void exposeMatrixSpecialties(PYC &pyc, ublas::coordinate_matrix<VT, L, IB
     .add_property("nnz", &matrix_type::nnz, 
         "The number of structural nonzeros in the matrix")
     ;
+
+  exposeAddScattered<matrix_type, ublas::matrix<VT> >(pyclass);
+  exposeAddScattered<matrix_type, matrix_type >(pyclass);
+  exposeAddScattered<matrix_type, 
+    ublas::compressed_matrix<VT, ublas::column_major, 0, 
+    ublas::unbounded_array<int> > >(pyclass);
 }
 
 
 
 
 template <typename WrappedClass>
-static void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
+void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
   typedef class_<WrappedClass> wrapper_class;
-  wrapper_class pyc(total_typename.c_str());
+  wrapper_class pyclass(total_typename.c_str());
 
-  pyc
+  pyclass
     .def(python::init<typename WrappedClass::size_type, 
         typename WrappedClass::size_type>())
 
@@ -2151,11 +2238,11 @@ static void exposeMatrixType(WrappedClass, const std::string &python_typename, c
     .staticmethod("_get_filled_matrix")
     ;
 
-  exposeMatrixConcept(pyc, WrappedClass());
-  exposeIterator(pyc, total_typename, WrappedClass());
-  exposeForMatricesConvertibleTo(matrix_converter_exposer<wrapper_class>(pyc), 
+  exposeMatrixConcept(pyclass, WrappedClass());
+  exposeIterator(pyclass, total_typename, WrappedClass());
+  exposeForMatricesConvertibleTo(matrix_converter_exposer<wrapper_class>(pyclass), 
       typename WrappedClass::value_type());
-  exposeMatrixSpecialties(pyc, WrappedClass());
+  exposeMatrixSpecialties(pyclass, WrappedClass());
 }
 
 

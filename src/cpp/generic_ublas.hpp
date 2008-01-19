@@ -141,9 +141,9 @@ namespace generic_ublas {
     : m_it1(mat.end1()), m_it2(m_it1.begin())
     { }
 
-    minilist<unsigned> index() const
+    minilist<typename MatrixType::size_type> index() const
     {
-      return minilist<unsigned>(m_it2.index1(), m_it2.index2());
+      return minilist<typename MatrixType::size_type>(m_it2.index1(), m_it2.index2());
     }
 
   private:
@@ -265,21 +265,21 @@ namespace generic_ublas {
 
   namespace detail
   {
-    template <typename MatrixType>
-    inline void setShape(MatrixType &mat, const minilist<unsigned> &shape, mpl::false_)
+    template <typename MatrixType, typename IdxType>
+    inline void setShape(MatrixType &mat, const minilist<IdxType> &shape, mpl::false_)
     {
       mat.resize(shape[0], shape[1]);
     }
 
-    template <typename MatrixType>
-    inline void setShape(MatrixType &mat, const minilist<unsigned> &shape, mpl::true_)
+    template <typename MatrixType, typename IdxType>
+    inline void setShape(MatrixType &mat, const minilist<IdxType> &shape, mpl::true_)
     {
       mat.resize(shape[0]);
     }
   }
 
-  template <typename MatrixType>
-  inline void setShape(MatrixType &mat, const minilist<unsigned> &shape)
+  template <typename MatrixType, typename IdxType>
+  inline void setShape(MatrixType &mat, const minilist<IdxType> &shape)
   {
     detail::setShape(mat, shape, typename is_vector<MatrixType>::type());
   }
@@ -291,14 +291,14 @@ namespace generic_ublas {
 
   namespace detail
   {
-    template <typename MatrixType>
-    inline MatrixType *newWithShape(const minilist<unsigned> &shape, mpl::false_)
+    template <typename MatrixType, typename IdxType>
+    inline MatrixType *newWithShape(const minilist<IdxType> &shape, mpl::false_)
     {
       return new MatrixType(shape[0], shape[1]);
     }
 
-    template <typename MatrixType>
-    inline MatrixType *newWithShape(const minilist<unsigned> &shape, mpl::true_)
+    template <typename MatrixType, typename IdxType>
+    inline MatrixType *newWithShape(const minilist<IdxType> &shape, mpl::true_)
     {
       return new MatrixType(shape[0]);
     }
@@ -306,8 +306,8 @@ namespace generic_ublas {
 
 
 
-  template <typename MatrixType>
-  MatrixType *newWithShape(const minilist<unsigned> &shape)
+  template <typename MatrixType, typename IdxType>
+  MatrixType *newWithShape(const minilist<IdxType> &shape)
   {
     return detail::newWithShape<MatrixType>(shape, typename is_vector<MatrixType>::type());
   }
@@ -317,20 +317,20 @@ namespace generic_ublas {
 
   namespace detail
   {
-    template <typename MatrixType>
+    template <typename MatrixType, typename IdxType>
     inline void insert_element(
         MatrixType &mat,
-        const minilist<unsigned> &index, 
+        const minilist<IdxType> &index, 
         const typename MatrixType::value_type &value,
         mpl::false_)
     {
       mat.insert_element(index[0], index[1], value);
     }
 
-    template <typename MatrixType>
+    template <typename MatrixType, typename IdxType>
     inline void insert_element(
         MatrixType &mat,
-        const minilist<unsigned> &index, 
+        const minilist<IdxType> &index, 
         const typename MatrixType::value_type &value,
         mpl::true_)
     {
@@ -338,10 +338,10 @@ namespace generic_ublas {
     }
   }
 
-  template <typename MatrixType>
+  template <typename MatrixType, typename IdxType>
   inline void insert_element(
       MatrixType &mat,
-      const minilist<unsigned> &index, 
+      const minilist<IdxType> &index, 
       const typename MatrixType::value_type &value)
   {
     detail::insert_element(mat,index, value, typename is_vector<MatrixType>::type());
@@ -352,20 +352,20 @@ namespace generic_ublas {
 
   namespace detail
   {
-    template <typename MatrixType>
+    template <typename MatrixType, typename IdxType>
     inline void set(
         MatrixType &mat,
-        const minilist<unsigned> &index, 
+        const minilist<IdxType> &index, 
         const typename MatrixType::value_type &value,
         mpl::false_)
     {
       mat(index[0], index[1]) = value;
     }
 
-    template <typename MatrixType>
+    template <typename MatrixType, typename IdxType>
     inline void set(
         MatrixType &mat,
-        const minilist<unsigned> &index, 
+        const minilist<IdxType> &index, 
         const typename MatrixType::value_type &value,
         mpl::true_)
     {
@@ -373,10 +373,10 @@ namespace generic_ublas {
     }
   }
 
-  template <typename MatrixType>
+  template <typename MatrixType, typename IdxType>
   inline void set(
       MatrixType &mat,
-      const minilist<unsigned> &index, 
+      const minilist<IdxType> &index, 
       const typename MatrixType::value_type &value)
   {
     detail::set(mat,index, value, typename is_vector<MatrixType>::type());
