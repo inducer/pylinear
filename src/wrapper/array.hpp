@@ -960,6 +960,7 @@ solveUpper(const MatrixType &mat,
 
 
 
+#ifndef PYLINEAR_NO_UFUNCS
 namespace ufuncs
 {
   // my_XX function prototypes ------------------------------------------------
@@ -1353,6 +1354,7 @@ namespace ufuncs
   DECLARE_NAME_STRUCT(maximum);
   DECLARE_NAME_STRUCT(minimum);
 }
+#endif // PYLINEAR_NO_UFUNCS
 
 
 
@@ -1419,6 +1421,7 @@ product(MatrixType &mat)
 template <typename WrappedClass, typename PythonClass>
 void exposeUfuncs(PythonClass &pyclass)
 {
+#ifndef PYLINEAR_NO_UFUNCS
   typedef
     typename WrappedClass::value_type
     value_type;
@@ -1475,6 +1478,7 @@ void exposeUfuncs(PythonClass &pyclass)
   MAKE_BINARY_UFUNC(maximum, ufuncs::maximum);
   MAKE_BINARY_UFUNC(minimum, ufuncs::minimum);
 #undef MAKE_BINARY_UFUNC
+#endif // PYLINEAR_NO_UFUNCS
 }
 
 

@@ -14,6 +14,7 @@
 
 
 
+#define PYLINEAR_NO_UFUNCS
 #include "array.hpp"
 
 
