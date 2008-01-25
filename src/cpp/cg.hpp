@@ -51,6 +51,12 @@ namespace cg
     if (A().size1() != A().size2())
       throw std::runtime_error("cg: A is not quadratic");
 
+    if (norm_2(b) == 0)
+    {
+      x = b;
+      return;
+    }
+
     // typed up from J.R. Shewchuk, 
     // An Introduction to the Conjugate Gradient Method
     // Without the Agonizing Pain, Edition 1 1/4 [8/1994]
