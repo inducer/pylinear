@@ -1857,7 +1857,7 @@ template <typename WrappedClass>
 void exposeVectorType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
-  class_<WrappedClass> pyclass(total_typename.c_str());
+  class_<WrappedClass, boost::noncopyable> pyclass(total_typename.c_str());
 
   pyclass
     .def(python::init<typename WrappedClass::size_type>())
@@ -2236,7 +2236,7 @@ template <typename WrappedClass>
 void exposeMatrixType(WrappedClass, const std::string &python_typename, const std::string &python_eltypename)
 {
   std::string total_typename = python_typename + python_eltypename;
-  typedef class_<WrappedClass> wrapper_class;
+  typedef class_<WrappedClass, boost::noncopyable> wrapper_class;
   wrapper_class pyclass(total_typename.c_str());
 
   pyclass
