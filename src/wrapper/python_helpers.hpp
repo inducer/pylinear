@@ -39,21 +39,51 @@ inline PyObject *pyobject_from_new_ptr(T *ptr)
 
 
 
-inline PyObject *pyobject_from_object(const python::object &obj)
+template <typename T>
+inline boost::python::handle<> handle_from_new_ptr(T *ptr)
 {
-  PyObject *result = obj.ptr();
-  Py_INCREF(result);
-  return result;
+  return boost::python::handle<>(
+      typename boost::python::manage_new_object::apply<T *>::type()(ptr));
 }
 
 
 
 
 template <typename T>
-inline PyObject *pyobject_from_rvalue(const T &val)
+inline boost::python::handle<> handle_from_existing_ptr(T *ptr)
+{
+  return boost::python::handle<>(
+      typename boost::python::reference_existing_object::apply<T *>::type()(ptr)
+      );
+}
+
+
+
+
+template <typename T>
+inline boost::python::handle<> handle_from_existing_ref(T &ptr)
+{
+  return boost::python::handle<>(
+      typename boost::python::reference_existing_object::apply<T &>::type()(ptr)
+      );
+}
+
+
+
+
+inline boost::python::handle<> handle_from_object(const python::object &obj)
+{
+  return boost::python::handle<>(boost::python::borrowed(obj.ptr()));
+}
+
+
+
+
+template <typename T>
+inline boost::python::handle<> handle_from_rvalue(const T &val)
 {
   boost::python::object obj(val);
-  return pyobject_from_object(obj);
+  return handle_from_object(obj);
 }
 
 

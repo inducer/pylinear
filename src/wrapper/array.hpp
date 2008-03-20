@@ -36,6 +36,8 @@
 
 
 using boost::python::class_;
+using boost::python::handle;
+using boost::python::borrowed;
 using boost::python::enum_;
 using boost::python::self;
 using boost::python::def;
@@ -192,7 +194,7 @@ struct python_matrix_value_iterator
     return this;
   }
 
-  PyObject *next()
+  handle<> next()
   {
     if (m_row_index >= m_matrix.size1())
     {
@@ -200,7 +202,7 @@ struct python_matrix_value_iterator
       throw python::error_already_set();
     }
 
-    return pyobject_from_new_ptr(
+    return handle_from_new_ptr(
         new typename get_corresponding_vector_type<MatrixType>::type(
           ublas::row(m_matrix, m_row_index++)));
   }
@@ -294,7 +296,7 @@ void translateIndex(PyObject *slice_or_constant, slice_info &si, int my_length)
 
 
 template <typename MatrixType>
-PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
+handle<> getElement(/*const*/ MatrixType &m, handle<> index)
 { 
   typedef
     typename get_corresponding_vector_type<MatrixType>::type
@@ -306,31 +308,31 @@ PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
     ublas::basic_slice<typename MatrixType::size_type> slice_t;
 
   
-  if (PyTuple_Check(index))
+  if (PyTuple_Check(index.get()))
   {
     // we have a tuple
-    if (PyTuple_GET_SIZE(index) != 2)
+    if (PyTuple_GET_SIZE(index.get()) != 2)
       PYTHON_ERROR(IndexError, "expected tuple of size 2");
 
     slice_info si1, si2;
-    translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
-    translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
+    translateIndex(PyTuple_GET_ITEM(index.get(), 0), si1, m.size1());
+    translateIndex(PyTuple_GET_ITEM(index.get(), 1), si2, m.size2());
 
     if (!si1.m_was_slice && !si2.m_was_slice)
-      return pyobject_from_rvalue(value_t(m(si1.m_start, si2.m_start)));
+      return handle_from_rvalue(value_t(m(si1.m_start, si2.m_start)));
     else if (!si1.m_was_slice)
-      return pyobject_from_new_ptr(new vector_t(
+      return handle_from_new_ptr(new vector_t(
             ublas::matrix_vector_slice<MatrixType>(m, 
               slice_t(si1.m_start, 0,            si2.m_length),
               slice_t(si2.m_start, si2.m_stride, si2.m_length))));
     else if (!si2.m_was_slice)
-      return pyobject_from_new_ptr(new vector_t(
+      return handle_from_new_ptr(new vector_t(
                   ublas::matrix_vector_slice<MatrixType>(m, 
                       slice_t(si1.m_start, si1.m_stride, si1.m_length),
                       slice_t(si2.m_start, 0,            si1.m_length))));
     else
     {
-      return pyobject_from_new_ptr(
+      return handle_from_new_ptr(
           new MatrixType(
             subslice(m,
                 si1.m_start, si1.m_stride, si1.m_length,
@@ -340,12 +342,12 @@ PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
   else
   {
     slice_info si;
-    translateIndex(index, si, m.size1());
+    translateIndex(index.get(), si, m.size1());
 
     if (!si.m_was_slice)
-      return pyobject_from_new_ptr(new vector_t(row(m, si.m_start)));
+      return handle_from_new_ptr(new vector_t(row(m, si.m_start)));
     else
-      return pyobject_from_new_ptr(
+      return handle_from_new_ptr(
           new MatrixType(
             subslice(m,
               si.m_start, si.m_stride, si.m_length,
@@ -358,15 +360,15 @@ PyObject *getElement(/*const*/ MatrixType &m, PyObject *index)
 
 
 template <typename ValueType>
-PyObject *getElement(/*const*/ ublas::vector<ValueType> &m, PyObject *index)
+handle<> getElement(/*const*/ ublas::vector<ValueType> &m, handle<> index)
 { 
   slice_info si;
-  translateIndex(index, si, m.size());
+  translateIndex(index.get(), si, m.size());
 
   if (!si.m_was_slice)
-    return pyobject_from_rvalue(m(si.m_start));
+    return handle_from_rvalue(m(si.m_start));
   else
-    return pyobject_from_new_ptr(
+    return handle_from_new_ptr(
       new ublas::vector<ValueType>(subslice(m, si.m_start, si.m_stride, si.m_length)));
 }
 
@@ -374,7 +376,7 @@ PyObject *getElement(/*const*/ ublas::vector<ValueType> &m, PyObject *index)
 
 
 template <typename MatrixType>
-void setElement(MatrixType &m, PyObject *index, python::object &new_value)
+void setElement(MatrixType &m, handle<> index, python::object &new_value)
 { 
   typedef 
     typename get_corresponding_vector_type<MatrixType>::type
@@ -391,15 +393,15 @@ void setElement(MatrixType &m, PyObject *index, python::object &new_value)
   python::extract<const vector_t &> new_vector(new_value);
   python::extract<const MatrixType &> new_matrix(new_value);
 
-  if (PyTuple_Check(index))
+  if (PyTuple_Check(index.get()))
   {
     // we have a tuple
-    if (PyTuple_GET_SIZE(index) != 2)
+    if (PyTuple_GET_SIZE(index.get()) != 2)
       PYTHON_ERROR(IndexError, "expected tuple of size 2");
 
     slice_info si1, si2;
-    translateIndex(PyTuple_GET_ITEM(index, 0), si1, m.size1());
-    translateIndex(PyTuple_GET_ITEM(index, 1), si2, m.size2());
+    translateIndex(PyTuple_GET_ITEM(index.get(), 0), si1, m.size1());
+    translateIndex(PyTuple_GET_ITEM(index.get(), 1), si2, m.size2());
 
     if (new_scalar.check())
     {
@@ -464,7 +466,7 @@ void setElement(MatrixType &m, PyObject *index, python::object &new_value)
   else
   {
     slice_info si;
-    translateIndex(index, si, m.size1());
+    translateIndex(index.get(), si, m.size1());
 
     if (new_scalar.check())
       subslice(m,
@@ -513,13 +515,13 @@ void setElement(MatrixType &m, PyObject *index, python::object &new_value)
 
 
 template <typename ValueType>
-void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &new_value)
+void setElement(ublas::vector<ValueType> &m, handle<> index, python::object &new_value)
 { 
   python::extract<ValueType> new_scalar(new_value);
   python::extract<const ublas::vector<ValueType> &> new_vector(new_value);
 
   slice_info si;
-  translateIndex(index, si, m.size());
+  translateIndex(index.get(), si, m.size());
 
   if (new_scalar.check())
     subslice(m, si.m_start, si.m_stride, si.m_length) =
@@ -531,7 +533,7 @@ void setElement(ublas::vector<ValueType> &m, PyObject *index, python::object &ne
     subslice(m, si.m_start, si.m_stride, si.m_length) = 
       new_vector();
   }
-  else if (!PyInt_Check(index)) // only for slice indices
+  else if (!PyInt_Check(index.get())) // only for slice indices
   {
     python::stl_input_iterator<ValueType> it(new_value);
     // try iterating over new_value, maybe it's a list
@@ -717,36 +719,36 @@ inline MatrixType *copyNew(const MatrixType &m)
 
 
 template <typename MatrixType>
-PyObject *hermiteMatrix(const MatrixType &m)
+handle<> hermiteMatrix(const MatrixType &m)
 {
-  return pyobject_from_new_ptr(new MatrixType(herm(m)));
+  return handle_from_new_ptr(new MatrixType(herm(m)));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *transposeMatrix(const MatrixType &m)
+handle<> transposeMatrix(const MatrixType &m)
 {
-  return pyobject_from_new_ptr(new MatrixType(trans(m)));
+  return handle_from_new_ptr(new MatrixType(trans(m)));
 }
 
 
 
 
 template <typename VectorType>
-PyObject *hermiteVector(const VectorType &m)
+handle<> hermiteVector(const VectorType &m)
 {
-  return pyobject_from_new_ptr(new VectorType(conj(m)));
+  return handle_from_new_ptr(new VectorType(conj(m)));
 }
 
 
 
 
 template <typename VectorType>
-PyObject *transposeVector(const VectorType &m)
+handle<> transposeVector(const VectorType &m)
 {
-  return pyobject_from_new_ptr(new VectorType(m));
+  return handle_from_new_ptr(new VectorType(m));
 }
 
 
@@ -760,9 +762,9 @@ struct realWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static PyObject *apply(const MatrixType &m)
+  inline static handle<> apply(const MatrixType &m)
   {
-    return pyobject_from_new_ptr(new result_type(real(m)));
+    return handle_from_new_ptr(new result_type(real(m)));
   }
 };
 
@@ -777,9 +779,9 @@ struct imagWrapper
       typename decomplexify<typename MatrixType::value_type>::type>::type
     result_type;
 
-  inline static PyObject *apply(const MatrixType &m)
+  inline static handle<> apply(const MatrixType &m)
   {
-    return pyobject_from_new_ptr(new result_type(imag(m)));
+    return handle_from_new_ptr(new result_type(imag(m)));
   }
 };
 
@@ -1157,8 +1159,55 @@ namespace ufuncs
 
 
 
+  // neutral element detection
+  // why on earth do this? -- allowing +0 without penalty removes an
+  // abstraction penalty in Python
+
+  template <typename Func>
+  struct neutral_element
+  {
+    static const bool has_neutral_second_argument = false;
+    static typename Func::second_argument_type get()
+    {
+      throw std::runtime_error("tried to get non-existent neutral element");
+    }
+  };
+
+  template <typename T>
+  struct neutral_element<std::plus<T> >
+  {
+    static const bool has_neutral_second_argument = true;
+    static T get()
+    { return 0; }
+  };
+
+  template <typename T>
+  struct neutral_element<std::minus<T> >
+  {
+    static const bool has_neutral_second_argument = true;
+    static T get()
+    { return 0; }
+  };
+
+  template <typename T>
+  struct neutral_element<std::multiplies<T> >
+  {
+    static const bool has_neutral_second_argument = true;
+    static T get()
+    { return 1; }
+  };
+
+  template <typename T>
+  struct neutral_element<std::divides<T> >
+  {
+    static const bool has_neutral_second_argument = true;
+    static T get()
+    { return 1; }
+  };
+  
   template <typename Function, typename MatrixType>
-  PyObject *applyBackend(Function f, const MatrixType &m1, python::object obj)
+  handle<>
+  applyBackend(Function f, MatrixType &m1, python::object obj)
   {
     typedef 
       typename MatrixType::value_type
@@ -1210,6 +1259,9 @@ namespace ufuncs
     else if (s2_extractor.check())
     {
       value_type s2 = s2_extractor();
+      if (neutral_element<Function>::has_neutral_second_argument
+              && s2 == neutral_element<Function>::get())
+        return handle_from_existing_ref(m1);
 
       for (it1_t it1 = m1.begin1(); it1 != m1.end1(); ++it1) 
         for (it2_t it2 = it1.begin(); it2 != it1.end(); ++it2) 
@@ -1224,16 +1276,14 @@ namespace ufuncs
           new_mat->insert_element(it2.index1(), it2.index2(), f(*it2, n2));
     }
     else
-    {
-      Py_INCREF(Py_NotImplemented);
-      return Py_NotImplemented;
-    }
+      return handle<>(borrowed(Py_NotImplemented));
 
-    return pyobject_from_new_ptr(new_mat.release());
+    return handle_from_new_ptr(new_mat.release());
   }
 
   template <typename RealFunction, typename V>
-  PyObject *applyBackend(RealFunction f, const ublas::vector<V> &m1, python::object obj)
+  handle<>
+  applyBackend(RealFunction f, ublas::vector<V> &m1, python::object obj)
   {
     typedef 
       typename ublas::vector<V>
@@ -1268,6 +1318,10 @@ namespace ufuncs
     {
       value_type s2 = s2_extractor();
 
+      if (neutral_element<RealFunction>::has_neutral_second_argument
+              && s2 == neutral_element<RealFunction>::get())
+        return handle_from_existing_ref(m1);
+
       for (it_t it = m1.begin(); it != m1.end(); ++it) 
         new_vec->insert_element(it.index(), f(*it, s2));
     }
@@ -1279,67 +1333,58 @@ namespace ufuncs
         new_vec->insert_element(it.index(), f(*it, n2));
     }
     else
-    {
-      Py_INCREF(Py_NotImplemented);
-      return Py_NotImplemented;
-    }
+      return handle<>(borrowed(Py_NotImplemented));
 
-    return pyobject_from_new_ptr(new_vec.release());
+    return handle_from_new_ptr(new_vec.release());
   }
 
   template<typename Function, typename MatrixType, typename Name>
-  PyObject *apply(python::object op1, python::object op2)
+  handle<> apply(python::object op1, python::object op2)
   {
-    PyObject *result = applyBackend(Function(), python::extract<MatrixType>(op1)(), op2);
-    if (result != Py_NotImplemented)
+    handle<> result = applyBackend(
+        Function(), 
+        python::extract<MatrixType&>(op1)(), 
+        op2);
+    if (result.get() != Py_NotImplemented)
       return result;
     else
-    {
-      Py_DECREF(result);
-      PyObject *result = PyObject_CallMethod(op1.ptr(), 
+      return handle<>(PyObject_CallMethod(op1.ptr(), 
           (char *) "_cast_and_retry", 
           (char *) "sO",
           (std::string("_ufunc_") + Name::m_name).c_str(), 
-          op2.ptr());
-      if (result == 0)
-        throw python::error_already_set();
-      else
-        return result;
-    }
+          op2.ptr()));
   }
 
   template<typename Function, typename MatrixType>
-  PyObject *applyWithoutCoercion(const MatrixType &op1, python::object op2)
+  handle<> applyWithoutCoercion(MatrixType &op1, python::object op2)
   {
     return applyBackend(Function(), op1, op2);
   }
 
   template<typename Function, typename MatrixType, typename Name>
-  PyObject *applyReversed(python::object op1, python::object op2)
+  handle<> applyReversed(python::object op1, python::object op2)
   {
-    PyObject *result = applyBackend(reverse_binary_function<Function>(), 
-                                    python::extract<MatrixType>(op1)(), op2);
-    if (result != Py_NotImplemented)
+    handle<> result = applyBackend(
+        reverse_binary_function<Function>(), 
+        python::extract<MatrixType &>(op1)(), 
+        op2);
+    if (result.get() != Py_NotImplemented)
       return result;
     else
-    {
-      Py_DECREF(result);
-      PyObject *result = PyObject_CallMethod(op1.ptr(), 
+      return handle<>(PyObject_CallMethod(op1.ptr(), 
           (char *) "_cast_and_retry", 
           (char *) "sO",
           (std::string("_reverse_ufunc_") + Name::m_name).c_str(), 
-          op2.ptr());
-      if (result == 0)
-        throw python::error_already_set();
-      else
-        return result;
-    }
+          op2.ptr()));
   }
 
   template<typename Function, typename MatrixType>
-  PyObject *applyReversedWithoutCoercion(const MatrixType &op1, python::object op2)
+  handle<> applyReversedWithoutCoercion(MatrixType &op1, python::object op2)
   {
-    return applyBackend(reverse_binary_function<Function>(), op1, op2);
+    return applyBackend(
+        reverse_binary_function<Function>(), 
+        op1, 
+        op2);
   }
 
   #define DECLARE_NAME_STRUCT(NAME) \
@@ -1508,8 +1553,8 @@ void exposeElementWiseBehavior(PythonClass &pyclass, WrappedClass)
         "Return the length of the leading dimension of the Array.")
     .def("swap", &cl::swap)
 
-    .def("__getitem__", (PyObject *(*)(/*const*/ cl &, PyObject *)) getElement)
-    .def("__setitem__", (void (*)(cl &, PyObject *, python::object &)) setElement)
+    .def("__getitem__", (handle<> (*)(/*const*/ cl &, handle<>)) getElement)
+    .def("__setitem__", (void (*)(cl &, handle<>, python::object &)) setElement)
     ;
 
   // unary negation
@@ -1575,81 +1620,65 @@ void exposeIterator(PythonClass &pyclass, const std::string &python_typename, Wr
 
 
 template <typename MatrixType>
-PyObject *divideByScalarWithoutCoercion(python::object op1, python::object op2)
+handle<> divideByScalarWithoutCoercion(python::object op1, python::object op2)
 {
   python::extract<typename MatrixType::value_type> op2_scalar(op2);
   if (op2_scalar.check())
   {
     const MatrixType &mat = python::extract<MatrixType>(op1);
-    return pyobject_from_new_ptr(new MatrixType(mat / op2_scalar()));
+    return handle_from_new_ptr(new MatrixType(mat / op2_scalar()));
   }
 
-  Py_INCREF(Py_NotImplemented);
-  return Py_NotImplemented;
+  return handle<>(borrowed(Py_NotImplemented));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *divideByScalar(python::object op1, python::object op2)
+handle<> divideByScalar(python::object op1, python::object op2)
 {
-  PyObject *result = divideByScalarWithoutCoercion<MatrixType>(op1, op2);
-  if (result != Py_NotImplemented)
+  handle<> result = divideByScalarWithoutCoercion<MatrixType>(op1, op2);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+    return handle<>(PyObject_CallMethod(op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "div", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "div", op2.ptr()));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *divideByScalarInPlaceWithoutCoercion(python::object op1, python::object op2)
+handle<> divideByScalarInPlaceWithoutCoercion(python::object op1, python::object op2)
 {
   python::extract<typename MatrixType::value_type> op2_scalar(op2);
   if (op2_scalar.check())
   {
     MatrixType &mat = python::extract<MatrixType &>(op1);
     mat /= op2_scalar();
-    return pyobject_from_object(op1);
+    return handle_from_object(op1);
   }
 
-  Py_INCREF(Py_NotImplemented);
-  return Py_NotImplemented;
+  return handle<>(borrowed(Py_NotImplemented));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *divideByScalarInPlace(python::object op1, python::object op2)
+handle<> divideByScalarInPlace(python::object op1, python::object op2)
 {
-  PyObject *result = divideByScalarInPlaceWithoutCoercion<MatrixType>(op1, op2);
-  if (result != Py_NotImplemented)
+  handle<> result = divideByScalarInPlaceWithoutCoercion<MatrixType>(op1, op2);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+    return handle<>( PyObject_CallMethod(op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "idiv", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "idiv", op2.ptr()));
 }
 
 
@@ -1657,7 +1686,7 @@ PyObject *divideByScalarInPlace(python::object op1, python::object op2)
 
 // vector wrapper -------------------------------------------------------------
 template <typename VectorType>
-PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
+handle<> multiplyVectorWithoutCoercion(python::object op1, python::object op2)
 {
   typedef typename VectorType::value_type value_t;
 
@@ -1666,48 +1695,40 @@ PyObject *multiplyVectorWithoutCoercion(python::object op1, python::object op2)
   {
     const VectorType &vec = python::extract<VectorType>(op1);
     const VectorType &vec2 = op2_vec();
-    return pyobject_from_rvalue(inner_prod(vec, vec2));
+    return handle_from_rvalue(inner_prod(vec, vec2));
   }
 
   python::extract<typename VectorType::value_type> op2_scalar(op2);
   if (op2_scalar.check())
   {
     const VectorType &vec = python::extract<VectorType>(op1);
-    return pyobject_from_new_ptr(new VectorType(vec * op2_scalar()));
+    return handle_from_new_ptr(new VectorType(vec * op2_scalar()));
   }
 
-  Py_INCREF(Py_NotImplemented);
-  return Py_NotImplemented;
+  return handle<>(borrowed(Py_NotImplemented));
 }
 
 
 
 
 template <typename VectorType>
-PyObject *multiplyVector(python::object op1, python::object op2)
+handle<> multiplyVector(python::object op1, python::object op2)
 {
-  PyObject *result = multiplyVectorWithoutCoercion<VectorType>(op1, op2);
-  if (result != Py_NotImplemented)
+  handle<> result = multiplyVectorWithoutCoercion<VectorType>(op1, op2);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+    return handle<>(PyObject_CallMethod(op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "mul", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "mul", op2.ptr()));
 }
 
 
 
 
 template <typename VectorType>
-PyObject *multiplyVectorOuterWithoutCoercion(python::object op1, python::object op2)
+handle<> multiplyVectorOuterWithoutCoercion(python::object op1, python::object op2)
 {
   typedef typename VectorType::value_type value_type;
   python::extract<VectorType> op2_vec(op2);
@@ -1715,35 +1736,27 @@ PyObject *multiplyVectorOuterWithoutCoercion(python::object op1, python::object 
   {
     const VectorType &vec = python::extract<VectorType>(op1);
     const VectorType &vec2 = op2_vec();
-    return pyobject_from_new_ptr(new ublas::matrix<value_type>(outer_prod(vec, vec2)));
+    return handle_from_new_ptr(new ublas::matrix<value_type>(outer_prod(vec, vec2)));
   }
 
-  Py_INCREF(Py_NotImplemented);
-  return Py_NotImplemented;
+  return handle<>(borrowed(Py_NotImplemented));
 }
 
 
 
 
 template <typename VectorType>
-PyObject *multiplyVectorOuter(python::object op1, python::object op2)
+handle<> multiplyVectorOuter(python::object op1, python::object op2)
 {
-  PyObject *result = multiplyVectorOuterWithoutCoercion<VectorType>(op1, op2);
-  if (result != Py_NotImplemented)
+  handle<> result = multiplyVectorOuterWithoutCoercion<VectorType>(op1, op2);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(
+    return handle<>(PyObject_CallMethod(
         op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "_outerproduct", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "_outerproduct", op2.ptr()));
 }
 
 
@@ -1751,7 +1764,7 @@ PyObject *multiplyVectorOuter(python::object op1, python::object op2)
 
 
 template <typename VectorType>
-PyObject *crossproduct(const VectorType &vec1, const VectorType &vec2)
+handle<> crossproduct(const VectorType &vec1, const VectorType &vec2)
 {
   if (vec1.size() == 3 && vec2.size() == 3)
   {
@@ -1761,13 +1774,13 @@ PyObject *crossproduct(const VectorType &vec1, const VectorType &vec2)
     (*result)[1] = vec1[2]*vec2[0]-vec1[0]*vec2[2];
     (*result)[2] = vec1[0]*vec2[1]-vec1[1]*vec2[0];
 
-    return pyobject_from_new_ptr(result.release());
+    return handle_from_new_ptr(result.release());
   }
   else if (vec1.size() == 2 && vec2.size() == 2)
   {
     std::auto_ptr<VectorType> result(new VectorType(1));
     (*result)[0] = vec1[1]*vec2[2]-vec1[2]*vec2[1];
-    return pyobject_from_new_ptr(result.release());
+    return handle_from_new_ptr(result.release());
   }
   else
     PYTHON_ERROR(ValueError, "cross product requires two vectors of dimensions 2 or 3");
@@ -1867,7 +1880,7 @@ void exposeVectorType(WrappedClass, const std::string &python_typename, const st
 
 // matrix wrapper -------------------------------------------------------------
 template <typename MatrixType>
-PyObject *multiplyMatrixBase(python::object op1, python::object op2, 
+handle<> multiplyMatrixBase(python::object op1, python::object op2, 
                                     bool reverse)
 {
   python::extract<MatrixType> op2_mat(op2);
@@ -1878,9 +1891,9 @@ PyObject *multiplyMatrixBase(python::object op1, python::object op2,
     if (mat.size2() != mat2.size1())
       throw std::runtime_error("matrix sizes don't match");
     if (!reverse)
-      return pyobject_from_new_ptr(new MatrixType(prod(mat, mat2)));
+      return handle_from_new_ptr(new MatrixType(prod(mat, mat2)));
     else
-      return pyobject_from_new_ptr(new MatrixType(prod(mat2, mat)));
+      return handle_from_new_ptr(new MatrixType(prod(mat2, mat)));
   }
 
   typedef
@@ -1897,53 +1910,44 @@ PyObject *multiplyMatrixBase(python::object op1, python::object op2,
 
     std::auto_ptr<ublas::vector<typename MatrixType::value_type> > result(new
                                                                           ublas::vector<typename MatrixType::value_type>(mat.size1()));
-
     if (!reverse)
       ublas::axpy_prod(mat, vec, *result);
     else
       ublas::axpy_prod(vec, mat, *result);
-    return pyobject_from_new_ptr(result.release());
+    return handle_from_new_ptr(result.release());
   }
 
   python::extract<typename MatrixType::value_type> op2_scalar(op2);
   if (op2_scalar.check())
   {
     const MatrixType &mat = python::extract<MatrixType>(op1);
-    return pyobject_from_new_ptr(new MatrixType(mat * op2_scalar()));
+    return handle_from_new_ptr(new MatrixType(mat * op2_scalar()));
   }
 
-  Py_INCREF(Py_NotImplemented);
-  return Py_NotImplemented;
+  return handle<>(borrowed(Py_NotImplemented));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *multiplyMatrix(python::object op1, python::object op2)
+handle<> multiplyMatrix(python::object op1, python::object op2)
 {
-  PyObject *result = multiplyMatrixBase<MatrixType>(op1, op2, false);
-  if (result != Py_NotImplemented)
+  handle<> result = multiplyMatrixBase<MatrixType>(op1, op2, false);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+    return handle<>(PyObject_CallMethod(op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "mul", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "mul", op2.ptr()));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *multiplyMatrixWithoutCoercion(python::object op1, python::object op2)
+handle<> multiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 {
   return multiplyMatrixBase<MatrixType>(op1, op2, false);
 }
@@ -1952,30 +1956,23 @@ PyObject *multiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 
 
 template <typename MatrixType>
-PyObject *rmultiplyMatrix(python::object op1, python::object op2)
+handle<> rmultiplyMatrix(python::object op1, python::object op2)
 {
-  PyObject *result = multiplyMatrixBase<MatrixType>(op1, op2, true);
-  if (result != Py_NotImplemented)
+  handle<> result = multiplyMatrixBase<MatrixType>(op1, op2, true);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+    return handle<>(PyObject_CallMethod(op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "rmul", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "rmul", op2.ptr()));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
+handle<> rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 {
   return multiplyMatrixBase<MatrixType>(op1, op2, true);
 }
@@ -1984,7 +1981,7 @@ PyObject *rmultiplyMatrixWithoutCoercion(python::object op1, python::object op2)
 
 
 template <typename MatrixType>
-PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::object op2)
+handle<> multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::object op2)
 {
   python::extract<MatrixType> op2_mat(op2);
   if (op2_mat.check())
@@ -1997,7 +1994,7 @@ PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::objec
     // FIXME: aliasing!
     mat = prod(mat, mat2);
 
-    return pyobject_from_object(op1);
+    return handle_from_object(op1);
   }
 
   python::extract<typename MatrixType::value_type> op2_scalar(op2);
@@ -2005,34 +2002,26 @@ PyObject *multiplyMatrixInPlaceWithoutCoercion(python::object op1, python::objec
   {
     MatrixType &mat = python::extract<MatrixType &>(op1);
     mat *= op2_scalar();
-    return pyobject_from_object(op1);
+    return handle_from_object(op1);
   }
 
-  Py_INCREF(Py_NotImplemented);
-  return Py_NotImplemented;
+  return handle<>(borrowed(Py_NotImplemented));
 }
 
 
 
 
 template <typename MatrixType>
-PyObject *multiplyMatrixInPlace(python::object op1, python::object op2)
+handle<> multiplyMatrixInPlace(python::object op1, python::object op2)
 {
-  PyObject *result = multiplyMatrixInPlaceWithoutCoercion<MatrixType>(op1, op2);
-  if (result != Py_NotImplemented)
+  handle<> result = multiplyMatrixInPlaceWithoutCoercion<MatrixType>(op1, op2);
+  if (result.get() != Py_NotImplemented)
     return result;
   else
-  {
-    Py_DECREF(result);
-    PyObject *result = PyObject_CallMethod(op1.ptr(), 
+    return handle<>(PyObject_CallMethod(op1.ptr(), 
         (char *) "_cast_and_retry", 
         (char *) "sO",
-        "imul", op2.ptr());
-    if (result == 0)
-      throw python::error_already_set();
-    else
-      return result;
-  }
+        "imul", op2.ptr()));
 }
 
 
